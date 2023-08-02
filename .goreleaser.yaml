@@ -1,0 +1,34 @@
+builds:
+  - env:
+      - CGO_ENABLED=0
+    goos:
+      # - freebsd
+      # - darwin
+      - windows
+      - linux
+    goarch:
+      - amd64
+      # - arm
+      # - arm64
+    ldflags:
+      - -s -w -X github.com/tmeckel/azdo-cli/internal/build.Version={{.Version}} -X github.com/tmeckel/azdo-cli/internal/build.Commit={{.Commit}} -X github.com/tmeckel/azdo-cli/internal/build.Date={{time "2006-01-02"}}
+    main: ./cmd/azdo/azdo.go
+    binary: azdo
+archives:
+  # - name_template: >-
+  #       {{ .ProjectName }}_
+  #       {{- title .Os }}_
+  #       {{- if eq .Arch "amd64" }}x86_64
+  #       {{- else if eq .Arch "386" }}i386
+  #       {{- else }}{{ .Arch }}{{ end }}
+  #       {{- if .Arm }}v{{ .Arm }}{{ end }}
+  - format_overrides:
+      - goos: windows
+        format: zip
+checksum:
+  name_template: 'checksums.txt'
+snapshot:
+  name_template: '{{ .Tag }}-next'
+changelog:
+  use: github-native
+  sort: asc
