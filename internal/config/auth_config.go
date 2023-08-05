@@ -4,10 +4,14 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"runtime"
 	"strings"
+	"unsafe"
 
 	"github.com/emirpasic/gods/sets/hashset"
 	"github.com/zalando/go-keyring"
+	"go.uber.org/zap"
+	"golang.org/x/text/encoding/unicode"
 )
 
 const (
@@ -26,6 +30,23 @@ type AuthConfig interface {
 	Logout(organizationName string) error
 }
 
+// https://stackoverflow.com/a/53286786/874043
+var nativeEndian unicode.Endianness
+
+func init() {
+	buf := [2]byte{}
+	*(*uint16)(unsafe.Pointer(&buf[0])) = uint16(0xABCD)
+
+	switch buf {
+	case [2]byte{0xCD, 0xAB}:
+		nativeEndian = unicode.LittleEndian
+	case [2]byte{0xAB, 0xCD}:
+		nativeEndian = unicode.BigEndian
+	default:
+		panic("Could not determine native endianness.")
+	}
+}
+
 // AuthConfig is used for interacting with some persistent configuration for azdo,
 // with knowledge on how to access encrypted storage when neccesarry.
 // Behavior is scoped to authentication specific tasks.
@@ -33,14 +54,17 @@ type authConfig struct {
 	cfg Config
 }
 
-// Token will retrieve the auth token for the given hostname,
+// Token will retrieve the auth token for the given organizationName,
 // searching environment variables, plain text config, and
 // lastly encrypted storage.
-func (c *authConfig) GetToken(hostname string) (token string, err error) {
-	token, err = c.GetTokenFromEnvOrConfig(hostname)
+func (c *authConfig) GetToken(organizationName string) (token string, err error) {
+	logger := zap.L().Sugar()
+	logger.Debugf("getting token for organization %s", organizationName)
+	token, err = c.GetTokenFromEnvOrConfig(organizationName)
 	if err != nil {
-		if errors.Is(err, &KeyNotFoundError{}) {
-			token, err = c.GetTokenFromKeyring(hostname)
+		if errors.Is(err, new(KeyNotFoundError)) {
+			logger.Debug("detected KeyNotFoundError trying to get token from keyring")
+			token, err = c.GetTokenFromKeyring(organizationName)
 		}
 	}
 	return
@@ -57,10 +81,23 @@ func (c *authConfig) GetTokenFromEnvOrConfig(host string) (token string, err err
 	return
 }
 
-// TokenFromKeyring will retrieve the auth token for the given hostname,
+// TokenFromKeyring will retrieve the auth token for the given organizationName,
 // only searching in encrypted storage.
-func (c *authConfig) GetTokenFromKeyring(hostname string) (string, error) {
-	return keyring.Get(keyringServiceName(hostname), "")
+func (c *authConfig) GetTokenFromKeyring(organizationName string) (token string, err error) {
+	token, err = keyring.Get(keyringServiceName(organizationName), "")
+	if err != nil {
+		return
+	}
+	if runtime.GOOS == "windows" {
+		// https://gist.github.com/bradleypeabody/185b1d7ed6c0c2ab6cec?permalink_comment_id=4318385#gistcomment-4318385
+		decoder := unicode.UTF16(nativeEndian, unicode.IgnoreBOM).NewDecoder()
+		utf8bytes, err := decoder.Bytes([]byte(token)) // token contains UTF16
+		if err != nil {
+			return "", err
+		}
+		token = string(utf8bytes)
+	}
+	return
 }
 
 // GetUrl will retrieve the url for the Azure DevOps organization
@@ -68,11 +105,11 @@ func (c *authConfig) GetUrl(organizationName string) (string, error) {
 	return c.cfg.Get([]string{Organizations, organizationName, "url"})
 }
 
-// GetGitProtocol will retrieve the git protocol for the logged in user at the given hostname.
+// GetGitProtocol will retrieve the git protocol for the logged in user at the given organizationName.
 // If none is set it will return the default value.
-func (c *authConfig) GetGitProtocol(hostname string) (string, error) {
+func (c *authConfig) GetGitProtocol(organizationName string) (string, error) {
 	key := "git_protocol"
-	val, err := c.cfg.Get([]string{Organizations, hostname, key})
+	val, err := c.cfg.Get([]string{Organizations, organizationName, key})
 	if err == nil {
 		return val, err
 	}
@@ -140,7 +177,7 @@ func (c *authConfig) GetOrganizations() []string {
 	return items
 }
 
-// Login will set user, git protocol, and auth token for the given hostname.
+// Login will set user, git protocol, and auth token for the given organizationName.
 // If the encrypt option is specified it will first try to store the auth token
 // in encrypted storage and will fall back to the plain text config file.
 func (c *authConfig) Login(organizationName, organizationUrl, token, gitProtocol string, secureStorage bool) error {
@@ -161,7 +198,7 @@ func (c *authConfig) Login(organizationName, organizationUrl, token, gitProtocol
 	return c.cfg.Write()
 }
 
-// Logout will remove user, git protocol, and auth token for the given hostname.
+// Logout will remove user, git protocol, and auth token for the given organizationName.
 // It will remove the auth token from the encrypted storage if it exists there.
 func (c *authConfig) Logout(organizationName string) (err error) {
 	if organizationName == "" {

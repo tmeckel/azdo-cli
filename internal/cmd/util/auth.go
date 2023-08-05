@@ -6,7 +6,7 @@ import (
 )
 
 type Authenticator interface {
-	GetAuthorizationHeader(host string) (string, error)
+	GetAuthorizationHeader(organizationName string) (string, error)
 }
 
 type patAuthenticator struct {
@@ -20,8 +20,8 @@ func NewPatAuthenticator(cfg config.Config) (instance Authenticator, err error) 
 	return
 }
 
-func (p *patAuthenticator) GetAuthorizationHeader(host string) (hdrValue string, err error) {
-	pat, err := p.cfg.Get([]string{config.Organizations, host, "pat"})
+func (p *patAuthenticator) GetAuthorizationHeader(organizationName string) (hdrValue string, err error) {
+	pat, err := p.cfg.Authentication().GetToken(organizationName)
 	if err != nil {
 		return
 	}

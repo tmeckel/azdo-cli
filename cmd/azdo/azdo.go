@@ -10,10 +10,12 @@ import (
 
 	"github.com/AlecAivazis/survey/v2/terminal"
 	"github.com/spf13/cobra"
+	"github.com/tmeckel/azdo-cli/internal/build"
 	"github.com/tmeckel/azdo-cli/internal/cmd/root"
 	cmdutil "github.com/tmeckel/azdo-cli/internal/cmd/util"
 	"github.com/tmeckel/azdo-cli/internal/iostreams"
 	"github.com/tmeckel/azdo-cli/internal/util"
+	"go.uber.org/zap"
 )
 
 type exitCode int
@@ -25,12 +27,28 @@ const (
 	exitAuth   exitCode = 4
 )
 
+func init() {
+	// Initialize ZAP logger package
+	var logger *zap.Logger
+	var err error
+	if debug, _ := util.IsDebugEnabled(); debug {
+		logger, err = zap.NewDevelopment()
+	} else {
+		logger, err = zap.NewProduction()
+	}
+	zap.ReplaceGlobals(zap.Must(logger, err))
+}
+
 func main() {
 	code := mainRun()
 	os.Exit(int(code))
 }
 
 func mainRun() exitCode {
+	buildDate := build.Date
+	buildVersion := build.Version
+
+	zap.L().Sugar().Debugf("Version %s, Date %+v", buildVersion, buildDate)
 	cmdCtx, err := cmdutil.NewCmdContext()
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "failed to create command context: %s", err)
