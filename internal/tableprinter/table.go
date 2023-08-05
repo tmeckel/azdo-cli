@@ -13,10 +13,10 @@ import (
 	"github.com/tmeckel/azdo-cli/internal/text"
 )
 
-type fieldOption func(*tableField)
+type FieldOption func(*tableField)
 
 type TablePrinter interface {
-	AddField(string, ...fieldOption)
+	AddField(string, ...FieldOption)
 	AddTimeField(now, t time.Time, c func(string) string)
 	HeaderRow(columns ...string)
 	EndRow()
@@ -26,7 +26,7 @@ type TablePrinter interface {
 // WithTruncate overrides the truncation function for the field. The function should transform a string
 // argument into a string that fits within the given display width. The default behavior is to truncate the
 // value by adding "..." in the end. Pass nil to disable truncation for this value.
-func WithTruncate(fn func(int, string) string) fieldOption {
+func WithTruncate(fn func(int, string) string) FieldOption {
 	return func(f *tableField) {
 		f.truncateFunc = fn
 	}
@@ -34,7 +34,7 @@ func WithTruncate(fn func(int, string) string) fieldOption {
 
 // WithColor sets the color function for the field. The function should transform a string value by wrapping
 // it in ANSI escape codes. The color function will not be used if the table was initialized in non-terminal mode.
-func WithColor(fn func(string) string) fieldOption {
+func WithColor(fn func(string) string) FieldOption {
 	return func(f *tableField) {
 		f.colorFunc = fn
 	}
@@ -85,7 +85,7 @@ func (t *ttyTablePrinter) AddTimeField(now, tm time.Time, c func(string) string)
 	t.AddField(tf, WithColor(c))
 }
 
-func (t *ttyTablePrinter) AddField(s string, opts ...fieldOption) {
+func (t *ttyTablePrinter) AddField(s string, opts ...FieldOption) {
 	if t.rows == nil {
 		t.rows = make([][]tableField, 1)
 	}
@@ -241,7 +241,7 @@ func (t *tsvTablePrinter) AddTimeField(now, tm time.Time, c func(string) string)
 	t.AddField(tf, WithColor(c))
 }
 
-func (t *tsvTablePrinter) AddField(text string, opts ...fieldOption) {
+func (t *tsvTablePrinter) AddField(text string, opts ...FieldOption) {
 	if t.currentCol > 0 {
 		fmt.Fprint(t.out, "\t")
 	}

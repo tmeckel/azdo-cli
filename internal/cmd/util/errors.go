@@ -8,27 +8,27 @@ import (
 	"github.com/AlecAivazis/survey/v2/terminal"
 )
 
-// FlagErrorf returns a new ErrFlag that wraps an error produced by
+// FlagErrorf returns a new FlagError that wraps an error produced by
 // fmt.Errorf(format, args...).
 func FlagErrorf(format string, args ...interface{}) error {
 	return FlagErrorWrap(fmt.Errorf(format, args...))
 }
 
-// ErrFlag returns a new ErrFlag that wraps the specified error.
-func FlagErrorWrap(err error) error { return &ErrFlag{err} }
+// FlagError returns a new FlagError that wraps the specified error.
+func FlagErrorWrap(err error) error { return &FlagError{err} }
 
-// A *ErrFlag indicates an error processing command-line flags or other arguments.
+// A *FlagError indicates an error processing command-line flags or other arguments.
 // Such errors cause the application to display the usage message.
-type ErrFlag struct {
-	// Note: not struct{error}: only *ErrFlag should satisfy error.
+type FlagError struct {
+	// Note: not struct{error}: only *FlagError should satisfy error.
 	err error
 }
 
-func (fe *ErrFlag) Error() string {
+func (fe *FlagError) Error() string {
 	return fe.err.Error()
 }
 
-func (fe *ErrFlag) Unwrap() error {
+func (fe *FlagError) Unwrap() error {
 	return fe.err
 }
 
@@ -55,32 +55,32 @@ func MutuallyExclusive(message string, conditions ...bool) error {
 	return nil
 }
 
-type ErrNoResults struct {
+type NoResultsError struct {
 	message string
 }
 
-func (e ErrNoResults) Error() string {
+func (e NoResultsError) Error() string {
 	return e.message
 }
 
-func NewNoResultsError(message string) ErrNoResults {
-	return ErrNoResults{message: message}
+func NewNoResultsError(message string) NoResultsError {
+	return NoResultsError{message: message}
 }
 
-type ErrExternalCommandExit struct {
+type ExternalCommandExitError struct {
 	err *exec.ExitError
 }
 
-func (e ErrExternalCommandExit) Error() string {
+func (e ExternalCommandExitError) Error() string {
 	return e.err.Error()
 }
 
-func (e ErrExternalCommandExit) ExitCode() int {
+func (e ExternalCommandExitError) ExitCode() int {
 	return e.err.ExitCode()
 }
 
-func NewExternalCommandExitError(err *exec.ExitError) ErrExternalCommandExit {
-	return ErrExternalCommandExit{
+func NewExternalCommandExitError(err *exec.ExitError) ExternalCommandExitError {
+	return ExternalCommandExitError{
 		err: err,
 	}
 }

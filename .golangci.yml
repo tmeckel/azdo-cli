@@ -1,0 +1,41 @@
+run:
+  timeout: 60m
+
+issues:
+  max-per-linter: 0
+  max-same-issues: 0
+  exclude-rules:
+    - linters:
+        - unparam
+      text: ".*\\(error\\) is always nil$"
+    - linters:
+        - revive
+      text: "unused-parameter: parameter '[^']+' seems to be unused, consider removing or renaming it as _"
+linters:
+  disable-all: true
+  enable:
+    - asciicheck
+    - bidichk
+    - errname
+    - errcheck
+    - errorlint
+    - gocritic
+    - gofumpt
+    - goimports
+    - gosimple
+    - govet
+    - ineffassign
+    - loggercheck
+    - misspell
+    - nilnil
+    - nolintlint
+    - reassign
+    - revive
+    - staticcheck
+    - typecheck
+    - unused
+    - unconvert
+    - unparam
+    - vet
+    - vetshadow
+    - wastedassign

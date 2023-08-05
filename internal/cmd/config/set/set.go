@@ -85,7 +85,7 @@ func setRun(ctx util.CmdContext, opts *setOptions) (err error) {
 }
 
 func validateKey(key string) error {
-	for _, configKey := range config.ConfigOptions() {
+	for _, configKey := range config.Options() {
 		if key == configKey.Key {
 			return nil
 		}
@@ -105,7 +105,7 @@ func (e InvalidValueError) Error() string {
 func validateValue(key, value string) error {
 	var validValues []string
 
-	for _, v := range config.ConfigOptions() {
+	for _, v := range config.Options() {
 		if v.Key == key {
 			validValues = v.AllowedValues
 			break

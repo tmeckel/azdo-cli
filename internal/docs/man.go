@@ -52,7 +52,7 @@ func genManTreeFromOpts(cmd *cobra.Command, opts GenManTreeOptions) error {
 	if opts.CommandSeparator != "" {
 		separator = opts.CommandSeparator
 	}
-	basename := strings.Replace(cmd.CommandPath(), " ", separator, -1)
+	basename := strings.ReplaceAll(cmd.CommandPath(), " ", separator)
 	filename := filepath.Join(opts.Path, basename+"."+section)
 	f, err := os.Create(filename)
 	if err != nil {
@@ -105,7 +105,7 @@ func renderMan(cmd *cobra.Command, header *GenManHeader, w io.Writer) error {
 
 func fillHeader(header *GenManHeader, name string) error {
 	if header.Title == "" {
-		header.Title = strings.ToUpper(strings.Replace(name, " ", "\\-", -1))
+		header.Title = strings.ToUpper(strings.ReplaceAll(name, " ", "\\-"))
 	}
 	if header.Section == "" {
 		header.Section = "1"
@@ -115,7 +115,7 @@ func fillHeader(header *GenManHeader, name string) error {
 		if epoch := os.Getenv("SOURCE_DATE_EPOCH"); epoch != "" {
 			unixEpoch, err := strconv.ParseInt(epoch, 10, 64)
 			if err != nil {
-				return fmt.Errorf("invalid SOURCE_DATE_EPOCH: %v", err)
+				return fmt.Errorf("invalid SOURCE_DATE_EPOCH: %w", err)
 			}
 			now = time.Unix(unixEpoch, 0)
 		}
@@ -178,7 +178,7 @@ func genMan(cmd *cobra.Command, header *GenManHeader) []byte {
 	cmd.InitDefaultHelpFlag()
 
 	// something like `rootcmd-subcmd1-subcmd2`
-	dashCommandName := strings.Replace(cmd.CommandPath(), " ", "-", -1)
+	dashCommandName := strings.ReplaceAll(cmd.CommandPath(), " ", "-")
 
 	buf := new(bytes.Buffer)
 
@@ -203,5 +203,5 @@ func genMan(cmd *cobra.Command, header *GenManHeader) []byte {
 
 func manLink(cmd *cobra.Command) string {
 	p := cmd.CommandPath()
-	return fmt.Sprintf("%s(%d)", strings.Replace(p, " ", "-", -1), 1)
+	return fmt.Sprintf("%s(%d)", strings.ReplaceAll(p, " ", "-"), 1)
 }

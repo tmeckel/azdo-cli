@@ -91,7 +91,7 @@ func runList(ctx util.CmdContext, opts *listOptions) (err error) {
 	if err != nil {
 		return
 	}
-	if len(res.Value) <= 0 {
+	if len(res.Value) == 0 {
 		return util.NewNoResultsError(fmt.Sprintf("No projects found for organization %s", organizationName))
 	}
 

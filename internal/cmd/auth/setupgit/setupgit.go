@@ -105,19 +105,19 @@ func setupGitRun(ctx util.CmdContext, opts *setupGitOptions) (err error) {
 	}
 	for _, organizationName := range organizationsToSetup {
 
-		organizationUrl, err := authCfg.GetUrl(organizationName)
+		organizationURL, err := authCfg.GetURL(organizationName)
 		if err != nil {
 			return err
 		}
 
 		// first use a blank value to indicate to git we want to sever the chain of credential helpers
-		credHelperKey := fmt.Sprintf("credential.%s.helper", strings.TrimSuffix(organizationUrl, "/"))
+		credHelperKey := fmt.Sprintf("credential.%s.helper", strings.TrimSuffix(organizationURL, "/"))
 		preConfigureCmd, err := gitClient.Command(rctx, "config", "--global", "--unset-all", credHelperKey, "")
 		if err != nil {
 			return err
 		}
 		if _, err = preConfigureCmd.Output(); err != nil {
-			var ge *git.GitError
+			var ge *git.Error
 			if !errors.As(err, &ge) || ge.ExitCode != 5 {
 				return err
 			}
@@ -155,7 +155,7 @@ func setupGitRun(ctx util.CmdContext, opts *setupGitOptions) (err error) {
 			return err
 		}
 
-		u, err := url.Parse(organizationUrl)
+		u, err := url.Parse(organizationURL)
 		if err != nil {
 			return err
 		}

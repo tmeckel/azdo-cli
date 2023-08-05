@@ -77,7 +77,7 @@ func (c *cmdContext) Config() (cfg config.Config, err error) {
 }
 
 func (c *cmdContext) Connection(organization string) (client *azuredevops.Connection, err error) {
-	organizationUrl, err := c.cfg.Get([]string{config.Organizations, organization, "url"})
+	organizationURL, err := c.cfg.Get([]string{config.Organizations, organization, "url"})
 	if err != nil {
 		return
 	}
@@ -88,7 +88,7 @@ func (c *cmdContext) Connection(organization string) (client *azuredevops.Connec
 	}
 	client = &azuredevops.Connection{
 		AuthorizationString:     authHrd,
-		BaseUrl:                 strings.ToLower(strings.TrimRight(organizationUrl, "/")),
+		BaseUrl:                 strings.ToLower(strings.TrimRight(organizationURL, "/")),
 		SuppressFedAuthRedirect: true,
 	}
 	return

@@ -1,6 +1,7 @@
 package config
 
 import (
+	"errors"
 	"fmt"
 )
 
@@ -32,6 +33,6 @@ func (e *KeyNotFoundError) Error() string {
 }
 
 func (e *KeyNotFoundError) Is(err error) bool {
-	_, ok := err.(*KeyNotFoundError)
-	return ok
+	keyNotFoundError := new(KeyNotFoundError)
+	return errors.As(err, &keyNotFoundError)
 }

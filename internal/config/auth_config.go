@@ -20,13 +20,13 @@ const (
 )
 
 type AuthConfig interface {
-	GetUrl(organizationName string) (string, error)
+	GetURL(organizationName string) (string, error)
 	GetGitProtocol(organizationName string) (string, error)
 	GetDefaultOrganization() (string, error)
 	SetDefaultOrganization(organizationName string) error
 	GetOrganizations() []string
 	GetToken(organizationName string) (string, error)
-	Login(organizationName, organizationUrl, token, gitProtocol string, secureStorage bool) error
+	Login(organizationName, organizationURL, token, gitProtocol string, secureStorage bool) error
 	Logout(organizationName string) error
 }
 
@@ -101,7 +101,7 @@ func (c *authConfig) GetTokenFromKeyring(organizationName string) (token string,
 }
 
 // GetUrl will retrieve the url for the Azure DevOps organization
-func (c *authConfig) GetUrl(organizationName string) (string, error) {
+func (c *authConfig) GetURL(organizationName string) (string, error) {
 	return c.cfg.Get([]string{Organizations, organizationName, "url"})
 }
 
@@ -180,7 +180,7 @@ func (c *authConfig) GetOrganizations() []string {
 // Login will set user, git protocol, and auth token for the given organizationName.
 // If the encrypt option is specified it will first try to store the auth token
 // in encrypted storage and will fall back to the plain text config file.
-func (c *authConfig) Login(organizationName, organizationUrl, token, gitProtocol string, secureStorage bool) error {
+func (c *authConfig) Login(organizationName, organizationURL, token, gitProtocol string, secureStorage bool) error {
 	var setErr error
 	if secureStorage {
 		if setErr = keyring.Set(keyringServiceName(organizationName), "", token); setErr == nil {
@@ -188,7 +188,7 @@ func (c *authConfig) Login(organizationName, organizationUrl, token, gitProtocol
 			_ = c.cfg.Remove([]string{Organizations, organizationName, Pat})
 		}
 	}
-	c.cfg.Set([]string{Organizations, organizationName, "url"}, organizationUrl)
+	c.cfg.Set([]string{Organizations, organizationName, "url"}, organizationURL)
 	if !secureStorage || setErr != nil {
 		c.cfg.Set([]string{Organizations, organizationName, Pat}, token)
 	}

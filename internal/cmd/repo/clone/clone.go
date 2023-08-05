@@ -1,6 +1,7 @@
 package clone
 
 import (
+	"errors"
 	"fmt"
 	"strings"
 
@@ -48,7 +49,7 @@ func NewCmdRepoClone(ctx util.CmdContext) *cobra.Command {
 	cmd.Flags().StringVarP(&opts.upstreamName, "upstream-remote-name", "u", "upstream", "Upstream remote name when cloning a fork")
 	cmd.Flags().BoolVar(&opts.noCredentialHelper, "no-credential-helper", false, "Don't configure azdo as credential helper for the cloned repository")
 	cmd.SetFlagErrorFunc(func(cmd *cobra.Command, err error) error {
-		if err == pflag.ErrHelp {
+		if errors.Is(err, pflag.ErrHelp) {
 			return err
 		}
 		return util.FlagErrorf("%w\nSeparate git clone flags with '--'.", err)
@@ -64,7 +65,7 @@ func runClone(ctx util.CmdContext, opts *cloneOptions) (err error) {
 	}
 
 	repoItems := strings.Split(opts.repository, "/")
-	err = util.MutuallyExclusive("Either fully qualify the repository to clone ({PROJECT}/{REPOSITORY}) or specifiy the repository and the project via the --project argument", opts.project != "", len(repoItems) > 1)
+	err = util.MutuallyExclusive("Either fully qualify the repository to clone ({PROJECT}/{REPOSITORY}) or specify the repository and the project via the --project argument", opts.project != "", len(repoItems) > 1)
 	if err != nil {
 		return
 	}
@@ -108,7 +109,7 @@ func runClone(ctx util.CmdContext, opts *cloneOptions) (err error) {
 		return
 	}
 
-	var repo *git.GitRepository = nil
+	var repo *git.GitRepository
 	for _, r := range *res {
 		if strings.EqualFold(*r.Name, opts.repository) {
 			repo = &r

@@ -94,9 +94,7 @@ func expandAlias(expansion string, args []string) ([]string, error) {
 		return nil, err
 	}
 
-	expanded := append(newArgs, extraArgs...)
-
-	return expanded, nil
+	return append(newArgs, extraArgs...), nil
 }
 
 // ExpandShellAlias processes argv to see if it should be rewritten according to a user's aliases.

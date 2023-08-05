@@ -5,14 +5,14 @@ import (
 	"path/filepath"
 )
 
-type ConfigOption struct {
+type Option struct {
 	Key           string
 	Description   string
 	DefaultValue  string
 	AllowedValues []string
 }
 
-var configOptions = []ConfigOption{
+var configOptions = []Option{
 	{
 		Key:           "git_protocol",
 		Description:   "the protocol to use for git clone and push operations",
@@ -52,7 +52,7 @@ var configOptions = []ConfigOption{
 	},
 }
 
-func ConfigOptions() []ConfigOption {
+func Options() []Option {
 	return configOptions
 }
 

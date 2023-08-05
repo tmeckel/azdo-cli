@@ -91,7 +91,7 @@ func runList(ctx util.CmdContext, opts *listOptions) (err error) {
 		return err
 	}
 
-	if res == nil || len(*res) <= 0 {
+	if res == nil || len(*res) == 0 {
 		return util.NewNoResultsError(fmt.Sprintf("No repositories found for project %s and organization %s", opts.project, organizationName))
 	}
 

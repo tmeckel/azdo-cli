@@ -88,17 +88,17 @@ func helperRun(ctx util.CmdContext, opts *credentialOptions) (err error) {
 	}
 
 	if wants["protocol"] != "https" {
-		return fmt.Errorf("procotol %s != https", wants["protocol"])
+		return fmt.Errorf("protocol %s != https", wants["protocol"])
 	}
 
 	var organizationName string
 	lookupHost := strings.ToLower(wants["host"])
-	if strings.Contains(lookupHost, ".visualstudio.com") {
+	if strings.Contains(lookupHost, ".visualstudio.com") { //nolint:golint,gocritic
 		organizationName = strings.Split(lookupHost, ".")[0]
 	} else if lookupHost == "dev.azure.com" {
 		if path, ok := wants["path"]; !ok {
 			return fmt.Errorf("authenticating via dev.azure.com host requires path parameter")
-		} else {
+		} else { //nolint:golint,revive
 			organizationName = strings.Split(path, "/")[0]
 		}
 	} else {

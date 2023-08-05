@@ -170,7 +170,7 @@ func (m *Map) SetUnmodified() {
 			break
 		}
 		q := queue[i]
-		i = i + 1
+		i++
 		if q.Kind != yaml.MappingNode {
 			continue
 		}
@@ -188,7 +188,7 @@ func (m *Map) IsModified() bool {
 			break
 		}
 		q := queue[i]
-		i = i + 1
+		i++
 		if q.Kind != yaml.MappingNode {
 			continue
 		}

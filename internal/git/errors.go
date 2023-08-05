@@ -8,32 +8,32 @@ import (
 // ErrNotOnAnyBranch indicates that the user is in detached HEAD state.
 var ErrNotOnAnyBranch = errors.New("git: not on any branch")
 
-type NotInstalled struct {
+type NotInstalledError struct {
 	message string
 	err     error
 }
 
-func (e *NotInstalled) Error() string {
+func (e *NotInstalledError) Error() string {
 	return e.message
 }
 
-func (e *NotInstalled) Unwrap() error {
+func (e *NotInstalledError) Unwrap() error {
 	return e.err
 }
 
-type GitError struct {
+type Error struct {
 	ExitCode int
 	Stderr   string
 	err      error
 }
 
-func (ge *GitError) Error() string {
+func (ge *Error) Error() string {
 	if ge.Stderr == "" {
 		return fmt.Sprintf("failed to run git: %v", ge.err)
 	}
 	return fmt.Sprintf("failed to run git: %s", ge.Stderr)
 }
 
-func (ge *GitError) Unwrap() error {
+func (ge *Error) Unwrap() error {
 	return ge.err
 }
