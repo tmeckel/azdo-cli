@@ -30,3 +30,8 @@ type KeyNotFoundError struct {
 func (e *KeyNotFoundError) Error() string {
 	return fmt.Sprintf("could not find key %q", e.Key)
 }
+
+func (e *KeyNotFoundError) Is(err error) bool {
+	_, ok := err.(*KeyNotFoundError)
+	return ok
+}
