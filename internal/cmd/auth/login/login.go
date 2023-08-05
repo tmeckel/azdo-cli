@@ -12,7 +12,7 @@ import (
 type loginOptions struct {
 	MainExecutable  string
 	Interactive     bool
-	OrganizationUrl string
+	OrganizationURL string
 	Token           string
 	GitProtocol     string
 	InsecureStorage bool
@@ -75,7 +75,7 @@ func NewCmdLogin(ctx util.CmdContext) *cobra.Command {
 		},
 	}
 
-	cmd.Flags().StringVarP(&opts.OrganizationUrl, "organizationUrl", "o", "", "The URL to the Azure DevOps organization to authenticate with")
+	cmd.Flags().StringVarP(&opts.OrganizationURL, "organizationUrl", "o", "", "The URL to the Azure DevOps organization to authenticate with")
 	cmd.Flags().BoolVar(&tokenStdin, "with-token", false, "Read token from standard input")
 	util.StringEnumFlag(cmd, &opts.GitProtocol, "git-protocol", "p", "", []string{"ssh", "https"}, "The protocol to use for git operations")
 	cmd.Flags().BoolVar(&opts.InsecureStorage, "insecure-storage", false, "Save authentication credentials in plain text instead of credential store")
@@ -93,11 +93,11 @@ func loginRun(ctx util.CmdContext, opts *loginOptions) (err error) {
 		return util.FlagErrorf("error getting io propter: %w", err)
 	}
 
-	organizationUrl := opts.OrganizationUrl
+	organizationURL := opts.OrganizationURL
 	organizationName := ""
 
-	if opts.Interactive && organizationUrl == "" {
-		organizationUrl, organizationName, err = promptForOrganizationName(ctx, opts)
+	if opts.Interactive && organizationURL == "" {
+		organizationURL, organizationName, err = promptForOrganizationName(ctx, opts)
 		if err != nil {
 			return
 		}
@@ -129,14 +129,14 @@ func loginRun(ctx util.CmdContext, opts *loginOptions) (err error) {
 	}
 
 	authCfg := cfg.Authentication()
-	if err = authCfg.Login(organizationName, organizationUrl, authToken, gitProtocol, !opts.InsecureStorage); err != nil {
+	if err = authCfg.Login(organizationName, organizationURL, authToken, gitProtocol, !opts.InsecureStorage); err != nil {
 		return
 	}
 
 	return
 }
 
-func promptForOrganizationName(ctx util.CmdContext, opts *loginOptions) (organizationUrl string, organizationName string, err error) {
+func promptForOrganizationName(ctx util.CmdContext, _ *loginOptions) (organizationURL string, organizationName string, err error) {
 	options := []string{"https://dev.azure.com/{organization}", "https://{organization}.visualstudio.com"}
 	p, err := ctx.Prompter()
 	if err != nil {
@@ -156,7 +156,7 @@ func promptForOrganizationName(ctx util.CmdContext, opts *loginOptions) (organiz
 	}
 
 	organizationName = strings.ToLower(organizationName)
-	organizationUrl = strings.Replace(options[orgType], "{organization}", organizationName, -1)
+	organizationURL = strings.ReplaceAll(options[orgType], "{organization}", organizationName)
 
 	return
 }

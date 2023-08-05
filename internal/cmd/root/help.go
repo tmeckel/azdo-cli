@@ -77,7 +77,7 @@ func isRootCmd(command *cobra.Command) bool {
 	return command != nil && !command.HasParent()
 }
 
-func rootHelpFunc(iostrms *iostreams.IOStreams, command *cobra.Command, args []string) {
+func rootHelpFunc(iostrms *iostreams.IOStreams, command *cobra.Command, _ []string) {
 	flags := command.Flags()
 
 	if isRootCmd(command) {

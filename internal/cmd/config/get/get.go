@@ -8,13 +8,13 @@ import (
 	"github.com/tmeckel/azdo-cli/internal/config"
 )
 
-type GetOptions struct {
+type getOptions struct {
 	OrganizationName string
 	Key              string
 }
 
 func NewCmdConfigGet(ctx util.CmdContext) *cobra.Command {
-	opts := &GetOptions{}
+	opts := &getOptions{}
 
 	cmd := &cobra.Command{
 		Use:   "get <key>",
@@ -36,7 +36,7 @@ func NewCmdConfigGet(ctx util.CmdContext) *cobra.Command {
 	return cmd
 }
 
-func getRun(ctx util.CmdContext, opts *GetOptions) (err error) {
+func getRun(ctx util.CmdContext, opts *getOptions) (err error) {
 	cfg, err := ctx.Config()
 	if err != nil {
 		return util.FlagErrorf("error getting io configuration: %w", err)

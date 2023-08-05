@@ -69,12 +69,12 @@ func mainRun() exitCode {
 
 	if cmd, err := rootCmd.ExecuteC(); err != nil {
 		var pagerPipeError *iostreams.ErrClosedPagerPipe
-		var noResultsError cmdutil.ErrNoResults
-		var extError *cmdutil.ErrExternalCommandExit
+		var noResultsError cmdutil.NoResultsError
+		var extError *cmdutil.ExternalCommandExitError
 		var authError *root.AuthError
 		stderr := iostrms.ErrOut
 
-		if err == cmdutil.ErrSilent {
+		if errors.Is(err, cmdutil.ErrSilent) { //nolint:golint,gocritic
 			return exitError
 		} else if cmdutil.IsUserCancellation(err) {
 			if errors.Is(err, terminal.InterruptErr) {
@@ -126,7 +126,7 @@ func printError(out io.Writer, err error, cmd *cobra.Command) {
 
 	fmt.Fprintln(out, err)
 
-	var flagError *cmdutil.ErrFlag
+	var flagError *cmdutil.FlagError
 	if errors.As(err, &flagError) || strings.HasPrefix(err.Error(), "unknown command ") {
 		if !strings.HasSuffix(err.Error(), "\n") {
 			fmt.Fprintln(out)

@@ -26,7 +26,7 @@ const (
 var (
 	instance *configData
 	once     sync.Once
-	loadErr  error
+	errLoad  error
 )
 
 // configData is a in memory representation of the azdo configuration files.
@@ -137,15 +137,15 @@ func (c *configData) Set(keys []string, value string) {
 // return a configData.
 var Read = func() (*configData, error) {
 	once.Do(func() {
-		instance, loadErr = load(generalConfigFile(), organizationsConfigFile())
+		instance, errLoad = load(generalConfigFile(), organizationsConfigFile())
 	})
-	return instance, loadErr
+	return instance, errLoad
 }
 
 // ReadFromString takes a yaml string and returns a configData.
 // Note: This is only used for testing, and should not be
 // relied upon in production.
-func ReadFromString(str string) *configData {
+func ReadFromString(str string) *configData { //nolint:golint,revive
 	m, _ := mapFromString(str)
 	if m == nil {
 		m = yamlmap.MapValue()
@@ -219,11 +219,11 @@ func load(generalFilePath, organizationsFilePath string) (*configData, error) {
 }
 
 func generalConfigFile() string {
-	return filepath.Join(ConfigDir(), "config.yml")
+	return filepath.Join(Dir(), "config.yml")
 }
 
 func organizationsConfigFile() string {
-	return filepath.Join(ConfigDir(), "organizations.yml")
+	return filepath.Join(Dir(), "organizations.yml")
 }
 
 func mapFromFile(filename string) (*yamlmap.Map, error) {
@@ -239,7 +239,7 @@ func mapFromString(str string) (*yamlmap.Map, error) {
 }
 
 // configData path precedence: AZDO_CONFIG_DIR, XDG_CONFIG_HOME, AppData (windows only), HOME.
-func ConfigDir() string {
+func Dir() string {
 	var path string
 	if a := os.Getenv(ghConfigDir); a != "" {
 		path = a

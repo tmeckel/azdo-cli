@@ -20,7 +20,7 @@ import (
 
 var remoteRE = regexp.MustCompile(`(.+)\s+(.+)\s+\((push|fetch)\)`)
 
-type errWithExitCode interface {
+type withExitCodeError interface {
 	ExitCode() int
 }
 
@@ -120,7 +120,7 @@ func (c *Client) Remotes(ctx context.Context) (RemoteSet, error) {
 	configOut, configErr := configCmd.Output()
 	if configErr != nil {
 		// Ignore exit code 1 as it means there are no resolved remotes.
-		var gitErr *GitError
+		var gitErr *Error
 		if ok := errors.As(configErr, &gitErr); ok && gitErr.ExitCode != 1 {
 			return nil, gitErr
 		}
@@ -167,7 +167,7 @@ func (c *Client) CurrentBranch(ctx context.Context) (string, error) {
 	}
 	out, err := cmd.Output()
 	if err != nil {
-		var gitErr *GitError
+		var gitErr *Error
 		if ok := errors.As(err, &gitErr); ok && len(gitErr.Stderr) == 0 {
 			gitErr.err = ErrNotOnAnyBranch
 			gitErr.Stderr = "not on any branch"
@@ -207,7 +207,7 @@ func (c *Client) SetConfig(ctx context.Context, configItems ...string) (err erro
 	if len(configItems) > 0 {
 		var cmd *Command
 		if len(configItems)%2 > 0 {
-			return fmt.Errorf("configuration parameteres must by symmetric")
+			return fmt.Errorf("configuration parameters must by symmetric")
 		}
 		n := 0
 		for n < len(configItems) {
@@ -235,7 +235,7 @@ func (c *Client) GetConfig(ctx context.Context, name string) (string, error) {
 	}
 	out, err := cmd.Output()
 	if err != nil {
-		var gitErr *GitError
+		var gitErr *Error
 		if ok := errors.As(err, &gitErr); ok && gitErr.ExitCode == 1 {
 			gitErr.Stderr = fmt.Sprintf("unknown config key %s", name)
 			return "", gitErr
@@ -462,7 +462,7 @@ func (c *Client) revParse(ctx context.Context, args ...string) ([]byte, error) {
 func (c *Client) IsLocalGitRepo(ctx context.Context) (bool, error) {
 	_, err := c.GitDir(ctx)
 	if err != nil {
-		var execError errWithExitCode
+		var execError withExitCodeError
 		if errors.As(err, &execError) && execError.ExitCode() == 128 {
 			return false, nil
 		}
@@ -610,7 +610,7 @@ func resolveGitPath() (string, error) {
 			if runtime.GOOS == "windows" {
 				programName = "Git for Windows"
 			}
-			return "", &NotInstalled{
+			return "", &NotInstalledError{
 				message: fmt.Sprintf("unable to find git executable in PATH; please install %s before retrying", programName),
 				err:     err,
 			}

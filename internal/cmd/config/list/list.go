@@ -47,7 +47,7 @@ func listRun(ctx util.CmdContext, opts *listOptions) error {
 		host, _ = cfg.Authentication().GetDefaultOrganization()
 	}
 
-	configOptions := config.ConfigOptions()
+	configOptions := config.Options()
 
 	var keys []string
 	if host != "" {

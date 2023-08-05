@@ -1242,7 +1242,7 @@ func TestHelperProcess(t *testing.T) {
 	if os.Getenv("GH_WANT_HELPER_PROCESS") != "1" {
 		return
 	}
-	if err := func(args []string) error {
+	if err := func(_ []string) error {
 		fmt.Fprint(os.Stdout, os.Getenv("GH_HELPER_PROCESS_STDOUT"))
 		exitStatus := os.Getenv("GH_HELPER_PROCESS_EXIT_STATUS")
 		if exitStatus != "0" {
@@ -1261,7 +1261,7 @@ func TestHelperProcess(t *testing.T) {
 	os.Exit(0)
 }
 
-func createCommandContext(t *testing.T, exitStatus int, stdout, stderr string) (*exec.Cmd, commandCtx) {
+func createCommandContext(_ *testing.T, exitStatus int, stdout, stderr string) (*exec.Cmd, commandCtx) {
 	cmd := exec.CommandContext(context.Background(), os.Args[0], "-test.run=TestHelperProcess", "--")
 	cmd.Env = []string{
 		"GH_WANT_HELPER_PROCESS=1",
