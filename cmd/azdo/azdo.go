@@ -72,7 +72,10 @@ func mainRun() exitCode {
 		var noResultsError cmdutil.NoResultsError
 		var extError *cmdutil.ExternalCommandExitError
 		var authError *root.AuthError
+
 		stderr := iostrms.ErrOut
+
+		zap.L().Sugar().Debugf("Processing error %v", err)
 
 		if errors.Is(err, cmdutil.ErrSilent) { //nolint:golint,gocritic
 			return exitError

@@ -52,7 +52,11 @@ func NewCmdRoot(ctx util.CmdContext) (*cobra.Command, error) {
 
 	cmd.PersistentFlags().Bool("help", false, "Show help for command")
 
+	cmd.SilenceErrors = true
+	cmd.SilenceUsage = true
+
 	cmd.Flags().Bool("version", false, "Show azdo version")
+
 	cmd.SetHelpFunc(func(c *cobra.Command, args []string) {
 		rootHelpFunc(iostrms, c, args)
 	})
