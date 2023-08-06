@@ -73,7 +73,7 @@ func fetchOrganizationStates(ctx util.CmdContext, organizationsToCheck []string)
 
 		close(statusChannel)
 		return nil
-	}(statusChannel)
+	}(statusChannel) //nolint:golint,errcheck
 
 	return statusChannel, nil
 }

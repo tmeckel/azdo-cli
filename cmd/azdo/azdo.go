@@ -77,7 +77,7 @@ func mainRun() exitCode {
 
 		zap.L().Sugar().Debugf("Processing error %v", err)
 
-		if err == cmdutil.ErrSilent {
+		if errors.Is(err, cmdutil.ErrSilent) { //nolint:golint,gocritic
 			return exitError
 		} else if cmdutil.IsUserCancellation(err) {
 			if errors.Is(err, terminal.InterruptErr) {
