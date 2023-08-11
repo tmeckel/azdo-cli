@@ -6,11 +6,13 @@ on:
     tags-ignore:
       - v*
     paths:
+      - .github/workflows/lint.yml
       - "**.go"
       - go.mod
       - go.sum
   pull_request:
     paths:
+      - .github/workflows/lint.yml
       - "**.go"
       - go.mod
       - go.sum
@@ -52,6 +54,14 @@ jobs:
             tar xz --strip-components 1 --wildcards \*/golangci-lint
           mkdir -p bin && mv golangci-lint bin/
 
+      - name: Run Lint checks
+        run: |
+          bin/golangci-lint run --out-format=github-actions --timeout=3m || exit $?
+
+      - name: Build docs generator
+        run: |
+          go build -o bin/gen-docs cmd/gen-docs/gen-docs.go || exit $?
+
       - name: Run checks
         run: |
           STATUS=0
@@ -65,9 +75,8 @@ jobs:
             fi
           }
 
+          assert-nothing-changed ./bin/gen-docs --doc-path ./docs --website
           assert-nothing-changed go fmt ./...
           assert-nothing-changed go mod tidy
-
-          bin/golangci-lint run --out-format=github-actions --timeout=3m || STATUS=$?
 
           exit $STATUS

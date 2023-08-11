@@ -18,21 +18,21 @@ func printOptions(w io.Writer, cmd *cobra.Command) error {
 	flags := cmd.NonInheritedFlags()
 	flags.SetOutput(w)
 	if flags.HasAvailableFlags() {
-		fmt.Fprint(w, "### Options\n\n")
-		if err := printFlagsHTML(w, flags); err != nil {
+		fmt.Fprint(w, "### Options\n")
+		if err := printFlagsMarkdown(w, flags); err != nil {
 			return err
 		}
-		fmt.Fprint(w, "\n\n")
+		fmt.Fprint(w, "\n")
 	}
 
 	parentFlags := cmd.InheritedFlags()
 	parentFlags.SetOutput(w)
 	if hasNonHelpFlags(parentFlags) {
-		fmt.Fprint(w, "### Options inherited from parent commands\n\n")
-		if err := printFlagsHTML(w, parentFlags); err != nil {
+		fmt.Fprint(w, "### Options inherited from parent commands\n")
+		if err := printFlagsMarkdown(w, parentFlags); err != nil {
 			return err
 		}
-		fmt.Fprint(w, "\n\n")
+		fmt.Fprint(w, "\n")
 	}
 	return nil
 }
@@ -53,7 +53,8 @@ type flagView struct {
 	Usage     string
 }
 
-var flagsTemplate = `
+//nolint:unused
+var flagsHTMLTemplate = `
 <dl class="flags">{{ range . }}
 	<dt>{{ if .Shorthand }}<code>-{{.Shorthand}}</code>, {{ end -}}
 		<code>--{{.Name}}{{ if .Varname }} &lt;{{.Varname}}&gt;{{ end }}</code></dt>
@@ -61,9 +62,9 @@ var flagsTemplate = `
 {{ end }}</dl>
 `
 
-var tpl = template.Must(template.New("flags").Parse(flagsTemplate))
+var htmlTpl = template.Must(template.New("htmlFlags").Parse(flagsHTMLTemplate)) //nolint:unused
 
-func printFlagsHTML(w io.Writer, fs *pflag.FlagSet) error {
+func printFlagsHTML(w io.Writer, fs *pflag.FlagSet) error { //nolint:unused
 	var flags []flagView
 	fs.VisitAll(func(f *pflag.Flag) {
 		if f.Hidden || f.Name == "help" {
@@ -77,42 +78,75 @@ func printFlagsHTML(w io.Writer, fs *pflag.FlagSet) error {
 			Usage:     usage,
 		})
 	})
-	return tpl.Execute(w, flags)
+	return htmlTpl.Execute(w, flags)
+}
+
+var flagsMarkdownTemplate = `
+{{ range .Items }}
+* {{ if .Shorthand }}{{ $.BT }}-{{.Shorthand}}{{ $.BT }}, {{ end -}}
+		{{ $.BT }}--{{.Name}}{{ $.BT }}{{ if .Varname }} {{ $.BT }}{{.Varname}}{{ $.BT }}{{ end }}
+
+	{{.Usage}}
+{{ end }}
+`
+
+var mdTpl = template.Must(template.New("markdownFlags").Parse(flagsMarkdownTemplate))
+
+func printFlagsMarkdown(w io.Writer, fs *pflag.FlagSet) error {
+	var flags []flagView
+	fs.VisitAll(func(f *pflag.Flag) {
+		if f.Hidden || f.Name == "help" {
+			return
+		}
+		varname, usage := pflag.UnquoteUsage(f)
+		flags = append(flags, flagView{
+			Name:      f.Name,
+			Varname:   varname,
+			Shorthand: f.Shorthand,
+			Usage:     usage,
+		})
+	})
+	data := struct {
+		Items []flagView
+		BT    string
+	}{
+		Items: flags,
+		BT:    "`",
+	}
+	return mdTpl.Execute(w, data)
 }
 
 // genMarkdownCustom creates custom markdown output.
 func genMarkdownCustom(cmd *cobra.Command, w io.Writer, linkHandler func(string) string) error {
-	fmt.Fprint(w, "{% raw %}")
-	fmt.Fprintf(w, "## %s\n\n", cmd.CommandPath())
+	fmt.Fprintf(w, "## %s\n", cmd.CommandPath())
 
 	hasLong := cmd.Long != ""
 	if !hasLong {
-		fmt.Fprintf(w, "%s\n\n", cmd.Short)
+		fmt.Fprintf(w, "%s\n", cmd.Short)
 	}
 	if cmd.Runnable() {
-		fmt.Fprintf(w, "```\n%s\n```\n\n", cmd.UseLine())
+		fmt.Fprintf(w, "```\n%s\n```\n", cmd.UseLine())
 	}
 	if hasLong {
-		fmt.Fprintf(w, "%s\n\n", cmd.Long)
+		fmt.Fprintf(w, "%s\n", cmd.Long)
 	}
 
 	for _, g := range root.GroupedCommands(cmd) {
-		fmt.Fprintf(w, "### %s\n\n", g.Title)
+		fmt.Fprintf(w, "### %s\n", g.Title)
 		for _, subcmd := range g.Commands {
 			fmt.Fprintf(w, "* [%s](%s)\n", subcmd.CommandPath(), linkHandler(cmdManualPath(subcmd)))
 		}
-		fmt.Fprint(w, "\n\n")
+		fmt.Fprint(w, "\n")
 	}
 
 	if err := printOptions(w, cmd); err != nil {
 		return err
 	}
-	fmt.Fprint(w, "{% endraw %}\n")
 
 	if len(cmd.Example) > 0 {
-		fmt.Fprint(w, "### Examples\n\n{% highlight bash %}{% raw %}\n")
+		fmt.Fprint(w, "### Examples\n\n```bash\n")
 		fmt.Fprint(w, cmd.Example)
-		fmt.Fprint(w, "{% endraw %}{% endhighlight %}\n\n")
+		fmt.Fprint(w, "```\n\n")
 	}
 
 	if cmd.HasParent() {

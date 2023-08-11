@@ -25,17 +25,17 @@ func NewCmdLogout(ctx util.CmdContext) *cobra.Command {
 		Use:   "logout",
 		Args:  cobra.ExactArgs(0),
 		Short: "Log out of a Azure DevOps organization",
-		Long: heredoc.Doc(`Remove authentication for a Azure DevOps organization.
+		Long: heredoc.Docf(`Remove authentication for a Azure DevOps organization.
 
 			This command removes the authentication configuration for an organization either specified
-			interactively or via --organization.
-		`),
+			interactively or via %[1]s--organization%[1]s.
+		`, "`"),
 		Example: heredoc.Doc(`
 			$ azdo auth logout
-			# => select what host to log out of via a prompt
+			# => select what organization to log out of via a prompt
 
 			$ azdo auth logout --hostname enterprise.internal
-			# => log out of specified host
+			# => log out of specified organization
 		`),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			iostrms, err := ctx.IOStreams()
