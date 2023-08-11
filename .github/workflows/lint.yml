@@ -65,6 +65,12 @@ jobs:
             fi
           }
 
+          go build cmd/gen-docs/gen-docs.go
+          if ! $?; then
+            exit $?
+          fi
+
+          assert-nothing-changed ./gen-docs --doc-path ./docs --website
           assert-nothing-changed go fmt ./...
           assert-nothing-changed go mod tidy
 
