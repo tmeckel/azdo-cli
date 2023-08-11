@@ -34,4 +34,4 @@ $ azdo auth setup-git --organization enterprise.internal
 
 ### See also
 
-* [azdo auth](./azdo_auth)
+* [azdo auth](./azdo_auth.md)

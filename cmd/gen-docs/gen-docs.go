@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"strings"
 
 	"github.com/spf13/pflag"
 	"github.com/tmeckel/azdo-cli/internal/cmd/root"
@@ -72,5 +71,5 @@ func filePrepender(filename string) string {
 }
 
 func linkHandler(name string) string {
-	return fmt.Sprintf("./%s", strings.TrimSuffix(name, ".md"))
+	return fmt.Sprintf("./%s", name)
 }

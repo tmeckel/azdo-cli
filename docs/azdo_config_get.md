@@ -14,11 +14,10 @@ azdo config get <key> [flags]
 ### Examples
 
 ```bash
-
-			$ azdo config get git_protocol
-			https
-		```
+$ azdo config get git_protocol
+https
+```
 
 ### See also
 
-* [azdo config](./azdo_config)
+* [azdo config](./azdo_config.md)

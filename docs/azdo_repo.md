@@ -1,8 +1,8 @@
 ## azdo repo
 Work with Azure DevOps Git repositories.
 ### Available commands
-* [azdo repo clone](./azdo_repo_clone)
-* [azdo repo list](./azdo_repo_list)
+* [azdo repo clone](./azdo_repo_clone.md)
+* [azdo repo list](./azdo_repo_list.md)
 
 ### Examples
 
@@ -15,4 +15,4 @@ $ azdo repo view --web
 
 ### See also
 
-* [azdo](./azdo)
+* [azdo](./azdo.md)

@@ -113,4 +113,4 @@ List repositories of a project inside an organization
 
 ### See also
 
-* [azdo](./azdo)
+* [azdo](./azdo.md)

@@ -35,4 +35,4 @@ azdo project list --organization myorg --closed
 
 ### See also
 
-* [azdo project](./azdo_project)
+* [azdo project](./azdo_project.md)

@@ -3,6 +3,7 @@ package get
 import (
 	"fmt"
 
+	"github.com/MakeNowJust/heredoc"
 	"github.com/spf13/cobra"
 	"github.com/tmeckel/azdo-cli/internal/cmd/util"
 	"github.com/tmeckel/azdo-cli/internal/config"
@@ -19,10 +20,10 @@ func NewCmdConfigGet(ctx util.CmdContext) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "get <key>",
 		Short: "Print the value of a given configuration key",
-		Example: `
+		Example: heredoc.Doc(`
 			$ azdo config get git_protocol
 			https
-		`,
+		`),
 		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			opts.Key = args[0]

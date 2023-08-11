@@ -1,7 +1,7 @@
 ## azdo project
 Work with Azure DevOps Projects.
 ### Available commands
-* [azdo project list](./azdo_project_list)
+* [azdo project list](./azdo_project_list.md)
 
 ### Examples
 
@@ -13,4 +13,4 @@ $ azdo project delete -o <organization> <project>
 
 ### See also
 
-* [azdo](./azdo)
+* [azdo](./azdo.md)
