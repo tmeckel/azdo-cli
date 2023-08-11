@@ -68,12 +68,7 @@ func run(args []string) error {
 }
 
 func filePrepender(filename string) string {
-	return `---
-layout: manual
-permalink: /:path/:basename
----
-
-`
+	return ""
 }
 
 func linkHandler(name string) string {
