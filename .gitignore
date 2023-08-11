@@ -22,3 +22,5 @@ go.work
 
 # Goreleaser output
 dist/
+
+gen-docs
