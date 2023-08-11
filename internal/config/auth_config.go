@@ -208,10 +208,7 @@ func (c *authConfig) Logout(organizationName string) (err error) {
 	if err != nil {
 		return
 	}
-	err = keyring.Delete(keyringServiceName(organizationName), "")
-	if err != nil {
-		return
-	}
+	_ = keyring.Delete(keyringServiceName(organizationName), "")
 	return c.cfg.Write()
 }
 
