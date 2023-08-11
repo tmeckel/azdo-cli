@@ -14,4 +14,4 @@ For [installation options see below](#installation), for usage instructions [see
 
 ## Installation
 
-For Windows, Mac OS(10.12+) or Linux, you can download a binary from the [releases page][].
+`azdo` is availeable for Windows, Mac OS(10.12+), Linux or FreeBSD, as downloadable binary from the [releases page][].
