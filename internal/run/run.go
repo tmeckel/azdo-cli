@@ -4,13 +4,11 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
-	"io"
-	"os"
 	"os/exec"
 	"path/filepath"
 	"strings"
 
-	"github.com/tmeckel/azdo-cli/internal/util"
+	"go.uber.org/zap"
 )
 
 // Runnable is typically an exec.Cmd or its stub in tests
@@ -31,9 +29,9 @@ type cmdWithStderr struct {
 }
 
 func (c cmdWithStderr) Output() ([]byte, error) {
-	if isVerbose, _ := util.IsDebugEnabled(); isVerbose {
-		_ = printArgs(os.Stderr, c.Cmd.Args)
-	}
+	logger := zap.L().Sugar()
+	logger.Debugf("Executing command with output: %s", formatArgs(c.Cmd.Args))
+
 	out, err := c.Cmd.Output()
 	if c.Cmd.Stderr != nil || err == nil {
 		return out, err
@@ -50,9 +48,9 @@ func (c cmdWithStderr) Output() ([]byte, error) {
 }
 
 func (c cmdWithStderr) Run() error {
-	if isVerbose, _ := util.IsDebugEnabled(); isVerbose {
-		_ = printArgs(os.Stderr, c.Cmd.Args)
-	}
+	logger := zap.L().Sugar()
+	logger.Debugf("Executing command ignoring output: %q", formatArgs(c.Cmd.Args))
+
 	if c.Cmd.Stderr != nil {
 		return c.Cmd.Run()
 	}
@@ -88,11 +86,10 @@ func (e CmdError) Unwrap() error {
 	return e.Err
 }
 
-func printArgs(w io.Writer, args []string) error {
+func formatArgs(args []string) string {
 	if len(args) > 0 {
 		// print commands, but omit the full path to an executable
 		args = append([]string{filepath.Base(args[0])}, args[1:]...)
 	}
-	_, err := fmt.Fprintf(w, "%v\n", args)
-	return err
+	return fmt.Sprintf("%v", args)
 }
