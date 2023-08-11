@@ -51,4 +51,4 @@ $ azdo auth login --organizationUrl https://dev.azure.com/myorg
 
 ### See also
 
-* [azdo auth](./azdo_auth)
+* [azdo auth](./azdo_auth.md)

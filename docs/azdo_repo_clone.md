@@ -27,4 +27,4 @@ them after "--".
 
 ### See also
 
-* [azdo repo](./azdo_repo)
+* [azdo repo](./azdo_repo.md)

@@ -13,4 +13,4 @@ azdo config list [flags]
 
 ### See also
 
-* [azdo config](./azdo_config)
+* [azdo config](./azdo_config.md)

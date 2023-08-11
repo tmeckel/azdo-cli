@@ -16,4 +16,4 @@ There are a few workarounds to make azdo work with MinTTY:
 
 ### See also
 
-* [azdo](./azdo)
+* [azdo](./azdo.md)

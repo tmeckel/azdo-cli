@@ -22,4 +22,4 @@ $ azdo config set prompt disabled
 
 ### See also
 
-* [azdo config](./azdo_config)
+* [azdo config](./azdo_config.md)

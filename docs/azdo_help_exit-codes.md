@@ -15,4 +15,4 @@ control some behavior.
 
 ### See also
 
-* [azdo](./azdo)
+* [azdo](./azdo.md)

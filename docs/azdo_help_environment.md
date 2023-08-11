@@ -42,4 +42,4 @@ AZDO_PROMPT_DISABLED: set to any value to disable interactive prompting in the t
 
 ### See also
 
-* [azdo](./azdo)
+* [azdo](./azdo.md)
