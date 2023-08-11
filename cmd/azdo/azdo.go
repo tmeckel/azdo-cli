@@ -75,7 +75,7 @@ func mainRun() exitCode {
 
 		stderr := iostrms.ErrOut
 
-		zap.L().Sugar().Debugf("Processing error %v", err)
+		zap.L().Sugar().Debugf("Processing error %T, %v", err, err)
 
 		if errors.Is(err, cmdutil.ErrSilent) { //nolint:golint,gocritic
 			return exitError
