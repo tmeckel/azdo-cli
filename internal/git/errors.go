@@ -29,9 +29,9 @@ type Error struct {
 
 func (ge *Error) Error() string {
 	if ge.Stderr == "" {
-		return fmt.Sprintf("failed to run git: %v", ge.err)
+		return fmt.Sprintf("failed to run git (exit code %d): %v", ge.ExitCode, ge.err)
 	}
-	return fmt.Sprintf("failed to run git: %s", ge.Stderr)
+	return fmt.Sprintf("failed to run git (exit code %d): %s", ge.ExitCode, ge.Stderr)
 }
 
 func (ge *Error) Unwrap() error {
