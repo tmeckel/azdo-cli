@@ -29,8 +29,8 @@ func NewCmdSetupGit(ctx util.CmdContext) *cobra.Command {
 			For more information on git credential helpers please reference:
 			https://git-scm.com/docs/gitcredentials.
 
-			By default, AzDO CLI will be set as the credential helper for all authenticated hosts.
-			If there is no authenticated hosts the command fails with an error.
+			By default, AzDO CLI will be set as the credential helper for all authenticated organizations.
+			If there is no authenticated organization the command fails with an error.
 
 			Alternatively, use the %[1]s--organization%[1]s flag to specify a single organization to be configured.
 			If the organization is not authenticated with, the command fails with an error.
@@ -49,7 +49,7 @@ func NewCmdSetupGit(ctx util.CmdContext) *cobra.Command {
 		},
 	}
 
-	cmd.Flags().StringVarP(&opts.organizationName, "organization", "o", "", "Check a specific oragnizations's auth status")
+	cmd.Flags().StringVarP(&opts.organizationName, "organization", "o", "", "Configure git credential helper for specific organization")
 
 	return cmd
 }

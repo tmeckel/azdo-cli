@@ -118,7 +118,7 @@ func NewCmdHelpTopic(ios *iostreams.IOStreams, ht helpTopic) *cobra.Command {
 		Hidden:  true,
 		Annotations: map[string]string{
 			"markdown:generate": "true",
-			"markdown:basename": "gh_help_" + ht.name,
+			"markdown:basename": "azdo_help_" + ht.name,
 		},
 	}
 

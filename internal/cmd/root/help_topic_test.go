@@ -54,7 +54,7 @@ func TestCmdHelpTopic(t *testing.T) {
 			errorAssertion: require.NoError,
 			expectedAnnotations: map[string]string{
 				"markdown:generate": "true",
-				"markdown:basename": "gh_help_test-topic",
+				"markdown:basename": "azdo_help_test-topic",
 			},
 		},
 	}
