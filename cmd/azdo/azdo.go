@@ -61,7 +61,7 @@ func mainRun() exitCode {
 		return exitError
 	}
 
-	rootCmd, err := root.NewCmdRoot(cmdCtx)
+	rootCmd, err := root.NewCmdRoot(cmdCtx, buildVersion, buildDate)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "failed to create root command: %s", err)
 		return exitError

@@ -12,6 +12,7 @@ import (
 	"github.com/tmeckel/azdo-cli/internal/cmd/project"
 	"github.com/tmeckel/azdo-cli/internal/cmd/repo"
 	"github.com/tmeckel/azdo-cli/internal/cmd/util"
+	versionCmd "github.com/tmeckel/azdo-cli/internal/cmd/version"
 	"github.com/tmeckel/azdo-cli/internal/validation"
 )
 
@@ -23,7 +24,7 @@ func (ae *AuthError) Error() string {
 	return ae.err.Error()
 }
 
-func NewCmdRoot(ctx util.CmdContext) (*cobra.Command, error) {
+func NewCmdRoot(ctx util.CmdContext, version, buildDate string) (*cobra.Command, error) {
 	cfg, err := ctx.Config()
 	if err != nil {
 		return nil, fmt.Errorf("failed to get configuration: %w", err)
@@ -41,6 +42,9 @@ func NewCmdRoot(ctx util.CmdContext) (*cobra.Command, error) {
 		$ azdo project list
 		$ azdo repo clone myorg/myrepo
 	`),
+		Annotations: map[string]string{
+			"versionInfo": versionCmd.Format(version, buildDate),
+		},
 		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
 			// require that the user is authenticated before running most commands
 			if util.IsAuthCheckEnabled(cmd) && !util.CheckAuth(cfg) {
@@ -69,6 +73,7 @@ func NewCmdRoot(ctx util.CmdContext) (*cobra.Command, error) {
 		Title: "Core commands",
 	})
 
+	cmd.AddCommand(versionCmd.NewCmdVersion(ctx, version, buildDate))
 	cmd.AddCommand(auth.NewCmdAuth(ctx))
 	cmd.AddCommand(config.NewCmdConfig(ctx))
 	cmd.AddCommand(project.NewCmdProject(ctx))
