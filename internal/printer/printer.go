@@ -5,16 +5,16 @@ import (
 	"time"
 )
 
-type UnsupportedPrinter struct {
+type UnsupportedPrinterError struct {
 	ptype string
 }
 
-func (e *UnsupportedPrinter) Error() string {
+func (e *UnsupportedPrinterError) Error() string {
 	return fmt.Sprintf("unsupported printer type %s", e.ptype)
 }
 
 func NewUnsupportedPrinterError(ptype string) error {
-	return &UnsupportedPrinter{
+	return &UnsupportedPrinterError{
 		ptype: ptype,
 	}
 }

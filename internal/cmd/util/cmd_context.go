@@ -103,7 +103,7 @@ func (c *cmdContext) Printer(t string) (p printer.Printer, err error) {
 	case "tsv":
 		p, err = newTablePrinter(c.ioStreams)
 	case "json":
-		p, err = printer.NewJsonPrinter(c.ioStreams.Out)
+		p, err = printer.NewJSONPrinter(c.ioStreams.Out)
 	default:
 		return nil, printer.NewUnsupportedPrinterError(t)
 	}

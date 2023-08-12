@@ -8,14 +8,14 @@ import (
 	"github.com/tmeckel/azdo-cli/internal/text"
 )
 
-type JsonPrinter interface {
+type JSONPrinter interface {
 	Printer
 }
 
-// NewJsonPrinter initializes a table printer with terminal mode and terminal width. When terminal mode is enabled, the
+// NewJSONPrinter initializes a table printer with terminal mode and terminal width. When terminal mode is enabled, the
 // output will be human-readable, column-formatted to fit available width, and rendered with color support.
 // In non-terminal mode, the output is tab-separated and all truncation of values is disabled.
-func NewJsonPrinter(w io.Writer) (jp JsonPrinter, err error) {
+func NewJSONPrinter(w io.Writer) (jp JSONPrinter, err error) {
 	jp = &jsonPrinter{
 		out:           json.NewEncoder(w),
 		columns:       []string{},
