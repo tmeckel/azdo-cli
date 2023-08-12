@@ -1,0 +1,45 @@
+# code: language=github-actions.workflows tabSize=2
+---
+name: Build
+on:
+  push:
+    tags-ignore:
+      - v*
+    paths:
+      - .github/workflows/build.yml
+      - "**.go"
+      - go.mod
+      - go.sum
+  pull_request:
+    paths:
+      - .github/workflows/build.yml
+      - "**.go"
+      - go.mod
+      - go.sum
+
+permissions:
+  contents: read
+
+env:
+  GO_VERSION: ${{ vars.golang_version || '1.19' }}
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - name: Set up Go ${{ env.GO_VERSION }}
+        uses: actions/setup-go@v4
+        with:
+          go-version: ${{ env.GO_VERSION }}
+
+      - name: GoReleaser
+        uses: goreleaser/goreleaser-action@v4.3.0
+        with:
+          distribution: goreleaser
+          version: latest
+          args: build --clean
