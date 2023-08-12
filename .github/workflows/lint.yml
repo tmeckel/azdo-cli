@@ -53,7 +53,7 @@ jobs:
       - name: Run Lint checks
         uses: golangci/golangci-lint-action@v3
         with:
-          version: v${LINT_VERSION}
+          version: v${{ env.LINT_VERSION }}
           install-mode: binary
 
       - name: Build docs generator
