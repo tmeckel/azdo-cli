@@ -1,8 +1,8 @@
-// Package tableprinter facilitates rendering column-formatted data to a terminal and TSV-formatted data to
+// TablePrinter facilitates rendering column-formatted data to a terminal and TSV-formatted data to
 // a script or a file. It is suitable for presenting tabular data in a human-readable format that is
 // guaranteed to fit within the given viewport, while at the same time offering the same data in a
 // machine-readable format for scripts.
-package tableprinter
+package printer
 
 import (
 	"fmt"
@@ -13,37 +13,14 @@ import (
 	"github.com/tmeckel/azdo-cli/internal/text"
 )
 
-type FieldOption func(*tableField)
-
 type TablePrinter interface {
-	AddField(string, ...FieldOption)
-	AddTimeField(now, t time.Time, c func(string) string)
-	HeaderRow(columns ...string)
-	EndRow()
-	Render() error
+	Printer
 }
 
-// WithTruncate overrides the truncation function for the field. The function should transform a string
-// argument into a string that fits within the given display width. The default behavior is to truncate the
-// value by adding "..." in the end. Pass nil to disable truncation for this value.
-func WithTruncate(fn func(int, string) string) FieldOption {
-	return func(f *tableField) {
-		f.truncateFunc = fn
-	}
-}
-
-// WithColor sets the color function for the field. The function should transform a string value by wrapping
-// it in ANSI escape codes. The color function will not be used if the table was initialized in non-terminal mode.
-func WithColor(fn func(string) string) FieldOption {
-	return func(f *tableField) {
-		f.colorFunc = fn
-	}
-}
-
-// New initializes a table printer with terminal mode and terminal width. When terminal mode is enabled, the
+// NewTablePrinter initializes a table printer with terminal mode and terminal width. When terminal mode is enabled, the
 // output will be human-readable, column-formatted to fit available width, and rendered with color support.
 // In non-terminal mode, the output is tab-separated and all truncation of values is disabled.
-func New(w io.Writer, isTTY bool, maxWidth int) (tp TablePrinter, err error) {
+func NewTablePrinter(w io.Writer, isTTY bool, maxWidth int) (tp TablePrinter, err error) {
 	if isTTY {
 		tp = &ttyTablePrinter{
 			out:      w,
@@ -71,7 +48,7 @@ type ttyTablePrinter struct {
 
 var _ TablePrinter = &ttyTablePrinter{}
 
-func (t *ttyTablePrinter) HeaderRow(columns ...string) {
+func (t *ttyTablePrinter) AddColumns(columns ...string) {
 	for _, col := range columns {
 		t.AddField(strings.ToUpper(col))
 	}
@@ -249,7 +226,7 @@ func (t *tsvTablePrinter) AddField(text string, opts ...FieldOption) {
 	t.currentCol++
 }
 
-func (t *tsvTablePrinter) HeaderRow(columns ...string) {
+func (t *tsvTablePrinter) AddColumns(columns ...string) {
 }
 
 func (t *tsvTablePrinter) EndRow() {

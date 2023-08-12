@@ -7,7 +7,7 @@ import (
 	"github.com/microsoft/azure-devops-go-api/azuredevops/v7/core"
 	"github.com/spf13/cobra"
 	"github.com/tmeckel/azdo-cli/internal/cmd/util"
-	"github.com/tmeckel/azdo-cli/internal/tableprinter"
+	"github.com/tmeckel/azdo-cli/internal/printer"
 )
 
 type listOptions struct {
@@ -37,7 +37,7 @@ func NewCmdProjectList(ctx util.CmdContext) *cobra.Command {
 	}
 
 	cmd.Flags().StringVarP(&opts.organizationName, "organization", "o", "", "Get per-organization configuration")
-	util.StringEnumFlag(cmd, &opts.format, "format", "", "", []string{"json"}, "Output format")
+	util.StringEnumFlag(cmd, &opts.format, "format", "", "table", []string{"json"}, "Output format")
 	util.StringEnumFlag(cmd, &opts.state, "state", "", "",
 		[]string{
 			string(core.ProjectStateValues.Deleting),
@@ -95,14 +95,14 @@ func runList(ctx util.CmdContext, opts *listOptions) (err error) {
 		return util.NewNoResultsError(fmt.Sprintf("No projects found for organization %s", organizationName))
 	}
 
-	tp, err := ctx.TablePrinter()
+	tp, err := ctx.Printer(opts.format)
 	if err != nil {
 		return
 	}
 
-	tp.HeaderRow("ID", "Name", "State")
+	tp.AddColumns("ID", "Name", "State")
 	for _, p := range res.Value {
-		tp.AddField(p.Id.String(), tableprinter.WithTruncate(nil))
+		tp.AddField(p.Id.String(), printer.WithTruncate(nil))
 		tp.AddField(*p.Name)
 		tp.AddField(string(*p.State))
 		tp.EndRow()

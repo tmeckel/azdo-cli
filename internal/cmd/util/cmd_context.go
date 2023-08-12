@@ -9,8 +9,8 @@ import (
 	"github.com/tmeckel/azdo-cli/internal/config"
 	"github.com/tmeckel/azdo-cli/internal/git"
 	"github.com/tmeckel/azdo-cli/internal/iostreams"
+	"github.com/tmeckel/azdo-cli/internal/printer"
 	"github.com/tmeckel/azdo-cli/internal/prompter"
-	"github.com/tmeckel/azdo-cli/internal/tableprinter"
 )
 
 type CmdContext interface {
@@ -19,7 +19,7 @@ type CmdContext interface {
 	Config() (config.Config, error)
 	Connection(organization string) (*azuredevops.Connection, error)
 	IOStreams() (*iostreams.IOStreams, error)
-	TablePrinter() (tableprinter.TablePrinter, error)
+	Printer(string) (printer.Printer, error)
 	GitClient() (*git.Client, error)
 }
 
@@ -98,8 +98,15 @@ func (c *cmdContext) IOStreams() (*iostreams.IOStreams, error) {
 	return c.ioStreams, nil
 }
 
-func (c *cmdContext) TablePrinter() (tp tableprinter.TablePrinter, err error) {
-	tp, err = newTablePrinter(c.ioStreams)
+func (c *cmdContext) Printer(t string) (p printer.Printer, err error) {
+	switch t {
+	case "table":
+		p, err = newTablePrinter(c.ioStreams)
+	case "json":
+		p, err = printer.NewJSONPrinter(c.ioStreams.Out)
+	default:
+		return nil, printer.NewUnsupportedPrinterError(t)
+	}
 	return
 }
 
@@ -153,11 +160,11 @@ func newPrompter(cfg config.Config, io *iostreams.IOStreams) (p prompter.Prompte
 	return
 }
 
-func newTablePrinter(ios *iostreams.IOStreams) (tableprinter.TablePrinter, error) {
+func newTablePrinter(ios *iostreams.IOStreams) (printer.TablePrinter, error) {
 	maxWidth := 80
 	isTTY := ios.IsStdoutTTY()
 	if isTTY {
 		maxWidth = ios.TerminalWidth()
 	}
-	return tableprinter.New(ios.Out, isTTY, maxWidth)
+	return printer.NewTablePrinter(ios.Out, isTTY, maxWidth)
 }
