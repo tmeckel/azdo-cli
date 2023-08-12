@@ -11,7 +11,10 @@ cloud. **Azure DevOps Server is not supported.**
 
 For [installation options see below](#installation), for usage instructions [see the manual](./docs/azdo.md).
 
-
 ## Installation
 
-`azdo` is availeable for Windows, Mac OS(10.12+), Linux or FreeBSD, as downloadable binary from the [releases page][].
+`azdo` is available for Windows, Mac OS(10.12+), Linux or FreeBSD, as downloadable binary from the [releases page][].
+
+## Contributing
+
+We love your input! Please check out the [contributing guide](CONTRIBUTING.md).
