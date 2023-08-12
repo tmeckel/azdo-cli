@@ -26,15 +26,18 @@ func NewCmdLogin(ctx util.CmdContext) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "login",
 		Args:  cobra.ExactArgs(0),
-		Short: "Authenticate with a Azure DevOps oragnization",
+		Short: "Authenticate with a Azure DevOps organization",
 		Long: heredoc.Docf(`
 			Authenticate with a Azure DevOps Organization.
 
-			The default authentication mode is a web-based browser flow. After completion, an
+			The default authentication mode is a an interactive process in which a personal access token (PAT) can be added. After completion, the
 			authentication token will be stored internally.
 
+			The minimum required scopes for the token are: %[1]sCode: Read%[1]s, %[1]sProject and Team: Read%[1]s
+
+			Using a web-based browser authentication flow, which creates a new PAT, is currently not supported.
+
 			Alternatively, use %[1]s--with-token%[1]s to pass in a token on standard input.
-			The minimum required scopes for the token are: "repo", "read:org".
 
 			Alternatively, azdo will use the authentication token (PAT) found in environment variables.
 			This method is most suitable for "headless" use of azdo such as in automation. See
