@@ -7,7 +7,7 @@ Authenticate azdo and git with Azure DevOps
 
 ### `azdo auth login [flags]`
 
-Authenticate with a Azure DevOps oragnization
+Authenticate with a Azure DevOps organization
 
 ```
 -p, --git-protocol string      The protocol to use for git operations: {ssh|https}
