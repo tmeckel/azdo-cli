@@ -48,7 +48,7 @@ func NewCmdRepoList(ctx util.CmdContext) *cobra.Command {
 	cmd.Flags().StringVarP(&opts.organizationName, "organization", "o", "", "Get per-organization configuration")
 	cmd.Flags().IntVarP(&opts.limit, "limit", "L", 30, "Maximum number of repositories to list")
 	util.StringEnumFlag(cmd, &opts.visibility, "visibility", "", "", []string{"public", "private"}, "Filter by repository visibility")
-	util.StringEnumFlag(cmd, &opts.format, "format", "", "tsv", []string{"json"}, "Output format")
+	util.StringEnumFlag(cmd, &opts.format, "format", "", "table", []string{"json"}, "Output format")
 	cmd.Flags().BoolVar(&opts.includeHidden, "include-hidden", false, "Include hidden repositories")
 
 	return cmd

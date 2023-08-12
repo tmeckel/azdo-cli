@@ -37,7 +37,7 @@ func NewCmdProjectList(ctx util.CmdContext) *cobra.Command {
 	}
 
 	cmd.Flags().StringVarP(&opts.organizationName, "organization", "o", "", "Get per-organization configuration")
-	util.StringEnumFlag(cmd, &opts.format, "format", "", "tsv", []string{"json"}, "Output format")
+	util.StringEnumFlag(cmd, &opts.format, "format", "", "table", []string{"json"}, "Output format")
 	util.StringEnumFlag(cmd, &opts.state, "state", "", "",
 		[]string{
 			string(core.ProjectStateValues.Deleting),

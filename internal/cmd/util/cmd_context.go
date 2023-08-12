@@ -100,7 +100,7 @@ func (c *cmdContext) IOStreams() (*iostreams.IOStreams, error) {
 
 func (c *cmdContext) Printer(t string) (p printer.Printer, err error) {
 	switch t {
-	case "tsv":
+	case "table":
 		p, err = newTablePrinter(c.ioStreams)
 	case "json":
 		p, err = printer.NewJSONPrinter(c.ioStreams.Out)

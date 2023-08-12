@@ -77,7 +77,7 @@ Work with Azure DevOps Projects.
 List the projects for an organization
 
 ```
-    --format string         Output format: {json}
+    --format string         Output format: {json} (default "table")
 -l, --limit int             Maximum number of projects to fetch (default 30)
 -o, --organization string   Get per-organization configuration
     --state string          Project state filter: {deleting|new|wellFormed|createPending|all|unchanged|deleted}
@@ -103,7 +103,7 @@ Clone a repository locally
 List repositories of a project inside an organization
 
 ```
-    --format string         Output format: {json}
+    --format string         Output format: {json} (default "table")
     --include-hidden        Include hidden repositories
 -L, --limit int             Maximum number of repositories to list (default 30)
 -o, --organization string   Get per-organization configuration
