@@ -1,27 +1,45 @@
 builds:
-  - env:
-      - CGO_ENABLED=0
+  - id: macos #build:macos
     goos:
-      - freebsd
       - darwin
-      - windows
-      - linux
     goarch:
       - amd64
-      - arm
       - arm64
-    ldflags:
-      - -s -w -X github.com/tmeckel/azdo-cli/internal/build.Version={{.Version}} -X github.com/tmeckel/azdo-cli/internal/build.Commit={{.Commit}} -X github.com/tmeckel/azdo-cli/internal/build.Date={{time "2006-01-02"}}
+    env:
+      - CGO_ENABLED=0
     main: ./cmd/azdo/azdo.go
     binary: azdo
+    ldflags:
+      - -s -w -X github.com/tmeckel/azdo-cli/internal/build.Version={{.Version}} -X github.com/tmeckel/azdo-cli/internal/build.Commit={{.Commit}} -X github.com/tmeckel/azdo-cli/internal/build.Date={{time "2006-01-02"}}
+
+  - id: linux #build:linux
+    goos:
+      - linux
+    goarch:
+      - arm
+      - amd64
+      - arm64
+    env:
+      - CGO_ENABLED=0
+    main: ./cmd/azdo/azdo.go
+    binary: azdo
+    ldflags:
+      - -s -w -X github.com/tmeckel/azdo-cli/internal/build.Version={{.Version}} -X github.com/tmeckel/azdo-cli/internal/build.Commit={{.Commit}} -X github.com/tmeckel/azdo-cli/internal/build.Date={{time "2006-01-02"}}
+
+  - id: windows #build:windows
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - windows
+    goarch:
+      - amd64
+      - arm64
+    main: ./cmd/azdo/azdo.go
+    binary: azdo
+    ldflags:
+      - -s -w -X github.com/tmeckel/azdo-cli/internal/build.Version={{.Version}} -X github.com/tmeckel/azdo-cli/internal/build.Commit={{.Commit}} -X github.com/tmeckel/azdo-cli/internal/build.Date={{time "2006-01-02"}}
+
 archives:
-  # - name_template: >-
-  #       {{ .ProjectName }}_
-  #       {{- title .Os }}_
-  #       {{- if eq .Arch "amd64" }}x86_64
-  #       {{- else if eq .Arch "386" }}i386
-  #       {{- else }}{{ .Arch }}{{ end }}
-  #       {{- if .Arm }}v{{ .Arm }}{{ end }}
   - format_overrides:
       - goos: windows
         format: zip
