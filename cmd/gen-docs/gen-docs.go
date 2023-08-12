@@ -44,7 +44,7 @@ func run(args []string) error {
 		return err
 	}
 
-	rootCmd, _ := root.NewCmdRoot(cmdCtx)
+	rootCmd, _ := root.NewCmdRoot(cmdCtx, "", "")
 	rootCmd.InitDefaultHelpCmd()
 
 	if err := os.MkdirAll(*dir, 0o755); err != nil {
