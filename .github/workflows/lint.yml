@@ -50,17 +50,19 @@ jobs:
           go mod verify
           go mod download
 
-          curl -fsSL https://github.com/golangci/golangci-lint/releases/download/v${LINT_VERSION}/golangci-lint-${LINT_VERSION}-linux-amd64.tar.gz | \
-            tar xz --strip-components 1 --wildcards \*/golangci-lint
-          mkdir -p bin && mv golangci-lint bin/
-
       - name: Run Lint checks
-        run: |
-          bin/golangci-lint run --out-format=github-actions --timeout=3m || exit $?
+        uses: golangci/golangci-lint-action@v3
+        with:
+          version: v${{ env.LINT_VERSION }}
+          install-mode: binary
 
       - name: Build docs generator
         run: |
           go build -o bin/gen-docs cmd/gen-docs/gen-docs.go || exit $?
+
+      - name: Build gopfumpt
+        run: |
+          go install mvdan.cc/gofumpt@latest
 
       - name: Run checks
         run: |
@@ -76,7 +78,7 @@ jobs:
           }
 
           assert-nothing-changed ./bin/gen-docs --doc-path ./docs --website
-          assert-nothing-changed go fmt ./...
+          assert-nothing-changed gofumpt -l -w .
           assert-nothing-changed go mod tidy
 
           exit $STATUS
