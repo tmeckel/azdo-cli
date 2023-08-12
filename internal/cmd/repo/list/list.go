@@ -7,7 +7,7 @@ import (
 	"github.com/microsoft/azure-devops-go-api/azuredevops/v7/git"
 	"github.com/spf13/cobra"
 	"github.com/tmeckel/azdo-cli/internal/cmd/util"
-	"github.com/tmeckel/azdo-cli/internal/tableprinter"
+	"github.com/tmeckel/azdo-cli/internal/printer"
 )
 
 type listOptions struct {
@@ -48,7 +48,7 @@ func NewCmdRepoList(ctx util.CmdContext) *cobra.Command {
 	cmd.Flags().StringVarP(&opts.organizationName, "organization", "o", "", "Get per-organization configuration")
 	cmd.Flags().IntVarP(&opts.limit, "limit", "L", 30, "Maximum number of repositories to list")
 	util.StringEnumFlag(cmd, &opts.visibility, "visibility", "", "", []string{"public", "private"}, "Filter by repository visibility")
-	util.StringEnumFlag(cmd, &opts.format, "format", "", "", []string{"json"}, "Output format")
+	util.StringEnumFlag(cmd, &opts.format, "format", "", "tsv", []string{"json"}, "Output format")
 	cmd.Flags().BoolVar(&opts.includeHidden, "include-hidden", false, "Include hidden repositories")
 
 	return cmd
@@ -95,14 +95,14 @@ func runList(ctx util.CmdContext, opts *listOptions) (err error) {
 		return util.NewNoResultsError(fmt.Sprintf("No repositories found for project %s and organization %s", opts.project, organizationName))
 	}
 
-	tp, err := ctx.TablePrinter()
+	tp, err := ctx.Printer(opts.format)
 	if err != nil {
 		return
 	}
 
-	tp.HeaderRow("ID", "Name", "SSHUrl", "HTTPUrl")
+	tp.AddColumns("ID", "Name", "SSHUrl", "HTTPUrl")
 	for _, p := range *res {
-		tp.AddField(p.Id.String(), tableprinter.WithTruncate(nil))
+		tp.AddField(p.Id.String(), printer.WithTruncate(nil))
 		tp.AddField(*p.Name)
 		tp.AddField(*p.SshUrl)
 		tp.AddField(*p.WebUrl)
