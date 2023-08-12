@@ -7,12 +7,14 @@ on:
       - v*
     paths:
       - .github/workflows/build.yml
+      - .goreleaser.yaml
       - "**.go"
       - go.mod
       - go.sum
   pull_request:
     paths:
       - .github/workflows/build.yml
+      - .goreleaser.yaml
       - "**.go"
       - go.mod
       - go.sum
