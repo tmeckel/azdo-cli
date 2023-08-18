@@ -59,6 +59,9 @@ type authConfig struct {
 // lastly encrypted storage.
 func (c *authConfig) GetToken(organizationName string) (token string, err error) {
 	logger := zap.L().Sugar()
+
+	organizationName = strings.ToLower(organizationName)
+
 	logger.Debugf("getting token for organization %s", organizationName)
 	token, err = c.GetTokenFromEnvOrConfig(organizationName)
 	if err != nil {
@@ -73,17 +76,21 @@ func (c *authConfig) GetToken(organizationName string) (token string, err error)
 // TokenFromEnvOrConfig retrieves an authentication token from environment variables or the config
 // file as fallback, but does not support reading the token from system keyring. Most consumers
 // should use TokenForHost.
-func (c *authConfig) GetTokenFromEnvOrConfig(host string) (token string, err error) {
+func (c *authConfig) GetTokenFromEnvOrConfig(organizationName string) (token string, err error) {
+	organizationName = strings.ToLower(organizationName)
+
 	if token, ok := os.LookupEnv(azdoToken); ok {
 		return token, nil
 	}
-	token, err = c.cfg.Get([]string{Organizations, host, "pat"})
+	token, err = c.cfg.Get([]string{Organizations, organizationName, "pat"})
 	return
 }
 
 // TokenFromKeyring will retrieve the auth token for the given organizationName,
 // only searching in encrypted storage.
 func (c *authConfig) GetTokenFromKeyring(organizationName string) (token string, err error) {
+	organizationName = strings.ToLower(organizationName)
+
 	token, err = keyring.Get(keyringServiceName(organizationName), "")
 	if err != nil {
 		return
@@ -182,6 +189,8 @@ func (c *authConfig) GetOrganizations() []string {
 // in encrypted storage and will fall back to the plain text config file.
 func (c *authConfig) Login(organizationName, organizationURL, token, gitProtocol string, secureStorage bool) error {
 	var setErr error
+
+	organizationName = strings.ToLower(organizationName)
 	if secureStorage {
 		if setErr = keyring.Set(keyringServiceName(organizationName), "", token); setErr == nil {
 			// Clean up the previous oauth_token from the config file.
@@ -204,6 +213,7 @@ func (c *authConfig) Logout(organizationName string) (err error) {
 	if organizationName == "" {
 		return nil
 	}
+	organizationName = strings.ToLower(organizationName)
 	err = c.cfg.Remove([]string{Organizations, organizationName})
 	if err != nil {
 		return
