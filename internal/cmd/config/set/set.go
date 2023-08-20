@@ -6,15 +6,17 @@ import (
 	"strings"
 
 	"github.com/MakeNowJust/heredoc"
+	"github.com/samber/lo"
 	"github.com/spf13/cobra"
 	"github.com/tmeckel/azdo-cli/internal/cmd/util"
 	"github.com/tmeckel/azdo-cli/internal/config"
 )
 
 type setOptions struct {
-	Key              string
-	Value            string
-	OrganizationName string
+	key              string
+	value            string
+	organizationName string
+	remove           bool
 }
 
 func NewCmdConfigSet(ctx util.CmdContext) *cobra.Command {
@@ -28,17 +30,33 @@ func NewCmdConfigSet(ctx util.CmdContext) *cobra.Command {
 			$ azdo config set editor "code --wait"
 			$ azdo config set git_protocol ssh --organization myorg
 			$ azdo config set prompt disabled
+			$ azdo config set -r -o myorg git_protocol
 		`),
-		Args: cobra.ExactArgs(2),
+		PreRunE: func(cmd *cobra.Command, args []string) error {
+			if cmd.Flags().Changed("remove") {
+				if !cmd.Flags().Changed("organization") {
+					return errors.New("configration values can only be removed for organizations. Please specify the organization via -o")
+				}
+				if len(args) != 1 {
+					return fmt.Errorf("accepts %d arg(s), received %d", 1, len(args))
+				}
+			} else if len(args) != 2 {
+				return fmt.Errorf("accepts %d arg(s), received %d", 2, len(args))
+			}
+			return nil
+		},
 		RunE: func(cmd *cobra.Command, args []string) error {
-			opts.Key = args[0]
-			opts.Value = args[1]
+			opts.key = args[0]
+			if !opts.remove {
+				opts.value = args[1]
+			}
 
 			return setRun(ctx, opts)
 		},
 	}
 
-	cmd.Flags().StringVarP(&opts.OrganizationName, "organization", "o", "", "Set per-organization setting")
+	cmd.Flags().StringVarP(&opts.organizationName, "organization", "o", "", "Set per-organization setting")
+	cmd.Flags().BoolVarP(&opts.remove, "remove", "r", false, "Remove config item for an organization, so that the default value will be in effect again")
 
 	return cmd
 }
@@ -48,33 +66,54 @@ func setRun(ctx util.CmdContext, opts *setOptions) (err error) {
 	if err != nil {
 		return util.FlagErrorf("error getting io configuration: %w", err)
 	}
-	iostreams, err := ctx.IOStreams()
+	iostrms, err := ctx.IOStreams()
 	if err != nil {
 		return util.FlagErrorf("error getting io streams: %w", err)
 	}
 
-	err = validateKey(opts.Key)
+	err = validateKey(opts.key)
 	if err != nil {
-		warningIcon := iostreams.ColorScheme().WarningIcon()
-		fmt.Fprintf(iostreams.ErrOut, "%s warning: '%s' is not a known configuration key\n", warningIcon, opts.Key)
+		warningIcon := iostrms.ColorScheme().WarningIcon()
+		fmt.Fprintf(iostrms.ErrOut, "%s warning: '%s' is not a known configuration key\n", warningIcon, opts.key)
 	}
 
-	err = validateValue(opts.Key, opts.Value)
-	if err != nil {
-		var invalidValue InvalidValueError
-		if errors.As(err, &invalidValue) {
-			var values []string
-			for _, v := range invalidValue.ValidValues {
-				values = append(values, fmt.Sprintf("'%s'", v))
-			}
-			return fmt.Errorf("failed to set %q to %q: valid values are %v", opts.Key, opts.Value, strings.Join(values, ", "))
+	if opts.organizationName != "" {
+		if !lo.Contains(cfg.Authentication().GetOrganizations(), opts.organizationName) {
+			fmt.Fprintf(
+				iostrms.ErrOut,
+				"You are not logged the Azure DevOps organization %q. Run %s to authenticate.\n",
+				opts.organizationName, iostrms.ColorScheme().Bold("azdo auth login"),
+			)
+			return util.ErrSilent
 		}
 	}
 
-	if opts.OrganizationName != "" {
-		cfg.Set([]string{config.Organizations, opts.OrganizationName, opts.Key}, opts.Value)
+	if opts.remove {
+		err = cfg.Remove([]string{config.Organizations, opts.organizationName, opts.key})
+		if err != nil {
+			if !errors.Is(err, &config.KeyNotFoundError{}) {
+				return err
+			}
+			return nil // no need to write configuration because it didn't change
+		}
 	} else {
-		cfg.Set([]string{opts.Key}, opts.Value)
+		err = validateValue(opts.key, opts.value)
+		if err != nil {
+			var invalidValue InvalidValueError
+			if errors.As(err, &invalidValue) {
+				var values []string
+				for _, v := range invalidValue.ValidValues {
+					values = append(values, fmt.Sprintf("'%s'", v))
+				}
+				return fmt.Errorf("failed to set %q to %q: valid values are %v", opts.key, opts.value, strings.Join(values, ", "))
+			}
+		}
+
+		if opts.organizationName != "" {
+			cfg.Set([]string{config.Organizations, opts.organizationName, opts.key}, opts.value)
+		} else {
+			cfg.Set([]string{opts.key}, opts.value)
+		}
 	}
 
 	err = cfg.Write()
