@@ -57,6 +57,7 @@ Print the value of a given configuration key
 Print a list of configuration keys and values
 
 ```
+    --all                   Show config options which are not configured
 -o, --organization string   Get per-organization configuration
 ````
 
@@ -66,6 +67,7 @@ Update configuration with a value for the given key
 
 ```
 -o, --organization string   Set per-organization setting
+-r, --remove                Remove config item for an organization, so that the default value will be in effect again
 ````
 
 ## `azdo project <command> [flags]`
