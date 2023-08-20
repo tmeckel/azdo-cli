@@ -1,5 +1,7 @@
 package config
 
+import "go.uber.org/zap"
+
 const (
 	Aliases       = "aliases"
 	Organizations = "organizations"
@@ -46,23 +48,33 @@ func NewConfig() (Config, error) {
 }
 
 func (c *cfg) Keys(keys []string) (values []string, err error) {
+	zap.L().Sugar().Debugf("Keys: %+v", keys)
+
 	values, err = c.cfg.Keys(keys)
 	return
 }
 
 func (c *cfg) Get(keys []string) (string, error) {
+	zap.L().Sugar().Debugf("Get: %+v", keys)
+
 	return c.cfg.Get(keys)
 }
 
 func (c *cfg) GetOrDefault(keys []string) (val string, err error) {
+	zap.L().Sugar().Debugf("GetOrDefault: %+v", keys)
+
 	return c.cfg.GetOrDefault(keys)
 }
 
 func (c *cfg) Set(keys []string, value string) {
+	zap.L().Sugar().Debugf("Set: %+v -> %q", keys, value)
+
 	c.cfg.Set(keys, value)
 }
 
 func (c *cfg) Remove(keys []string) error {
+	zap.L().Sugar().Debugf("Remove: %+v", keys)
+
 	return c.cfg.Remove(keys)
 }
 

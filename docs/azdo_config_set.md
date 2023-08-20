@@ -10,6 +10,10 @@ azdo config set <key> <value> [flags]
 
 	Set per-organization setting
 
+* `-r`, `--remove`
+
+	Remove config item for an organization, so that the default value will be in effect again
+
 
 ### Examples
 
@@ -18,6 +22,7 @@ $ azdo config set editor vim
 $ azdo config set editor "code --wait"
 $ azdo config set git_protocol ssh --organization myorg
 $ azdo config set prompt disabled
+$ azdo config set -r -o myorg git_protocol
 ```
 
 ### See also

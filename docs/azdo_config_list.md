@@ -6,6 +6,10 @@ azdo config list [flags]
 ### Options
 
 
+* `--all`
+
+	Show config options which are not configured
+
 * `-o`, `--organization` `string`
 
 	Get per-organization configuration

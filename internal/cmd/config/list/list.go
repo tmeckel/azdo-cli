@@ -3,6 +3,7 @@ package list
 import (
 	"fmt"
 
+	"github.com/samber/lo"
 	"github.com/spf13/cobra"
 	"github.com/tmeckel/azdo-cli/internal/cmd/util"
 	"github.com/tmeckel/azdo-cli/internal/config"
@@ -10,6 +11,7 @@ import (
 
 type listOptions struct {
 	organizationName string
+	all              bool
 }
 
 func NewCmdConfigList(ctx util.CmdContext) *cobra.Command {
@@ -26,7 +28,7 @@ func NewCmdConfigList(ctx util.CmdContext) *cobra.Command {
 	}
 
 	cmd.Flags().StringVarP(&opts.organizationName, "organization", "o", "", "Get per-organization configuration")
-
+	cmd.Flags().BoolVar(&opts.all, "all", false, "Show config options which are not configured")
 	return cmd
 }
 
@@ -35,24 +37,29 @@ func listRun(ctx util.CmdContext, opts *listOptions) error {
 	if err != nil {
 		return util.FlagErrorf("error getting io configuration: %w", err)
 	}
-	iostreams, err := ctx.IOStreams()
+	iostrms, err := ctx.IOStreams()
 	if err != nil {
 		return util.FlagErrorf("error getting io streams: %w", err)
 	}
 
-	var host string
 	if opts.organizationName != "" {
-		host = opts.organizationName
-	} else {
-		host, _ = cfg.Authentication().GetDefaultOrganization()
+		if !lo.Contains(cfg.Authentication().GetOrganizations(), opts.organizationName) {
+			fmt.Fprintf(
+				iostrms.ErrOut,
+				"You are not logged the Azure DevOps organization %q. Run %s to authenticate.\n",
+				opts.organizationName, iostrms.ColorScheme().Bold("azdo auth login"),
+			)
+			return util.ErrSilent
+		}
 	}
 
 	configOptions := config.Options()
 
 	var keys []string
-	if host != "" {
+	if opts.organizationName != "" {
 		keys = make([]string, 3)
-		keys = append(keys, config.Organizations, host)
+		keys[0] = config.Organizations
+		keys[1] = opts.organizationName
 	} else {
 		keys = make([]string, 1)
 	}
@@ -63,7 +70,9 @@ func listRun(ctx util.CmdContext, opts *listOptions) error {
 		if err != nil {
 			return err
 		}
-		fmt.Fprintf(iostreams.Out, "%s=%s\n", key.Key, val)
+		if val != "" || opts.all {
+			fmt.Fprintf(iostrms.Out, "%s=%s\n", key.Key, val)
+		}
 	}
 
 	return nil
