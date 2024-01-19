@@ -10,12 +10,14 @@ on:
       - "**.go"
       - go.mod
       - go.sum
+      - .golangci.yml
   pull_request:
     paths:
       - .github/workflows/lint.yml
       - "**.go"
       - go.mod
       - go.sum
+      - .golangci.yml
 
 permissions:
   contents: read
