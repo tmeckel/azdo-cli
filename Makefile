@@ -25,6 +25,10 @@ lint: ## lint source
 	@echo "Executing golangci-lint"; golangci-lint run -v --timeout $(TIMEOUT)
 
 .PHONY: help
+tidy: # call go mod tidy on all existing go.mod files
+	find . -name go.mod -execdir go mod tidy \;
+
+.PHONY: help
 help:
 	@grep '^[^#.][A-Za-z._/]\+:\s\+.*#' Makefile | \
 	sed "s/\(.\+\):\s*\(.*\) #\s*\(.*\)/`printf "\033[93m"`\1`printf "\033[0m"`	\3 [\2]/" | \
