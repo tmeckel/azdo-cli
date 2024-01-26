@@ -11,8 +11,8 @@ permissions:
   contents: write
 
 env:
-  LINT_VERSION: ${{ vars.golangci_version || '1.50.1' }}
-  GO_VERSION: ${{ vars.golang_version || '1.19' }}
+  LINT_VERSION: ${{ vars.golangci_version || '1.55.2' }}
+  GO_VERSION: ${{ vars.golang_version || '1.20' }}
 
 jobs:
   goreleaser:

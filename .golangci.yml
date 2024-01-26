@@ -1,41 +1,68 @@
 run:
-  timeout: 60m
+  tests: true
 
-issues:
-  max-per-linter: 0
-  max-same-issues: 0
-  exclude-rules:
-    - linters:
-        - unparam
-      text: ".*\\(error\\) is always nil$"
-    - linters:
-        - revive
-      text: "unused-parameter: parameter '[^']+' seems to be unused, consider removing or renaming it as _"
+output:
+  print-issued-lines: false
+
 linters:
-  disable-all: true
   enable:
-    - asciicheck
-    - bidichk
-    - errname
+    - dupl
     - errcheck
     - errorlint
+    - exhaustive
+    - goconst
     - gocritic
+    - gocyclo
+    - gofmt
     - gofumpt
     - goimports
-    - gosimple
-    - govet
+    - gosec
     - ineffassign
-    - loggercheck
     - misspell
-    - nilnil
-    - nolintlint
-    - reassign
+    - nilerr
+    - paralleltest
     - revive
-    - staticcheck
-    - typecheck
-    - unused
+    - testifylint
     - unconvert
     - unparam
+    - unused
     - vet
+    - paralleltest
     - vetshadow
-    - wastedassign
+
+linters-settings:
+  vet:
+    check-shadowing: true
+    use-installed-packages: true
+  goconst:
+    min-len: 8
+    min-occurrences: 3
+  gocyclo:
+    min-complexity: 20
+  gocritic:
+    disabled-checks:
+      - ifElseChain
+  revive:
+    rules:
+      - name: exported
+        disabled: true
+      - name: package-comments
+        disabled: true
+  gofmt:
+    rewrite-rules:
+    - pattern:     'interface{}'
+      replacement: 'any'
+    - pattern:     'a[b:len(a)]'
+      replacement: 'a[b:]'
+  exhaustive:
+    default-signifies-exhaustive: true
+
+issues:
+  max-issues-per-linter: 0
+  max-same-issues: 0
+  exclude-use-default: false
+  exclude:
+    # Captured by errcheck.
+    - "^(G104|G204):"
+    # Very commonly not checked.
+    - 'Error return value of .(.*\.Help|.*\.MarkFlagRequired|(os\.)?std(out|err)\..*|.*Close|.*Flush|os\.Remove(All)?|.*Print(f|ln|)|os\.(Un)?Setenv). is not checked'

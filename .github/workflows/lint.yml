@@ -10,19 +10,14 @@ on:
       - "**.go"
       - go.mod
       - go.sum
-  pull_request:
-    paths:
-      - .github/workflows/lint.yml
-      - "**.go"
-      - go.mod
-      - go.sum
+      - .golangci.yml
 
 permissions:
   contents: read
 
 env:
-  LINT_VERSION: ${{ vars.golangci_version || '1.50.1' }}
-  GO_VERSION: ${{ vars.golang_version || '1.19' }}
+  LINT_VERSION: ${{ vars.golangci_version || '1.55.2' }}
+  GO_VERSION: ${{ vars.golang_version || '1.20' }}
 
 jobs:
   lint:
