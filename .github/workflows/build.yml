@@ -23,7 +23,7 @@ permissions:
   contents: read
 
 env:
-  GO_VERSION: ${{ vars.golang_version || '1.19' }}
+  GO_VERSION: ${{ vars.golang_version || '1.20' }}
 
 jobs:
   build:
