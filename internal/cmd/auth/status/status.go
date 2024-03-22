@@ -6,6 +6,7 @@ import (
 	"github.com/MakeNowJust/heredoc"
 	"github.com/google/uuid"
 	"github.com/microsoft/azure-devops-go-api/azuredevops/v7/security"
+	"github.com/pterm/pterm"
 	"github.com/samber/lo"
 	"github.com/spf13/cobra"
 	"github.com/tmeckel/azdo-cli/internal/cmd/util"
@@ -93,13 +94,12 @@ func statusRun(ctx util.CmdContext, opts *statusOptions) (err error) {
 	}
 
 	stderr := iostrms.ErrOut
-	cs := iostrms.ColorScheme()
 
 	if len(organizations) == 0 {
 		fmt.Fprintf(
 			stderr,
 			"You are not logged into any Azure DevOps organizations. Run %s to authenticate.\n",
-			cs.Bold("azdo auth login"),
+			pterm.Bold.Sprint("azdo auth login"),
 		)
 
 		return util.ErrSilent
@@ -112,7 +112,7 @@ func statusRun(ctx util.CmdContext, opts *statusOptions) (err error) {
 			fmt.Fprintf(
 				stderr,
 				"You are not logged the Azure DevOps organization %s. Run %s to authenticate.\n",
-				cs.Red(opts.organizationName), cs.Bold("azdo auth login"),
+				pterm.FgRed.Sprint(opts.organizationName), pterm.Bold.Sprint("azdo auth login"),
 			)
 			return util.ErrSilent
 		}
@@ -121,30 +121,38 @@ func statusRun(ctx util.CmdContext, opts *statusOptions) (err error) {
 
 	organizationStatusResults := []organizationStatus{}
 
-	iostrms.StartProgressIndicator()
-	organizationStatusChannel, err := fetchOrganizationStates(ctx, organizationsToCheck)
+	// iostrms.StartProgressIndicator()
+	err = iostrms.RunWithProgress("Fetch organization status", func(s *pterm.SpinnerPrinter) error {
+		organizationStatusChannel, err := fetchOrganizationStates(ctx, organizationsToCheck)
+		if err != nil {
+			return err
+		}
+
+		for {
+			result, ok := <-organizationStatusChannel
+			if !ok {
+				break
+			}
+			s.UpdateText(fmt.Sprintf("Received status from: %s", result.organizationName))
+			organizationStatusResults = append(organizationStatusResults, result)
+		}
+		return nil
+	})
 	if err != nil {
 		return err
 	}
 
-	for {
-		result, ok := <-organizationStatusChannel
-		if !ok {
-			break
-		}
-		organizationStatusResults = append(organizationStatusResults, result)
-	}
-
-	iostrms.StopProgressIndicator()
-
+	tableData := pterm.TableData{}
 	for _, v := range organizationStatusResults {
 		if v.err != nil {
-			fmt.Fprintf(iostrms.Out,
-				"%s %s: failed to check authentication status\n", cs.Red("X"), cs.Bold(v.organizationName))
+			tableData = append(tableData, []string{"❌", pterm.Bold.Sprint(v.organizationName), "failed to check authentication status"})
 		} else {
-			fmt.Fprintf(iostrms.Out,
-				"%s %s: successfully checked authentication status\n", cs.GreenBold("X"), cs.Bold(v.organizationName))
+			tableData = append(tableData, []string{"✅", pterm.Bold.Sprint(v.organizationName), "successfully checked authentication status"})
 		}
 	}
+	pterm.DefaultTable.
+		WithSeparator(" ").
+		WithData(tableData).
+		Render()
 	return nil
 }

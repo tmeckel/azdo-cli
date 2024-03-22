@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/MakeNowJust/heredoc"
+	"github.com/pterm/pterm"
 	"github.com/samber/lo"
 	"github.com/spf13/cobra"
 	"github.com/tmeckel/azdo-cli/internal/cmd/util"
@@ -72,7 +73,6 @@ func logoutRun(ctx util.CmdContext, opts *logoutOptions) (err error) {
 		return fmt.Errorf("error getting io propter: %w", err)
 	}
 
-	cs := iostrms.ColorScheme()
 	authCfg := cfg.Authentication()
 
 	organizations := authCfg.GetOrganizations()
@@ -82,7 +82,7 @@ func logoutRun(ctx util.CmdContext, opts *logoutOptions) (err error) {
 		fmt.Fprintf(
 			iostrms.ErrOut,
 			"You are %s logged into any Azure DevOps organizations.\n",
-			cs.Red("not"),
+			pterm.FgRed.Sprint("not"),
 		)
 
 		return util.ErrSilent
@@ -104,7 +104,7 @@ func logoutRun(ctx util.CmdContext, opts *logoutOptions) (err error) {
 			fmt.Fprintf(
 				iostrms.ErrOut,
 				"You are %s logged in to the Azure DevOps organization %q.\n",
-				cs.Red("not"),
+				pterm.FgRed.Sprint("not"),
 				opts.organizationName,
 			)
 			return util.ErrSilent

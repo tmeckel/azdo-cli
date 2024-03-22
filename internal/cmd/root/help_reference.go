@@ -17,12 +17,10 @@ func longPager(io *iostreams.IOStreams) func(*cobra.Command, []string) {
 	return func(cmd *cobra.Command, args []string) {
 		wrapWidth := 0
 		if io.IsStdoutTTY() {
-			io.DetectTerminalTheme()
 			wrapWidth = io.TerminalWidth()
 		}
 
 		md, err := markdown.Render(cmd.Long,
-			markdown.WithTheme(io.TerminalTheme()),
 			markdown.WithWrap(wrapWidth))
 		if err != nil {
 			fmt.Fprintln(io.ErrOut, err)

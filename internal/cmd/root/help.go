@@ -7,6 +7,7 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/pterm/pterm"
 	"github.com/spf13/cobra"
 	"github.com/tmeckel/azdo-cli/internal/iostreams"
 	"github.com/tmeckel/azdo-cli/internal/text"
@@ -91,8 +92,6 @@ func rootHelpFunc(iostrms *iostreams.IOStreams, command *cobra.Command, _ []stri
 		}
 	}
 
-	cs := iostrms.ColorScheme()
-
 	if help, _ := flags.GetBool("help"); !help && !command.Runnable() && len(flags.Args()) > 0 {
 		nestedSuggestFunc(iostrms.ErrOut, command, flags.Args()[0])
 		hasFailed = true
@@ -168,7 +167,7 @@ Use 'azdo <command> <subcommand> --help' for more information about a command.`}
 	for _, e := range helpEntries {
 		if e.Title != "" {
 			// If there is a title, add indentation to each line in the body
-			fmt.Fprintln(out, cs.Bold(e.Title))
+			fmt.Fprintln(out, pterm.Bold.Sprint(e.Title))
 			fmt.Fprintln(out, text.Indent(strings.Trim(e.Body, "\r\n"), "  "))
 		} else {
 			// If there is no title print the body as is

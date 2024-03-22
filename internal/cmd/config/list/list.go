@@ -3,6 +3,7 @@ package list
 import (
 	"fmt"
 
+	"github.com/pterm/pterm"
 	"github.com/samber/lo"
 	"github.com/spf13/cobra"
 	"github.com/tmeckel/azdo-cli/internal/cmd/util"
@@ -47,7 +48,7 @@ func listRun(ctx util.CmdContext, opts *listOptions) error {
 			fmt.Fprintf(
 				iostrms.ErrOut,
 				"You are not logged the Azure DevOps organization %q. Run %s to authenticate.\n",
-				opts.organizationName, iostrms.ColorScheme().Bold("azdo auth login"),
+				opts.organizationName, pterm.Bold.Sprint("azdo auth login"),
 			)
 			return util.ErrSilent
 		}

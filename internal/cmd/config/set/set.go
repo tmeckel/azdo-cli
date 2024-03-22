@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/MakeNowJust/heredoc"
+	"github.com/pterm/pterm"
 	"github.com/samber/lo"
 	"github.com/spf13/cobra"
 	"github.com/tmeckel/azdo-cli/internal/cmd/util"
@@ -73,8 +74,7 @@ func setRun(ctx util.CmdContext, opts *setOptions) (err error) {
 
 	err = validateKey(opts.key)
 	if err != nil {
-		warningIcon := iostrms.ColorScheme().WarningIcon()
-		fmt.Fprintf(iostrms.ErrOut, "%s warning: '%s' is not a known configuration key\n", warningIcon, opts.key)
+		fmt.Fprintf(iostrms.ErrOut, pterm.Warning.Sprintf("%q is not a known configuration key\n", opts.key))
 	}
 
 	if opts.organizationName != "" {
@@ -82,7 +82,7 @@ func setRun(ctx util.CmdContext, opts *setOptions) (err error) {
 			fmt.Fprintf(
 				iostrms.ErrOut,
 				"You are not logged the Azure DevOps organization %q. Run %s to authenticate.\n",
-				opts.organizationName, iostrms.ColorScheme().Bold("azdo auth login"),
+				opts.organizationName, pterm.Bold.Sprint("azdo auth login"),
 			)
 			return util.ErrSilent
 		}

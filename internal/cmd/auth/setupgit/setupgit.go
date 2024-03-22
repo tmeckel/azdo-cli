@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/MakeNowJust/heredoc"
+	"github.com/pterm/pterm"
 	"github.com/samber/lo"
 	"github.com/spf13/cobra"
 	"github.com/tmeckel/azdo-cli/internal/cmd/util"
@@ -69,13 +70,12 @@ func setupGitRun(ctx util.CmdContext, opts *setupGitOptions) (err error) {
 	}
 
 	stderr := iostrms.ErrOut
-	cs := iostrms.ColorScheme()
 
 	if len(organizations) == 0 {
 		fmt.Fprintf(
 			stderr,
 			"You are not logged into any Azure DevOps organizations. Run %s to authenticate.\n",
-			cs.Bold("azdo auth login"),
+			pterm.Bold.Sprint("azdo auth login"),
 		)
 
 		return util.ErrSilent
@@ -88,7 +88,7 @@ func setupGitRun(ctx util.CmdContext, opts *setupGitOptions) (err error) {
 			fmt.Fprintf(
 				stderr,
 				"You are not logged the Azure DevOps organization %q. Run %s to authenticate.\n",
-				opts.organizationName, cs.Bold("azdo auth login"),
+				opts.organizationName, pterm.Bold.Sprint("azdo auth login"),
 			)
 			return util.ErrSilent
 		}

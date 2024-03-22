@@ -1239,19 +1239,19 @@ func initRepo(t *testing.T, dir string) {
 }
 
 func TestHelperProcess(t *testing.T) {
-	if os.Getenv("GH_WANT_HELPER_PROCESS") != "1" {
+	if os.Getenv("AZDO_WANT_HELPER_PROCESS") != "1" {
 		return
 	}
 	if err := func(_ []string) error {
-		fmt.Fprint(os.Stdout, os.Getenv("GH_HELPER_PROCESS_STDOUT"))
-		exitStatus := os.Getenv("GH_HELPER_PROCESS_EXIT_STATUS")
+		fmt.Fprint(os.Stdout, os.Getenv("AZDO_HELPER_PROCESS_STDOUT"))
+		exitStatus := os.Getenv("AZDO_HELPER_PROCESS_EXIT_STATUS")
 		if exitStatus != "0" {
 			return errors.New("error")
 		}
 		return nil
 	}(os.Args[3:]); err != nil {
-		fmt.Fprint(os.Stderr, os.Getenv("GH_HELPER_PROCESS_STDERR"))
-		exitStatus := os.Getenv("GH_HELPER_PROCESS_EXIT_STATUS")
+		fmt.Fprint(os.Stderr, os.Getenv("AZDO_HELPER_PROCESS_STDERR"))
+		exitStatus := os.Getenv("AZDO_HELPER_PROCESS_EXIT_STATUS")
 		i, err := strconv.Atoi(exitStatus)
 		if err != nil {
 			os.Exit(1)
@@ -1264,10 +1264,10 @@ func TestHelperProcess(t *testing.T) {
 func createCommandContext(_ *testing.T, exitStatus int, stdout, stderr string) (*exec.Cmd, commandCtx) {
 	cmd := exec.CommandContext(context.Background(), os.Args[0], "-test.run=TestHelperProcess", "--")
 	cmd.Env = []string{
-		"GH_WANT_HELPER_PROCESS=1",
-		fmt.Sprintf("GH_HELPER_PROCESS_STDOUT=%s", stdout),
-		fmt.Sprintf("GH_HELPER_PROCESS_STDERR=%s", stderr),
-		fmt.Sprintf("GH_HELPER_PROCESS_EXIT_STATUS=%v", exitStatus),
+		"AZDO_WANT_HELPER_PROCESS=1",
+		fmt.Sprintf("AZDO_HELPER_PROCESS_STDOUT=%s", stdout),
+		fmt.Sprintf("AZDO_HELPER_PROCESS_STDERR=%s", stderr),
+		fmt.Sprintf("AZDO_HELPER_PROCESS_EXIT_STATUS=%v", exitStatus),
 	}
 	return cmd, func(ctx context.Context, exe string, args ...string) *exec.Cmd {
 		cmd.Args = append(cmd.Args, exe)

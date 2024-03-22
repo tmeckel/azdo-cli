@@ -10,13 +10,12 @@ import (
 	"os/signal"
 	"strings"
 	"sync"
-	"time"
 
-	"github.com/briandowns/spinner"
 	"github.com/cli/safeexec"
 	"github.com/google/shlex"
 	"github.com/mattn/go-colorable"
 	"github.com/mattn/go-isatty"
+	"github.com/pterm/pterm"
 	azdoTerm "github.com/tmeckel/azdo-cli/internal/term"
 )
 
@@ -39,10 +38,6 @@ type fileReader interface {
 
 type term interface {
 	IsTerminalOutput() bool
-	IsColorEnabled() bool
-	Is256ColorSupported() bool
-	IsTrueColorSupported() bool
-	Theme() string
 	Size() (int, int, error)
 }
 
@@ -55,10 +50,6 @@ type IOStreams struct {
 
 	terminalTheme string
 
-	progressIndicatorEnabled bool
-	progressIndicator        *spinner.Spinner
-	progressIndicatorMu      sync.Mutex
-
 	alternateScreenBufferEnabled bool
 	alternateScreenBufferActive  bool
 	alternateScreenBufferMu      sync.Mutex
@@ -70,9 +61,6 @@ type IOStreams struct {
 	stderrTTYOverride bool
 	stderrIsTTY       bool
 
-	colorOverride bool
-	colorEnabled  bool
-
 	pagerCommand string
 	pagerProcess *os.Process
 
@@ -81,120 +69,67 @@ type IOStreams struct {
 	TempFileOverride *os.File
 }
 
-func (s *IOStreams) ColorEnabled() bool {
-	if s.colorOverride {
-		return s.colorEnabled
-	}
-	return s.term.IsColorEnabled()
+func (ios *IOStreams) SetStdinTTY(isTTY bool) {
+	ios.stdinTTYOverride = true
+	ios.stdinIsTTY = isTTY
 }
 
-func (s *IOStreams) ColorSupport256() bool {
-	if s.colorOverride {
-		return s.colorEnabled
+func (ios *IOStreams) IsStdinTTY() bool {
+	if ios.stdinTTYOverride {
+		return ios.stdinIsTTY
 	}
-	return s.term.Is256ColorSupported()
-}
-
-func (s *IOStreams) HasTrueColor() bool {
-	if s.colorOverride {
-		return s.colorEnabled
-	}
-	return s.term.IsTrueColorSupported()
-}
-
-// DetectTerminalTheme is a utility to call before starting the output pager so that the terminal background
-// can be reliably detected.
-func (s *IOStreams) DetectTerminalTheme() {
-	if !s.ColorEnabled() || s.pagerProcess != nil {
-		s.terminalTheme = "none"
-		return
-	}
-
-	style := os.Getenv("GLAMOUR_STYLE")
-	if style != "" && style != "auto" {
-		// ensure GLAMOUR_STYLE takes precedence over "light" and "dark" themes
-		s.terminalTheme = "none"
-		return
-	}
-
-	s.terminalTheme = s.term.Theme()
-}
-
-// TerminalTheme returns "light", "dark", or "none" depending on the background color of the terminal.
-func (s *IOStreams) TerminalTheme() string {
-	if s.terminalTheme == "" {
-		s.DetectTerminalTheme()
-	}
-
-	return s.terminalTheme
-}
-
-func (s *IOStreams) SetColorEnabled(colorEnabled bool) {
-	s.colorOverride = true
-	s.colorEnabled = colorEnabled
-}
-
-func (s *IOStreams) SetStdinTTY(isTTY bool) {
-	s.stdinTTYOverride = true
-	s.stdinIsTTY = isTTY
-}
-
-func (s *IOStreams) IsStdinTTY() bool {
-	if s.stdinTTYOverride {
-		return s.stdinIsTTY
-	}
-	if stdin, ok := s.In.(*os.File); ok {
+	if stdin, ok := ios.In.(*os.File); ok {
 		return isTerminal(stdin)
 	}
 	return false
 }
 
-func (s *IOStreams) SetStdoutTTY(isTTY bool) {
-	s.stdoutTTYOverride = true
-	s.stdoutIsTTY = isTTY
+func (ios *IOStreams) SetStdoutTTY(isTTY bool) {
+	ios.stdoutTTYOverride = true
+	ios.stdoutIsTTY = isTTY
 }
 
-func (s *IOStreams) IsStdoutTTY() bool {
-	if s.stdoutTTYOverride {
-		return s.stdoutIsTTY
+func (ios *IOStreams) IsStdoutTTY() bool {
+	if ios.stdoutTTYOverride {
+		return ios.stdoutIsTTY
 	}
 	// support AZDO_FORCE_TTY
-	if s.term.IsTerminalOutput() {
+	if ios.term.IsTerminalOutput() {
 		return true
 	}
-	stdout, ok := s.Out.(*os.File)
+	stdout, ok := ios.Out.(*os.File)
 	return ok && isCygwinTerminal(stdout.Fd())
 }
 
-func (s *IOStreams) SetStderrTTY(isTTY bool) {
-	s.stderrTTYOverride = true
-	s.stderrIsTTY = isTTY
+func (ios *IOStreams) SetStderrTTY(isTTY bool) {
+	ios.stderrTTYOverride = true
+	ios.stderrIsTTY = isTTY
 }
 
-func (s *IOStreams) IsStderrTTY() bool {
-	if s.stderrTTYOverride {
-		return s.stderrIsTTY
+func (ios *IOStreams) IsStderrTTY() bool {
+	if ios.stderrTTYOverride {
+		return ios.stderrIsTTY
 	}
-	if stderr, ok := s.ErrOut.(*os.File); ok {
+	if stderr, ok := ios.ErrOut.(*os.File); ok {
 		return isTerminal(stderr)
 	}
 	return false
 }
 
-func (s *IOStreams) SetPager(cmd string) {
-	s.pagerCommand = cmd
+func (ios *IOStreams) SetPager(cmd string) {
+	ios.pagerCommand = cmd
 }
 
-func (s *IOStreams) GetPager() string {
-	return s.pagerCommand
+func (ios *IOStreams) GetPager() string {
+	return ios.pagerCommand
 }
 
-func (s *IOStreams) StartPager() error {
-	if s.pagerCommand == "" || s.pagerCommand == "cat" || !s.IsStdoutTTY() {
+func (ios *IOStreams) StartPager() error {
+	if ios.pagerCommand == "" || ios.pagerCommand == "cat" || !ios.IsStdoutTTY() {
 		return nil
 	}
 
-	pagerArgs, err := shlex.Split(s.pagerCommand)
+	pagerArgs, err := shlex.Split(ios.pagerCommand)
 	if err != nil {
 		return err
 	}
@@ -218,114 +153,78 @@ func (s *IOStreams) StartPager() error {
 	}
 	pagerCmd := exec.Command(pagerExe, pagerArgs[1:]...)
 	pagerCmd.Env = pagerEnv
-	pagerCmd.Stdout = s.Out
-	pagerCmd.Stderr = s.ErrOut
+	pagerCmd.Stdout = ios.Out
+	pagerCmd.Stderr = ios.ErrOut
 	pagedOut, err := pagerCmd.StdinPipe()
 	if err != nil {
 		return err
 	}
-	s.Out = &fdWriteCloser{
-		fd:          s.Out.Fd(),
+	ios.Out = &fdWriteCloser{
+		fd:          ios.Out.Fd(),
 		WriteCloser: &pagerWriter{pagedOut},
 	}
 	err = pagerCmd.Start()
 	if err != nil {
 		return err
 	}
-	s.pagerProcess = pagerCmd.Process
+	ios.pagerProcess = pagerCmd.Process
 	return nil
 }
 
-func (s *IOStreams) StopPager() {
-	if s.pagerProcess == nil {
+func (ios *IOStreams) StopPager() {
+	if ios.pagerProcess == nil {
 		return
 	}
 
 	// if a pager was started, we're guaranteed to have a WriteCloser
-	_ = s.Out.(io.WriteCloser).Close()
-	_, _ = s.pagerProcess.Wait()
-	s.pagerProcess = nil
+	_ = ios.Out.(io.WriteCloser).Close()
+	_, _ = ios.pagerProcess.Wait()
+	ios.pagerProcess = nil
 }
 
-func (s *IOStreams) CanPrompt() bool {
-	if s.neverPrompt {
+func (ios *IOStreams) CanPrompt() bool {
+	if ios.neverPrompt {
 		return false
 	}
 
-	return s.IsStdinTTY() && s.IsStdoutTTY()
+	return ios.IsStdinTTY() && ios.IsStdoutTTY()
 }
 
-func (s *IOStreams) GetNeverPrompt() bool {
-	return s.neverPrompt
+func (ios *IOStreams) GetNeverPrompt() bool {
+	return ios.neverPrompt
 }
 
-func (s *IOStreams) SetNeverPrompt(v bool) {
-	s.neverPrompt = v
+func (ios *IOStreams) SetNeverPrompt(v bool) {
+	ios.neverPrompt = v
 }
 
-func (s *IOStreams) StartProgressIndicator() {
-	s.StartProgressIndicatorWithLabel("")
-}
-
-func (s *IOStreams) StartProgressIndicatorWithLabel(label string) {
-	if !s.progressIndicatorEnabled {
-		return
+func (ios *IOStreams) RunWithProgress(label string, run func(s *pterm.SpinnerPrinter) error) error {
+	s, err := pterm.DefaultSpinner.Start(label)
+	if err != nil {
+		return err
 	}
-
-	s.progressIndicatorMu.Lock()
-	defer s.progressIndicatorMu.Unlock()
-
-	if s.progressIndicator != nil {
-		if label == "" {
-			s.progressIndicator.Prefix = ""
-		} else {
-			s.progressIndicator.Prefix = label + " "
-		}
-		return
+	err = run(s)
+	if err != nil {
+		s.Fail()
 	}
-
-	// https://github.com/briandowns/spinner#available-character-sets
-	dotStyle := spinner.CharSets[11]
-	sp := spinner.New(dotStyle, 120*time.Millisecond, spinner.WithWriter(s.ErrOut), spinner.WithColor("fgCyan"))
-	if label != "" {
-		sp.Prefix = label + " "
-	}
-
-	sp.Start()
-	s.progressIndicator = sp
+	s.Success()
+	return err
 }
 
-func (s *IOStreams) StopProgressIndicator() {
-	s.progressIndicatorMu.Lock()
-	defer s.progressIndicatorMu.Unlock()
-	if s.progressIndicator == nil {
-		return
-	}
-	s.progressIndicator.Stop()
-	s.progressIndicator = nil
-}
+func (ios *IOStreams) StartAlternateScreenBuffer() {
+	if ios.alternateScreenBufferEnabled {
+		ios.alternateScreenBufferMu.Lock()
+		defer ios.alternateScreenBufferMu.Unlock()
 
-func (s *IOStreams) RunWithProgress(label string, run func() error) error {
-	s.StartProgressIndicatorWithLabel(label)
-	defer s.StopProgressIndicator()
-
-	return run()
-}
-
-func (s *IOStreams) StartAlternateScreenBuffer() {
-	if s.alternateScreenBufferEnabled {
-		s.alternateScreenBufferMu.Lock()
-		defer s.alternateScreenBufferMu.Unlock()
-
-		if _, err := fmt.Fprint(s.Out, "\x1b[?1049h"); err == nil {
-			s.alternateScreenBufferActive = true
+		if _, err := fmt.Fprint(ios.Out, "\x1b[?1049h"); err == nil {
+			ios.alternateScreenBufferActive = true
 
 			ch := make(chan os.Signal, 1)
 			signal.Notify(ch, os.Interrupt)
 
 			go func() {
 				<-ch
-				s.StopAlternateScreenBuffer()
+				ios.StopAlternateScreenBuffer()
 
 				os.Exit(1)
 			}()
@@ -333,46 +232,42 @@ func (s *IOStreams) StartAlternateScreenBuffer() {
 	}
 }
 
-func (s *IOStreams) StopAlternateScreenBuffer() {
-	s.alternateScreenBufferMu.Lock()
-	defer s.alternateScreenBufferMu.Unlock()
+func (ios *IOStreams) StopAlternateScreenBuffer() {
+	ios.alternateScreenBufferMu.Lock()
+	defer ios.alternateScreenBufferMu.Unlock()
 
-	if s.alternateScreenBufferActive {
-		fmt.Fprint(s.Out, "\x1b[?1049l")
-		s.alternateScreenBufferActive = false
+	if ios.alternateScreenBufferActive {
+		fmt.Fprint(ios.Out, "\x1b[?1049l")
+		ios.alternateScreenBufferActive = false
 	}
 }
 
-func (s *IOStreams) SetAlternateScreenBufferEnabled(enabled bool) {
-	s.alternateScreenBufferEnabled = enabled
+func (ios *IOStreams) SetAlternateScreenBufferEnabled(enabled bool) {
+	ios.alternateScreenBufferEnabled = enabled
 }
 
-func (s *IOStreams) RefreshScreen() {
-	if s.IsStdoutTTY() {
+func (ios *IOStreams) RefreshScreen() {
+	if ios.IsStdoutTTY() {
 		// Move cursor to 0,0
-		fmt.Fprint(s.Out, "\x1b[0;0H")
+		fmt.Fprint(ios.Out, "\x1b[0;0H")
 		// Clear from cursor to bottom of screen
-		fmt.Fprint(s.Out, "\x1b[J")
+		fmt.Fprint(ios.Out, "\x1b[J")
 	}
 }
 
 // TerminalWidth returns the width of the terminal that controls the process
-func (s *IOStreams) TerminalWidth() int {
-	w, _, err := s.term.Size()
+func (ios *IOStreams) TerminalWidth() int {
+	w, _, err := ios.term.Size()
 	if err == nil && w > 0 {
 		return w
 	}
 	return DefaultWidth
 }
 
-func (s *IOStreams) ColorScheme() *ColorScheme {
-	return NewColorScheme(s.ColorEnabled(), s.ColorSupport256(), s.HasTrueColor())
-}
-
-func (s *IOStreams) ReadUserFile(fn string) ([]byte, error) {
+func (ios *IOStreams) ReadUserFile(fn string) ([]byte, error) {
 	var r io.ReadCloser
 	if fn == "-" {
-		r = s.In
+		r = ios.In
 	} else {
 		var err error
 		r, err = os.Open(fn)
@@ -384,9 +279,9 @@ func (s *IOStreams) ReadUserFile(fn string) ([]byte, error) {
 	return io.ReadAll(r)
 }
 
-func (s *IOStreams) TempFile(dir, pattern string) (*os.File, error) {
-	if s.TempFileOverride != nil {
-		return s.TempFileOverride, nil
+func (ios *IOStreams) TempFile(dir, pattern string) (*os.File, error) {
+	if ios.TempFileOverride != nil {
+		return ios.TempFileOverride, nil
 	}
 	return os.CreateTemp(dir, pattern)
 }
@@ -413,14 +308,7 @@ func System() *IOStreams {
 		term:         &terminal,
 	}
 
-	stdoutIsTTY := io.IsStdoutTTY()
-	stderrIsTTY := io.IsStderrTTY()
-
-	if stdoutIsTTY && stderrIsTTY {
-		io.progressIndicatorEnabled = true
-	}
-
-	if stdoutIsTTY && hasAlternateScreenBuffer(terminal.IsTrueColorSupported()) {
+	if io.IsStdoutTTY() && hasAlternateScreenBuffer(terminal.IsTrueColorSupported()) {
 		io.alternateScreenBufferEnabled = true
 	}
 

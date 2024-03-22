@@ -29,7 +29,7 @@ func TestIOStreams_pager(t *testing.T) {
 	ios, _, stdout, _ := Test()
 	ios.SetStdoutTTY(true)
 	ios.SetPager(fmt.Sprintf("%s -test.run=TestHelperProcess --", os.Args[0]))
-	t.Setenv("GH_WANT_HELPER_PROCESS", "1")
+	t.Setenv("AZDO_WANT_HELPER_PROCESS", "1")
 	if err := ios.StartPager(); err != nil {
 		t.Fatal(err)
 	}
@@ -47,7 +47,7 @@ func TestIOStreams_pager(t *testing.T) {
 }
 
 func TestHelperProcess(t *testing.T) {
-	if os.Getenv("GH_WANT_HELPER_PROCESS") != "1" {
+	if os.Getenv("AZDO_WANT_HELPER_PROCESS") != "1" {
 		return
 	}
 	scanner := bufio.NewScanner(os.Stdin)
