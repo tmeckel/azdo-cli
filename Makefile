@@ -9,7 +9,7 @@ TIMEOUT ?= 120m
 GOMAXPROCS ?= 5
 TESTARGS ?= ./...
 
-build: ## Build provider
+build: ## Build program
 	go build cmd/azdo/azdo.go
 
 dist: ## create new release
