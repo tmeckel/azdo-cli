@@ -20,7 +20,27 @@ import (
 
 var remoteRE = regexp.MustCompile(`(.+)\s+(.+)\s+\((push|fetch)\)`)
 
-type withExitCodeError interface {
+// This regexp exists to match lines of the following form:
+// 6a6872b918c601a0e730710ad8473938a7516d30\u0000title 1\u0000Body 1\u0000\n
+// 7a6872b918c601a0e730710ad8473938a7516d31\u0000title 2\u0000Body 2\u0000
+//
+// This is the format we use when collecting commit information,
+// with null bytes as separators. Using null bytes this way allows for us
+// to easily maintain newlines that might be in the body.
+//
+// The ?m modifier is the multi-line modifier, meaning that ^ and $
+// match the beginning and end of lines, respectively.
+//
+// The [\S\s] matches any whitespace or non-whitespace character,
+// which is different from .* because it allows for newlines as well.
+//
+// The ? following .* and [\S\s] is a lazy modifier, meaning that it will
+// match as few characters as possible while still satisfying the rest of the regexp.
+// This is important because it allows us to match the first null byte after the title and body,
+// rather than the last null byte in the entire string.
+var commitLogRE = regexp.MustCompile(`(?m)^[0-9a-fA-F]{7,40}\x00.*?\x00[\S\s]*?\x00$`)
+
+type errWithExitCode interface {
 	ExitCode() int
 }
 
@@ -120,7 +140,7 @@ func (c *Client) Remotes(ctx context.Context) (RemoteSet, error) {
 	configOut, configErr := configCmd.Output()
 	if configErr != nil {
 		// Ignore exit code 1 as it means there are no resolved remotes.
-		var gitErr *Error
+		var gitErr *GitError
 		if ok := errors.As(configErr, &gitErr); ok && gitErr.ExitCode != 1 {
 			return nil, gitErr
 		}
@@ -167,7 +187,7 @@ func (c *Client) CurrentBranch(ctx context.Context) (string, error) {
 	}
 	out, err := cmd.Output()
 	if err != nil {
-		var gitErr *Error
+		var gitErr *GitError
 		if ok := errors.As(err, &gitErr); ok && len(gitErr.Stderr) == 0 {
 			gitErr.err = ErrNotOnAnyBranch
 			gitErr.Stderr = "not on any branch"
@@ -203,31 +223,7 @@ func (c *Client) ShowRefs(ctx context.Context, refs []string) ([]Ref, error) {
 	return verified, err
 }
 
-func (c *Client) SetConfig(ctx context.Context, configItems ...string) (err error) {
-	if len(configItems) > 0 {
-		var cmd *Command
-		if len(configItems)%2 > 0 {
-			return fmt.Errorf("configuration parameters must by symmetric")
-		}
-		n := 0
-		for n < len(configItems) {
-			args := append([]string{"config"}, configItems[n], configItems[n+1])
-			cmd, err = c.Command(ctx, args...)
-			if err != nil {
-				return
-			}
-			err = cmd.Run()
-			if err != nil {
-				err = fmt.Errorf("failed to set config item %s to value %s: %w", configItems[n], configItems[n+1], err)
-				return
-			}
-			n += 2
-		}
-	}
-	return
-}
-
-func (c *Client) GetConfig(ctx context.Context, name string) (string, error) {
+func (c *Client) Config(ctx context.Context, name string) (string, error) {
 	args := []string{"config", name}
 	cmd, err := c.Command(ctx, args...)
 	if err != nil {
@@ -235,7 +231,7 @@ func (c *Client) GetConfig(ctx context.Context, name string) (string, error) {
 	}
 	out, err := cmd.Output()
 	if err != nil {
-		var gitErr *Error
+		var gitErr *GitError
 		if ok := errors.As(err, &gitErr); ok && gitErr.ExitCode == 1 {
 			gitErr.Stderr = fmt.Sprintf("unknown config key %s", name)
 			return "", gitErr
@@ -266,7 +262,12 @@ func (c *Client) UncommittedChangeCount(ctx context.Context) (int, error) {
 }
 
 func (c *Client) Commits(ctx context.Context, baseRef, headRef string) ([]*Commit, error) {
-	args := []string{"-c", "log.ShowSignature=false", "log", "--pretty=format:%H,%s", "--cherry", fmt.Sprintf("%s...%s", baseRef, headRef)}
+	// The formatting directive %x00 indicates that git should include the null byte as a separator.
+	// We use this because it is not a valid character to include in a commit message. Previously,
+	// commas were used here but when we Split on them, we would get incorrect results if commit titles
+	// happened to contain them.
+	// https://git-scm.com/docs/pretty-formats#Documentation/pretty-formats.txt-emx00em
+	args := []string{"-c", "log.ShowSignature=false", "log", "--pretty=format:%H%x00%s%x00%b%x00", "--cherry", fmt.Sprintf("%s...%s", baseRef, headRef)}
 	cmd, err := c.Command(ctx, args...)
 	if err != nil {
 		return nil, err
@@ -275,22 +276,33 @@ func (c *Client) Commits(ctx context.Context, baseRef, headRef string) ([]*Commi
 	if err != nil {
 		return nil, err
 	}
+
 	commits := []*Commit{}
-	sha := 0
-	title := 1
-	for _, line := range outputLines(out) {
-		split := strings.SplitN(line, ",", 2)
-		if len(split) != 2 {
-			continue
-		}
+	commitLogs := commitLogRE.FindAllString(string(out), -1)
+	for _, commitLog := range commitLogs {
+		//  Each line looks like this:
+		//  6a6872b918c601a0e730710ad8473938a7516d30\u0000title 1\u0000Body 1\u0000\n
+
+		//  Or with an optional body:
+		//  6a6872b918c601a0e730710ad8473938a7516d30\u0000title 1\u0000\u0000\n
+
+		//  Therefore after splitting we will have:
+		//  ["6a6872b918c601a0e730710ad8473938a7516d30", "title 1", "Body 1", ""]
+
+		//  Or with an optional body:
+		//  ["6a6872b918c601a0e730710ad8473938a7516d30", "title 1", "", ""]
+		commitLogParts := strings.Split(commitLog, "\u0000")
 		commits = append(commits, &Commit{
-			Sha:   split[sha],
-			Title: split[title],
+			Sha:   commitLogParts[0],
+			Title: commitLogParts[1],
+			Body:  commitLogParts[2],
 		})
 	}
+
 	if len(commits) == 0 {
 		return nil, fmt.Errorf("could not find any commits between %s and %s", baseRef, headRef)
 	}
+
 	return commits, nil
 }
 
@@ -358,6 +370,19 @@ func (c *Client) ReadBranchConfig(ctx context.Context, branch string) (cfg Branc
 		}
 	}
 	return
+}
+
+func (c *Client) DeleteLocalTag(ctx context.Context, tag string) error {
+	args := []string{"tag", "-d", tag}
+	cmd, err := c.Command(ctx, args...)
+	if err != nil {
+		return err
+	}
+	_, err = cmd.Output()
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 func (c *Client) DeleteLocalBranch(ctx context.Context, branch string) error {
@@ -462,7 +487,7 @@ func (c *Client) revParse(ctx context.Context, args ...string) ([]byte, error) {
 func (c *Client) IsLocalGitRepo(ctx context.Context) (bool, error) {
 	_, err := c.GitDir(ctx)
 	if err != nil {
-		var execError withExitCodeError
+		var execError errWithExitCode
 		if errors.As(err, &execError) && execError.ExitCode() == 128 {
 			return false, nil
 		}
@@ -497,7 +522,40 @@ func (c *Client) SetRemoteBranches(ctx context.Context, remote string, refspec s
 	return nil
 }
 
-// Below are commands that make network calls and need authentication credentials supplied from azdo.
+func (c *Client) AddRemote(ctx context.Context, name, urlStr string, trackingBranches []string) (*Remote, error) {
+	args := []string{"remote", "add"}
+	for _, branch := range trackingBranches {
+		args = append(args, "-t", branch)
+	}
+	args = append(args, name, urlStr)
+	cmd, err := c.Command(ctx, args...)
+	if err != nil {
+		return nil, err
+	}
+	if _, err := cmd.Output(); err != nil {
+		return nil, err
+	}
+	var urlParsed *url.URL
+	if strings.HasPrefix(urlStr, "https") {
+		urlParsed, err = url.Parse(urlStr)
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		urlParsed, err = ParseURL(urlStr)
+		if err != nil {
+			return nil, err
+		}
+	}
+	remote := &Remote{
+		Name:     name,
+		FetchURL: urlParsed,
+		PushURL:  urlParsed,
+	}
+	return remote, nil
+}
+
+// Below are commands that make network calls and need authentication credentials supplied from gh.
 
 func (c *Client) Fetch(ctx context.Context, remote string, refspec string, mods ...CommandModifier) error {
 	args := []string{"fetch", remote}
@@ -564,42 +622,6 @@ func (c *Client) Clone(ctx context.Context, cloneURL string, args []string, mods
 		return "", err
 	}
 	return target, nil
-}
-
-func (c *Client) AddRemote(ctx context.Context, name, urlStr string, trackingBranches []string, mods ...CommandModifier) (*Remote, error) {
-	args := []string{"remote", "add"}
-	for _, branch := range trackingBranches {
-		args = append(args, "-t", branch)
-	}
-	args = append(args, name, urlStr)
-	cmd, err := c.Command(ctx, args...)
-	if err != nil {
-		return nil, err
-	}
-	for _, mod := range mods {
-		mod(cmd)
-	}
-	if _, err := cmd.Output(); err != nil {
-		return nil, err
-	}
-	var urlParsed *url.URL
-	if strings.HasPrefix(urlStr, "https") {
-		urlParsed, err = url.Parse(urlStr)
-		if err != nil {
-			return nil, err
-		}
-	} else {
-		urlParsed, err = ParseURL(urlStr)
-		if err != nil {
-			return nil, err
-		}
-	}
-	remote := &Remote{
-		Name:     name,
-		FetchURL: urlParsed,
-		PushURL:  urlParsed,
-	}
-	return remote, nil
 }
 
 func resolveGitPath() (string, error) {

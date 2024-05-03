@@ -3,6 +3,7 @@ package git
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"os"
@@ -13,6 +14,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestClientCommand(t *testing.T) {
@@ -123,15 +125,15 @@ func TestClientRemotes(t *testing.T) {
 	remoteFile := filepath.Join(gitDir, "config")
 	remotes := `
 [remote "origin"]
-	url = git@example.com:monalisa/origin.git
+	url = git@example.com:v3/monalisa/origin.git
 [remote "test"]
-	url = git://github.com/hubot/test.git
+	url = git://dev.azure.com/hubot/repo/test.git
 	azdo-resolved = other
 [remote "upstream"]
-	url = https://github.com/monalisa/upstream.git
+	url = https://dev.azure.com/monalisa/project/_git/repo/upstream.git
 	azdo-resolved = base
 [remote "github"]
-	url = git@github.com:hubot/github.git
+	url = git@github.com:v3/hubot/github.git
 `
 	f, err := os.OpenFile(remoteFile, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0o755)
 	assert.NoError(t, err)
@@ -162,13 +164,13 @@ func TestClientRemotes_no_resolved_remote(t *testing.T) {
 	remoteFile := filepath.Join(gitDir, "config")
 	remotes := `
 [remote "origin"]
-	url = git@example.com:monalisa/origin.git
+	url = git@dev.azure.com:v3/org/monalisa/origin
 [remote "test"]
-	url = git://github.com/hubot/test.git
+	url = git://dev.azure.com:8443/org/hubot/test
 [remote "upstream"]
-	url = https://github.com/monalisa/upstream.git
-[remote "github"]
-	url = git@github.com:hubot/github.git
+	url = https://dev.azure.com/org/monalisa/_git/upstream
+[remote "no-azdo"]
+	url = https://example.com/monalisa/upstream
 `
 	f, err := os.OpenFile(remoteFile, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0o755)
 	assert.NoError(t, err)
@@ -182,47 +184,46 @@ func TestClientRemotes_no_resolved_remote(t *testing.T) {
 	rs, err := client.Remotes(context.Background())
 	assert.NoError(t, err)
 	assert.Equal(t, 4, len(rs))
-	assert.Equal(t, "upstream", rs[0].Name)
-	assert.Equal(t, "github", rs[1].Name)
-	assert.Equal(t, "origin", rs[2].Name)
-	assert.Equal(t, "", rs[2].Resolved)
+	assert.Equal(t, "origin", rs[1].Name)
 	assert.Equal(t, "test", rs[3].Name)
+	assert.Equal(t, "upstream", rs[0].Name)
+	assert.Equal(t, "no-azdo", rs[2].Name)
 }
 
 func TestParseRemotes(t *testing.T) {
 	remoteList := []string{
-		"mona\tgit@github.com:monalisa/myfork.git (fetch)",
-		"origin\thttps://github.com/monalisa/octo-cat.git (fetch)",
-		"origin\thttps://github.com/monalisa/octo-cat-push.git (push)",
-		"upstream\thttps://example.com/nowhere.git (fetch)",
-		"upstream\thttps://github.com/hubot/tools (push)",
+		"mona\tgit@dev.azure.com:v3/monalisa/project/myfork.git (fetch)",
+		"origin\thttps://github.com/monalisa/repo/_git/octo-cat.git (fetch)",
+		"origin\thttps://github.com/monalisa/repo/_git/octo-cat-push.git (push)",
+		"upstream\thttps://example.com/organization/project/_git/nowhere (fetch)",
+		"upstream\thttps://dev.azure.com/hubot/tools/_git/nowhere (push)",
 		"zardoz\thttps://example.com/zed.git (push)",
-		"koke\tgit://github.com/koke/grit.git (fetch)",
-		"koke\tgit://github.com/koke/grit.git (push)",
+		"koke\tgit://dev.azure.com/koke/project/_git/grit.git (fetch)",
+		"koke\tgit://dev.azure.com/koke/project/_git/grit.git (push)",
 	}
 
 	r := parseRemotes(remoteList)
 	assert.Equal(t, 5, len(r))
 
 	assert.Equal(t, "mona", r[0].Name)
-	assert.Equal(t, "ssh://git@github.com/monalisa/myfork.git", r[0].FetchURL.String())
+	assert.Equal(t, "ssh://git@dev.azure.com/v3/monalisa/project/myfork.git", r[0].FetchURL.String())
 	assert.Nil(t, r[0].PushURL)
 
 	assert.Equal(t, "origin", r[1].Name)
-	assert.Equal(t, "/monalisa/octo-cat.git", r[1].FetchURL.Path)
-	assert.Equal(t, "/monalisa/octo-cat-push.git", r[1].PushURL.Path)
+	assert.Equal(t, "/monalisa/repo/_git/octo-cat.git", r[1].FetchURL.Path)
+	assert.Equal(t, "/monalisa/repo/_git/octo-cat-push.git", r[1].PushURL.Path)
 
 	assert.Equal(t, "upstream", r[2].Name)
 	assert.Equal(t, "example.com", r[2].FetchURL.Host)
-	assert.Equal(t, "github.com", r[2].PushURL.Host)
+	assert.Equal(t, "dev.azure.com", r[2].PushURL.Host)
 
 	assert.Equal(t, "zardoz", r[3].Name)
 	assert.Nil(t, r[3].FetchURL)
 	assert.Equal(t, "https://example.com/zed.git", r[3].PushURL.String())
 
 	assert.Equal(t, "koke", r[4].Name)
-	assert.Equal(t, "/koke/grit.git", r[4].FetchURL.Path)
-	assert.Equal(t, "/koke/grit.git", r[4].PushURL.Path)
+	assert.Equal(t, "/koke/project/_git/grit.git", r[4].FetchURL.Path)
+	assert.Equal(t, "/koke/project/_git/grit.git", r[4].PushURL.Path)
 }
 
 func TestClientUpdateRemoteURL(t *testing.T) {
@@ -433,7 +434,7 @@ func TestClientConfig(t *testing.T) {
 				GitPath:        "path/to/git",
 				commandContext: cmdCtx,
 			}
-			out, err := client.GetConfig(context.Background(), "credential.helper")
+			out, err := client.Config(context.Background(), "credential.helper")
 			assert.Equal(t, tt.wantCmdArgs, strings.Join(cmd.Args[3:], " "))
 			if tt.wantErrorMsg == "" {
 				assert.NoError(t, err)
@@ -487,54 +488,230 @@ func TestClientUncommittedChangeCount(t *testing.T) {
 	}
 }
 
+type stubbedCommit struct {
+	Sha   string
+	Title string
+	Body  string
+}
+
+type stubbedCommitsCommandData struct {
+	ExitStatus int
+
+	ErrMsg string
+
+	Commits []stubbedCommit
+}
+
 func TestClientCommits(t *testing.T) {
 	tests := []struct {
-		name          string
-		cmdExitStatus int
-		cmdStdout     string
-		cmdStderr     string
-		wantCmdArgs   string
-		wantCommits   []*Commit
-		wantErrorMsg  string
+		name         string
+		testData     stubbedCommitsCommandData
+		wantCmdArgs  string
+		wantCommits  []*Commit
+		wantErrorMsg string
 	}{
 		{
-			name:        "get commits",
-			cmdStdout:   "6a6872b918c601a0e730710ad8473938a7516d30,testing testability test",
-			wantCmdArgs: `path/to/git -c log.ShowSignature=false log --pretty=format:%H,%s --cherry SHA1...SHA2`,
+			name: "single commit no body",
+			testData: stubbedCommitsCommandData{
+				Commits: []stubbedCommit{
+					{
+						Sha:   "6a6872b918c601a0e730710ad8473938a7516d30",
+						Title: "testing testability test",
+						Body:  "",
+					},
+				},
+			},
+			wantCmdArgs: `path/to/git -c log.ShowSignature=false log --pretty=format:%H%x00%s%x00%b%x00 --cherry SHA1...SHA2`,
 			wantCommits: []*Commit{{
 				Sha:   "6a6872b918c601a0e730710ad8473938a7516d30",
 				Title: "testing testability test",
 			}},
 		},
 		{
-			name:         "no commits between SHAs",
-			wantCmdArgs:  `path/to/git -c log.ShowSignature=false log --pretty=format:%H,%s --cherry SHA1...SHA2`,
+			name: "single commit with body",
+			testData: stubbedCommitsCommandData{
+				Commits: []stubbedCommit{
+					{
+						Sha:   "6a6872b918c601a0e730710ad8473938a7516d30",
+						Title: "testing testability test",
+						Body:  "This is the body",
+					},
+				},
+			},
+			wantCmdArgs: `path/to/git -c log.ShowSignature=false log --pretty=format:%H%x00%s%x00%b%x00 --cherry SHA1...SHA2`,
+			wantCommits: []*Commit{{
+				Sha:   "6a6872b918c601a0e730710ad8473938a7516d30",
+				Title: "testing testability test",
+				Body:  "This is the body",
+			}},
+		},
+		{
+			name: "multiple commits with bodies",
+			testData: stubbedCommitsCommandData{
+				Commits: []stubbedCommit{
+					{
+						Sha:   "6a6872b918c601a0e730710ad8473938a7516d30",
+						Title: "testing testability test",
+						Body:  "This is the body",
+					},
+					{
+						Sha:   "7a6872b918c601a0e730710ad8473938a7516d31",
+						Title: "testing testability test 2",
+						Body:  "This is the body 2",
+					},
+				},
+			},
+			wantCmdArgs: `path/to/git -c log.ShowSignature=false log --pretty=format:%H%x00%s%x00%b%x00 --cherry SHA1...SHA2`,
+			wantCommits: []*Commit{
+				{
+					Sha:   "6a6872b918c601a0e730710ad8473938a7516d30",
+					Title: "testing testability test",
+					Body:  "This is the body",
+				},
+				{
+					Sha:   "7a6872b918c601a0e730710ad8473938a7516d31",
+					Title: "testing testability test 2",
+					Body:  "This is the body 2",
+				},
+			},
+		},
+		{
+			name: "multiple commits mixed bodies",
+			testData: stubbedCommitsCommandData{
+				Commits: []stubbedCommit{
+					{
+						Sha:   "6a6872b918c601a0e730710ad8473938a7516d30",
+						Title: "testing testability test",
+					},
+					{
+						Sha:   "7a6872b918c601a0e730710ad8473938a7516d31",
+						Title: "testing testability test 2",
+						Body:  "This is the body 2",
+					},
+				},
+			},
+			wantCmdArgs: `path/to/git -c log.ShowSignature=false log --pretty=format:%H%x00%s%x00%b%x00 --cherry SHA1...SHA2`,
+			wantCommits: []*Commit{
+				{
+					Sha:   "6a6872b918c601a0e730710ad8473938a7516d30",
+					Title: "testing testability test",
+				},
+				{
+					Sha:   "7a6872b918c601a0e730710ad8473938a7516d31",
+					Title: "testing testability test 2",
+					Body:  "This is the body 2",
+				},
+			},
+		},
+		{
+			name: "multiple commits newlines in bodies",
+			testData: stubbedCommitsCommandData{
+				Commits: []stubbedCommit{
+					{
+						Sha:   "6a6872b918c601a0e730710ad8473938a7516d30",
+						Title: "testing testability test",
+						Body:  "This is the body\nwith a newline",
+					},
+					{
+						Sha:   "7a6872b918c601a0e730710ad8473938a7516d31",
+						Title: "testing testability test 2",
+						Body:  "This is the body 2",
+					},
+				},
+			},
+			wantCmdArgs: `path/to/git -c log.ShowSignature=false log --pretty=format:%H%x00%s%x00%b%x00 --cherry SHA1...SHA2`,
+			wantCommits: []*Commit{
+				{
+					Sha:   "6a6872b918c601a0e730710ad8473938a7516d30",
+					Title: "testing testability test",
+					Body:  "This is the body\nwith a newline",
+				},
+				{
+					Sha:   "7a6872b918c601a0e730710ad8473938a7516d31",
+					Title: "testing testability test 2",
+					Body:  "This is the body 2",
+				},
+			},
+		},
+		{
+			name: "no commits between SHAs",
+			testData: stubbedCommitsCommandData{
+				Commits: []stubbedCommit{},
+			},
+			wantCmdArgs:  `path/to/git -c log.ShowSignature=false log --pretty=format:%H%x00%s%x00%b%x00 --cherry SHA1...SHA2`,
 			wantErrorMsg: "could not find any commits between SHA1 and SHA2",
 		},
 		{
-			name:          "git error",
-			cmdExitStatus: 1,
-			cmdStderr:     "git error message",
-			wantCmdArgs:   `path/to/git -c log.ShowSignature=false log --pretty=format:%H,%s --cherry SHA1...SHA2`,
-			wantErrorMsg:  "failed to run git: git error message",
+			name: "git error",
+			testData: stubbedCommitsCommandData{
+				ErrMsg:     "git error message",
+				ExitStatus: 1,
+			},
+			wantCmdArgs:  `path/to/git -c log.ShowSignature=false log --pretty=format:%H%x00%s%x00%b%x00 --cherry SHA1...SHA2`,
+			wantErrorMsg: "failed to run git: git error message",
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			cmd, cmdCtx := createCommandContext(t, tt.cmdExitStatus, tt.cmdStdout, tt.cmdStderr)
+			cmd, cmdCtx := createCommitsCommandContext(t, tt.testData)
 			client := Client{
 				GitPath:        "path/to/git",
 				commandContext: cmdCtx,
 			}
 			commits, err := client.Commits(context.Background(), "SHA1", "SHA2")
-			assert.Equal(t, tt.wantCmdArgs, strings.Join(cmd.Args[3:], " "))
+			require.Equal(t, tt.wantCmdArgs, strings.Join(cmd.Args[3:], " "))
 			if tt.wantErrorMsg != "" {
-				assert.EqualError(t, err, tt.wantErrorMsg)
+				require.EqualError(t, err, tt.wantErrorMsg)
 			} else {
-				assert.NoError(t, err)
+				require.NoError(t, err)
 			}
-			assert.Equal(t, tt.wantCommits, commits)
+			require.Equal(t, tt.wantCommits, commits)
 		})
+	}
+}
+
+func TestCommitsHelperProcess(t *testing.T) {
+	if os.Getenv("GH_WANT_HELPER_PROCESS") != "1" {
+		return
+	}
+
+	var td stubbedCommitsCommandData
+	_ = json.Unmarshal([]byte(os.Getenv("GH_COMMITS_TEST_DATA")), &td)
+
+	if td.ErrMsg != "" {
+		fmt.Fprint(os.Stderr, td.ErrMsg)
+	} else {
+		var sb strings.Builder
+		for _, commit := range td.Commits {
+			sb.WriteString(commit.Sha)
+			sb.WriteString("\u0000")
+			sb.WriteString(commit.Title)
+			sb.WriteString("\u0000")
+			sb.WriteString(commit.Body)
+			sb.WriteString("\u0000")
+			sb.WriteString("\n")
+		}
+		fmt.Fprint(os.Stdout, sb.String())
+	}
+
+	os.Exit(td.ExitStatus)
+}
+
+func createCommitsCommandContext(t *testing.T, testData stubbedCommitsCommandData) (*exec.Cmd, commandCtx) {
+	t.Helper()
+
+	b, err := json.Marshal(testData)
+	require.NoError(t, err)
+
+	cmd := exec.CommandContext(context.Background(), os.Args[0], "-test.run=TestCommitsHelperProcess", "--")
+	cmd.Env = []string{
+		"GH_WANT_HELPER_PROCESS=1",
+		"GH_COMMITS_TEST_DATA=" + string(b),
+	}
+	return cmd, func(ctx context.Context, exe string, args ...string) *exec.Cmd {
+		cmd.Args = append(cmd.Args, exe)
+		cmd.Args = append(cmd.Args, args...)
+		return cmd
 	}
 }
 
@@ -583,6 +760,45 @@ func TestClientReadBranchConfig(t *testing.T) {
 			branchConfig := client.ReadBranchConfig(context.Background(), "trunk")
 			assert.Equal(t, tt.wantCmdArgs, strings.Join(cmd.Args[3:], " "))
 			assert.Equal(t, tt.wantBranchConfig, branchConfig)
+		})
+	}
+}
+
+func TestClientDeleteLocalTag(t *testing.T) {
+	tests := []struct {
+		name          string
+		cmdExitStatus int
+		cmdStdout     string
+		cmdStderr     string
+		wantCmdArgs   string
+		wantErrorMsg  string
+	}{
+		{
+			name:        "delete local tag",
+			wantCmdArgs: `path/to/git tag -d v1.0`,
+		},
+		{
+			name:          "git error",
+			cmdExitStatus: 1,
+			cmdStderr:     "git error message",
+			wantCmdArgs:   `path/to/git tag -d v1.0`,
+			wantErrorMsg:  "failed to run git: git error message",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			cmd, cmdCtx := createCommandContext(t, tt.cmdExitStatus, tt.cmdStdout, tt.cmdStderr)
+			client := Client{
+				GitPath:        "path/to/git",
+				commandContext: cmdCtx,
+			}
+			err := client.DeleteLocalTag(context.Background(), "v1.0")
+			assert.Equal(t, tt.wantCmdArgs, strings.Join(cmd.Args[3:], " "))
+			if tt.wantErrorMsg == "" {
+				assert.NoError(t, err)
+			} else {
+				assert.EqualError(t, err, tt.wantErrorMsg)
+			}
 		})
 	}
 }
@@ -1242,7 +1458,7 @@ func TestHelperProcess(t *testing.T) {
 	if os.Getenv("GH_WANT_HELPER_PROCESS") != "1" {
 		return
 	}
-	if err := func(_ []string) error {
+	if err := func(args []string) error {
 		fmt.Fprint(os.Stdout, os.Getenv("GH_HELPER_PROCESS_STDOUT"))
 		exitStatus := os.Getenv("GH_HELPER_PROCESS_EXIT_STATUS")
 		if exitStatus != "0" {
@@ -1261,7 +1477,7 @@ func TestHelperProcess(t *testing.T) {
 	os.Exit(0)
 }
 
-func createCommandContext(_ *testing.T, exitStatus int, stdout, stderr string) (*exec.Cmd, commandCtx) {
+func createCommandContext(t *testing.T, exitStatus int, stdout, stderr string) (*exec.Cmd, commandCtx) {
 	cmd := exec.CommandContext(context.Background(), os.Args[0], "-test.run=TestHelperProcess", "--")
 	cmd.Env = []string{
 		"GH_WANT_HELPER_PROCESS=1",
