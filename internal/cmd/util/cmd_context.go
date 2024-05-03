@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/microsoft/azure-devops-go-api/azuredevops/v7"
+	"github.com/tmeckel/azdo-cli/internal/azdorepo"
 	"github.com/tmeckel/azdo-cli/internal/config"
 	"github.com/tmeckel/azdo-cli/internal/git"
 	"github.com/tmeckel/azdo-cli/internal/iostreams"
@@ -21,6 +22,7 @@ type CmdContext interface {
 	IOStreams() (*iostreams.IOStreams, error)
 	Printer(string) (printer.Printer, error)
 	GitClient() (*git.Client, error)
+	Remotes() (azdorepo.Remotes, error)
 }
 
 type cmdContext struct {
@@ -107,6 +109,19 @@ func (c *cmdContext) Printer(t string) (p printer.Printer, err error) {
 	default:
 		return nil, printer.NewUnsupportedPrinterError(t)
 	}
+	return
+}
+
+func (c *cmdContext) Remotes() (remotes azdorepo.Remotes, err error) {
+	client, err := c.GitClient()
+	if err != nil {
+		return
+	}
+	remoteSet, err := client.Remotes(c.ctx)
+	if err != nil {
+		return
+	}
+	remotes = azdorepo.TranslateRemotes(remoteSet, azdorepo.NewIdentityTranslator())
 	return
 }
 
