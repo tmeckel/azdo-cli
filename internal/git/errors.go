@@ -21,19 +21,19 @@ func (e *NotInstalledError) Unwrap() error {
 	return e.err
 }
 
-type Error struct {
+type GitError struct {
 	ExitCode int
 	Stderr   string
 	err      error
 }
 
-func (ge *Error) Error() string {
+func (ge *GitError) Error() string {
 	if ge.Stderr == "" {
-		return fmt.Sprintf("failed to run git (exit code %d): %v", ge.ExitCode, ge.err)
+		return fmt.Sprintf("failed to run git: %v", ge.err)
 	}
-	return fmt.Sprintf("failed to run git (exit code %d): %s", ge.ExitCode, ge.Stderr)
+	return fmt.Sprintf("failed to run git: %s", ge.Stderr)
 }
 
-func (ge *Error) Unwrap() error {
+func (ge *GitError) Unwrap() error {
 	return ge.err
 }

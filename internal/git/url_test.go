@@ -118,12 +118,12 @@ func TestParseURL(t *testing.T) {
 		},
 		{
 			name: "ssh with port",
-			url:  "ssh://git@example.com:443/owner/repo.git",
+			url:  "ssh://git@example.com:v3/owner/repo.git",
 			want: url{
 				Scheme: "ssh",
 				User:   "git",
 				Host:   "example.com",
-				Path:   "/owner/repo.git",
+				Path:   "/v3/owner/repo.git",
 			},
 		},
 		{

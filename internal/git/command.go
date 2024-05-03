@@ -25,7 +25,7 @@ func (gc *Command) Run() error {
 	// existing tests that rely on `run.PrepareCmd` to be invoked.
 	err := run.PrepareCmd(gc.Cmd).Run()
 	if err != nil {
-		ge := Error{err: err, Stderr: stderr.String()}
+		ge := GitError{err: err, Stderr: stderr.String()}
 		var exitError *exec.ExitError
 		if errors.As(err, &exitError) {
 			ge.ExitCode = exitError.ExitCode()
@@ -42,7 +42,7 @@ func (gc *Command) Output() ([]byte, error) {
 	// existing tests that rely on `run.PrepareCmd` to be invoked.
 	out, err := run.PrepareCmd(gc.Cmd).Output()
 	if err != nil {
-		ge := Error{err: err}
+		ge := GitError{err: err}
 		var exitError *exec.ExitError
 		if errors.As(err, &exitError) {
 			ge.Stderr = string(exitError.Stderr)
