@@ -13,19 +13,10 @@ import (
 	"github.com/yuin/goldmark/parser"
 	"github.com/yuin/goldmark/renderer"
 	"github.com/yuin/goldmark/util"
+	"golang.org/x/term"
 
 	"github.com/charmbracelet/glamour/ansi"
-)
-
-// Default styles.
-const (
-	AsciiStyle   = "ascii"
-	AutoStyle    = "auto"
-	DarkStyle    = "dark"
-	DraculaStyle = "dracula"
-	LightStyle   = "light"
-	NoTTYStyle   = "notty"
-	PinkStyle    = "pink"
+	styles "github.com/charmbracelet/glamour/styles"
 )
 
 const (
@@ -137,7 +128,7 @@ func WithStandardStyle(style string) TermRendererOption {
 // WithAutoStyle sets a TermRenderer's styles with either the standard dark
 // or light style, depending on the terminal's background color at run-time.
 func WithAutoStyle() TermRendererOption {
-	return WithStandardStyle(AutoStyle)
+	return WithStandardStyle(styles.AutoStyle)
 }
 
 // WithEnvironmentConfig sets a TermRenderer's styles based on the
@@ -252,21 +243,24 @@ func (tr *TermRenderer) RenderBytes(in []byte) ([]byte, error) {
 func getEnvironmentStyle() string {
 	glamourStyle := os.Getenv("GLAMOUR_STYLE")
 	if len(glamourStyle) == 0 {
-		glamourStyle = AutoStyle
+		glamourStyle = styles.AutoStyle
 	}
 
 	return glamourStyle
 }
 
 func getDefaultStyle(style string) (*ansi.StyleConfig, error) {
-	if style == AutoStyle {
-		if termenv.HasDarkBackground() {
-			return &DarkStyleConfig, nil
+	if style == styles.AutoStyle {
+		if !term.IsTerminal(int(os.Stdout.Fd())) {
+			return &styles.NoTTYStyleConfig, nil
 		}
-		return &LightStyleConfig, nil
+		if termenv.HasDarkBackground() {
+			return &styles.DarkStyleConfig, nil
+		}
+		return &styles.LightStyleConfig, nil
 	}
 
-	styles, ok := DefaultStyles[style]
+	styles, ok := styles.DefaultStyles[style]
 	if !ok {
 		return nil, fmt.Errorf("%s: style not found", style)
 	}
