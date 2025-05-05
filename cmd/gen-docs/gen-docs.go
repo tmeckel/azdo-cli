@@ -6,9 +6,11 @@ import (
 	"path/filepath"
 
 	"github.com/spf13/pflag"
+	"github.com/tmeckel/azdo-cli/cmd"
 	"github.com/tmeckel/azdo-cli/internal/cmd/root"
 	"github.com/tmeckel/azdo-cli/internal/cmd/util"
 	"github.com/tmeckel/azdo-cli/internal/docs"
+	"go.uber.org/zap"
 )
 
 func main() {
@@ -19,6 +21,11 @@ func main() {
 }
 
 func run(args []string) error {
+	buildDate := cmd.Date
+	buildVersion := cmd.Version
+
+	zap.L().Sugar().Debugf("Version %s, Date %+v", buildVersion, buildDate)
+
 	flags := pflag.NewFlagSet("", pflag.ContinueOnError)
 	manPage := flags.BoolP("man-page", "", false, "Generate manual pages")
 	website := flags.BoolP("website", "", false, "Generate website pages")

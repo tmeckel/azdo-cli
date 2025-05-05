@@ -10,7 +10,7 @@ import (
 
 	"github.com/AlecAivazis/survey/v2/terminal"
 	"github.com/spf13/cobra"
-	"github.com/tmeckel/azdo-cli/internal/build"
+	"github.com/tmeckel/azdo-cli/cmd"
 	"github.com/tmeckel/azdo-cli/internal/cmd/root"
 	cmdutil "github.com/tmeckel/azdo-cli/internal/cmd/util"
 	"github.com/tmeckel/azdo-cli/internal/iostreams"
@@ -45,8 +45,8 @@ func main() {
 }
 
 func mainRun() exitCode {
-	buildDate := build.Date
-	buildVersion := build.Version
+	buildDate := cmd.Date
+	buildVersion := cmd.Version
 
 	zap.L().Sugar().Debugf("Version %s, Date %+v", buildVersion, buildDate)
 	cmdCtx, err := cmdutil.NewCmdContext()
