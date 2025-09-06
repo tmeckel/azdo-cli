@@ -10,19 +10,15 @@ Authenticate azdo and git with Azure DevOps
 Authenticate with a Azure DevOps organization
 
 ```
--p, --git-protocol string      The protocol to use for git operations: {ssh|https}
-    --insecure-storage         Save authentication credentials in plain text instead of credential store
--o, --organizationUrl string   The URL to the Azure DevOps organization to authenticate with
-    --with-token               Read token from standard input
+-p, --git-protocol string       The protocol to use for git operations: {ssh|https}
+    --insecure-storage          Save authentication credentials in plain text instead of credential store
+-o, --organization-url string   The URL to the Azure DevOps organization to authenticate with
+    --with-token                Read token from standard input
 ````
 
-### `azdo auth logout [flags]`
+### `azdo auth logout [ORG]`
 
 Log out of a Azure DevOps organization
-
-```
--o, --organization string   The Azure DevOps organization to log out of
-````
 
 ### `azdo auth setup-git [flags]`
 
@@ -32,13 +28,13 @@ Setup git with AzDO CLI
 -o, --organization string   Configure git credential helper for specific organization
 ````
 
-### `azdo auth status [flags]`
+### `azdo auth status [organization]`
 
 View authentication status
 
-```
--o, --organization string   Check a specific oragnizations's auth status
-````
+## `azdo co`
+
+Alias for "pr checkout"
 
 ## `azdo config <command>`
 
@@ -70,46 +66,180 @@ Update configuration with a value for the given key
 -r, --remove                Remove config item for an organization, so that the default value will be in effect again
 ````
 
+## `azdo pr <command> [flags]`
+
+Manage pull requests
+
+```
+--help   Show help for command
+````
+
+### `azdo pr checkout <number> [flags]`
+
+Check out a pull request in git
+
+```
+-b, --branch string        Local branch name to use (default [the name of the head branch])
+    --detach               Checkout PR with a detached HEAD
+-f, --force                Reset the existing local branch to the latest state of the pull request
+    --recurse-submodules   Update all submodules after checkout
+````
+
+### `azdo pr close <number> | <branch> | <url> [flags]`
+
+Close a pull request
+
+```
+-c, --comment string   Leave a closing comment
+-d, --delete-branch    Delete the local and remote branch after close
+````
+
+### `azdo pr comment [<number> | <branch> | <url>]`
+
+Comment a pull request
+
+### `azdo pr create [flags]`
+
+Create a pull request
+
+```
+-B, --base branch             The branch into which you want your code merged
+-D, --description string      Description for the pull request
+-F, --description-file file   Read description text from file (use "-" to read from standard input)
+-d, --draft                   Mark pull request as a draft
+    --dry-run                 Print details instead of creating the PR. May still push git changes.
+-f, --fill                    Use commit info for title and body
+    --fill-first              Use first commit info for title and body
+    --fill-verbose            Use commits msg+body for description
+-H, --head branch             The branch that contains commits for your pull request (default [current branch])
+    --recover string          Recover input from a failed run of create
+-r, --reviewer handle         Request reviews from people or teams by their handle
+-t, --title string            Title for the pull request
+    --use-template            Use a pull request template for the description of the new pull request. The command will fail if no template is found
+````
+
+### `azdo pr diff [<number> | <branch> | <url>] [flags]`
+
+View changes in a pull request
+
+```
+--color string   Use color in diff output: {always|never|auto} (default "auto")
+--name-only      Display only names of changed files
+````
+
+### `azdo pr list [[organization/]project/repository] [flags]`
+
+List pull requests in a repository or a project
+
+```
+-a, --author string       Filter by author
+-B, --base string         Filter by base branch
+-d, --draft               Filter by draft state
+-f, --format string       Output format: {json} (default "table")
+-H, --head string         Filter by head branch
+-q, --jq expression       Filter JSON output using a jq expression
+    --json fields         Output JSON with the specified fields
+-l, --label strings       Filter by label
+-L, --limit int           Maximum number of items to fetch (default 30)
+-m, --mergestate string   Filter by merge state: {succeeded|conflicts}
+-r, --reviewer string     Filter by reviewer
+-s, --state string        Filter by state: {abandoned|active|all|completed} (default "active")
+-t, --template string     Format JSON output using a Go template; see "azdo help formatting"
+````
+
+### `azdo pr merge <number> | <branch> | <url> [flags]`
+
+Merge a pull request
+
+```
+-d, --delete-source-branch    Delete the source branch after merging
+    --merge-strategy string   Merge strategy to use: {NoFastForward|Squashed|Rebase|RebaseMerge} (default "NoFastForward")
+-m, --message string          Message to include when completing the pull request
+    --transition-work-items   Transition linked work item statuses upon merging (default true)
+````
+
+### `azdo pr reopen <number> | <branch> | <url>`
+
+Reopen a pull request
+
+### `azdo pr status [flags]`
+
+Show status of relevant pull requests
+
+```
+-c, --conflict-status   Display the merge conflict status of each pull request
+-q, --jq expression     Filter JSON output using a jq expression
+    --json fields       Output JSON with the specified fields
+-t, --template string   Format JSON output using a Go template; see "azdo help formatting"
+````
+
+### `azdo pr update [<number> | <branch> | <url>]`
+
+Update a pull request
+
+### `azdo pr view [<number> | <branch> | <url>] [flags]`
+
+View a pull request
+
+```
+-c, --comments          View pull request comments
+-C, --commits           View pull request commits
+-q, --jq expression     Filter JSON output using a jq expression
+    --json fields       Output JSON with the specified fields
+-r, --raw               View pull request raw
+-t, --template string   Format JSON output using a Go template; see "azdo help formatting"
+````
+
 ## `azdo project <command> [flags]`
 
 Work with Azure DevOps Projects.
 
-### `azdo project list [flags]`
+### `azdo project list [organization] [flags]`
 
 List the projects for an organization
 
 ```
-    --format string         Output format: {json} (default "table")
--l, --limit int             Maximum number of projects to fetch (default 30)
--o, --organization string   Get per-organization configuration
-    --state string          Project state filter: {deleting|new|wellFormed|createPending|all|unchanged|deleted}
+    --format string   Output format: {json} (default "table")
+-l, --limit int       Maximum number of projects to fetch (default 30)
+    --state string    Project state filter: {deleting|new|wellFormed|createPending|all|unchanged|deleted}
 ````
 
 ## `azdo repo <command>`
 
 Manage repositories
 
-### `azdo repo clone <repository> [<directory>] [-- <gitflags>...]`
+### `azdo repo clone [organization/]project/repository [<directory>] [-- <gitflags>...]`
 
 Clone a repository locally
 
 ```
     --no-credential-helper          Don't configure azdo as credential helper for the cloned repository
--o, --organization string           Use organization
--p, --project string                Use project
+    --recurse-submodules            Update all submodules after checkout
 -u, --upstream-remote-name string   Upstream remote name when cloning a fork (default "upstream")
 ````
 
-### `azdo repo list <project> [flags]`
+### `azdo repo list [organization/]<project> [flags]`
 
 List repositories of a project inside an organization
 
 ```
-    --format string         Output format: {json} (default "table")
-    --include-hidden        Include hidden repositories
--L, --limit int             Maximum number of repositories to list (default 30)
--o, --organization string   Get per-organization configuration
-    --visibility string     Filter by repository visibility: {public|private}
+    --format string       Output format: {json} (default "table")
+    --include-hidden      Include hidden repositories
+-L, --limit int           Maximum number of repositories to list (default 30)
+    --visibility string   Filter by repository visibility: {public|private}
+````
+
+### `azdo repo restore [organization/]project/repository`
+
+Restore a deleted repository
+
+### `azdo repo set-default [<repository>] [flags]`
+
+Configure default repository for this directory
+
+```
+-u, --unset   unset the current default repository
+-v, --view    view the current default repository
 ````
 
 
