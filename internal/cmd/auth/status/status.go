@@ -19,8 +19,8 @@ func NewCmdStatus(ctx util.CmdContext) *cobra.Command {
 	opts := &statusOptions{}
 
 	cmd := &cobra.Command{
-		Use:   "status",
-		Args:  cobra.ExactArgs(0),
+		Use:   "status [organization]",
+		Args:  cobra.MaximumNArgs(1),
 		Short: "View authentication status",
 		Long: heredoc.Doc(`Verifies and displays information about your authentication state.
 
@@ -28,11 +28,12 @@ func NewCmdStatus(ctx util.CmdContext) *cobra.Command {
 			report any issues.
 		`),
 		RunE: func(cmd *cobra.Command, args []string) error {
+			if len(args) > 0 {
+				opts.organizationName = args[0]
+			}
 			return statusRun(ctx, opts)
 		},
 	}
-
-	cmd.Flags().StringVarP(&opts.organizationName, "organization", "o", "", "Check a specific oragnizations's auth status")
 
 	return cmd
 }
@@ -46,20 +47,15 @@ func fetchOrganizationStates(ctx util.CmdContext, organizationsToCheck []string)
 	statusChannel := make(chan organizationStatus)
 
 	go func(channel chan<- organizationStatus) error {
-		rctx, err := ctx.Context()
-		if err != nil {
-			return err
-		}
-
 		for _, organizationName := range organizationsToCheck {
-			conn, err := ctx.Connection(organizationName)
+			conn, err := ctx.ConnectionFactory().Connection(organizationName)
 			if err != nil {
 				return err
 			}
 
-			client := security.NewClient(rctx, conn)
+			client := security.NewClient(ctx.Context(), conn)
 
-			_, err = client.QuerySecurityNamespaces(rctx, security.QuerySecurityNamespacesArgs{SecurityNamespaceId: lo.ToPtr(uuid.MustParse("5a27515b-ccd7-42c9-84f1-54c998f03866"))})
+			_, err = client.QuerySecurityNamespaces(ctx.Context(), security.QuerySecurityNamespacesArgs{SecurityNamespaceId: lo.ToPtr(uuid.MustParse("5a27515b-ccd7-42c9-84f1-54c998f03866"))})
 
 			status := organizationStatus{
 				organizationName: organizationName,
