@@ -1,6 +1,7 @@
 package git
 
 import (
+	"fmt"
 	"net/url"
 	"strings"
 )
@@ -18,7 +19,7 @@ func remoteNameSortScore(name string) int {
 	switch strings.ToLower(name) {
 	case "upstream":
 		return 3
-	case "github":
+	case "azdo":
 		return 2
 	case "origin":
 		return 1
@@ -39,13 +40,16 @@ func (r *Remote) String() string {
 	return r.Name
 }
 
-func NewRemote(name string, u string) *Remote {
-	pu, _ := url.Parse(u)
+func NewRemote(name string, u string) (*Remote, error) {
+	pu, err := url.Parse(u)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse URL %q: %w", u, err)
+	}
 	return &Remote{
 		Name:     name,
 		FetchURL: pu,
 		PushURL:  pu,
-	}
+	}, nil
 }
 
 // Ref represents a git commit reference.
