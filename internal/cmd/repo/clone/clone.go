@@ -2,7 +2,6 @@ package clone
 
 import (
 	"errors"
-	"fmt"
 	"strings"
 
 	"github.com/MakeNowJust/heredoc"
@@ -10,17 +9,17 @@ import (
 	"github.com/samber/lo"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
+	"github.com/tmeckel/azdo-cli/internal/azdo"
 	"github.com/tmeckel/azdo-cli/internal/cmd/util"
 	"github.com/tmeckel/azdo-cli/internal/config"
 )
 
 type cloneOptions struct {
-	organizationName   string
-	project            string
 	repository         string
 	gitArgs            []string
 	upstreamName       string
 	noCredentialHelper bool
+	recurseSubmodules  bool
 }
 
 func NewCmdRepoClone(ctx util.CmdContext) *cobra.Command {
@@ -29,12 +28,15 @@ func NewCmdRepoClone(ctx util.CmdContext) *cobra.Command {
 	cmd := &cobra.Command{
 		DisableFlagsInUseLine: true,
 
-		Use:   "clone <repository> [<directory>] [-- <gitflags>...]",
+		Use:   "clone [organization/]project/repository [<directory>] [-- <gitflags>...]",
 		Args:  util.MinimumArgs(1, "cannot clone: repository argument required"),
 		Short: "Clone a repository locally",
 		Long: heredoc.Docf(`
 			Clone a GitHub repository locally. Pass additional %[1]sgit clone%[1]s flags by listing
 			them after "--".
+
+			If the repository name does not specify an organization, the configured default orgnaization is used
+			or the value from the AZDO_ORGANIZATION environment variable.
 		`, "`"),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			opts.repository = args[0]
@@ -44,9 +46,8 @@ func NewCmdRepoClone(ctx util.CmdContext) *cobra.Command {
 		},
 	}
 
-	cmd.Flags().StringVarP(&opts.organizationName, "organization", "o", "", "Use organization")
-	cmd.Flags().StringVarP(&opts.project, "project", "p", "", "Use project")
 	cmd.Flags().StringVarP(&opts.upstreamName, "upstream-remote-name", "u", "upstream", "Upstream remote name when cloning a fork")
+	cmd.Flags().BoolVarP(&opts.recurseSubmodules, "recurse-submodules", "", false, "Update all submodules after checkout")
 	cmd.Flags().BoolVar(&opts.noCredentialHelper, "no-credential-helper", false, "Don't configure azdo as credential helper for the cloned repository")
 	cmd.SetFlagErrorFunc(func(cmd *cobra.Command, err error) error {
 		if errors.Is(err, pflag.ErrHelp) {
@@ -64,65 +65,24 @@ func runClone(ctx util.CmdContext, opts *cloneOptions) (err error) {
 		return util.FlagErrorf("error getting io configuration: %w", err)
 	}
 
-	repoItems := strings.Split(opts.repository, "/")
-	err = util.MutuallyExclusive("Either fully qualify the repository to clone ({PROJECT}/{REPOSITORY}) or specify the repository and the project via the --project argument", opts.project != "", len(repoItems) > 1)
+	r, err := azdo.RepositoryFromName(opts.repository)
 	if err != nil {
 		return
-	}
-	if len(repoItems) > 1 {
-		if opts.project != "" {
-			return err
-		}
-		opts.project = repoItems[0]
-		opts.repository = repoItems[1]
-	} else if opts.project == "" {
-		return fmt.Errorf("no project specified")
-	}
-	var organizationName string
-	if opts.organizationName != "" {
-		organizationName = opts.organizationName
-	} else {
-		organizationName, _ = cfg.Authentication().GetDefaultOrganization()
-	}
-	if organizationName == "" {
-		return util.FlagErrorf("no organization specified")
 	}
 
-	conn, err := ctx.Connection(organizationName)
-	if err != nil {
-		return
-	}
-	rctx, err := ctx.Context()
+	repoClient, err := r.GitClient(ctx.Context(), ctx.ConnectionFactory())
 	if err != nil {
 		return err
 	}
 
-	repoClient, err := git.NewClient(rctx, conn)
-	if err != nil {
-		return err
-	}
-
-	res, err := repoClient.GetRepositories(rctx, git.GetRepositoriesArgs{
-		Project: &opts.project,
-	})
+	repo, err := r.GitRepository(ctx.Context(), repoClient)
 	if err != nil {
 		return
 	}
 
-	var repo *git.GitRepository
-	for _, r := range *res {
-		if strings.EqualFold(*r.Name, opts.repository) {
-			repo = &r
-			break
-		}
-	}
-	if repo == nil {
-		return fmt.Errorf("repository %s not found in project %s and organization %s", opts.repository, opts.project, organizationName)
-	}
-
-	protocol, err := cfg.GetOrDefault([]string{config.Organizations, organizationName, "git_protocol"})
+	protocol, err := cfg.GetOrDefault([]string{config.Organizations, r.Organization(), "git_protocol"})
 	if err != nil {
-		return nil
+		return err
 	}
 
 	var canonicalCloneURL string
@@ -131,29 +91,46 @@ func runClone(ctx util.CmdContext, opts *cloneOptions) (err error) {
 	} else {
 		canonicalCloneURL = *repo.WebUrl
 	}
-	gitClient, err := ctx.GitClient()
+	gitCmd, err := ctx.RepoContext().GitCommand()
 	if err != nil {
 		return
 	}
-	cloneDir, err := gitClient.Clone(rctx, canonicalCloneURL, opts.gitArgs)
+	cloneDir, err := gitCmd.Clone(ctx.Context(), canonicalCloneURL, opts.gitArgs)
 	if err != nil {
 		return err
 	}
-	gitClient.RepoDir = cloneDir
+
+	err = gitCmd.SetRepoDir(cloneDir)
+	if err != nil {
+		return err
+	}
 
 	if !opts.noCredentialHelper {
-		authArgs, err := gitClient.GetAuthConfig(rctx)
+		authArgs, err := gitCmd.GetAuthConfig(ctx.Context())
 		if err != nil {
 			return err
 		}
-		err = gitClient.SetConfig(rctx, authArgs...)
+		err = gitCmd.SetConfig(ctx.Context(), authArgs...)
 		if err != nil {
 			return err
+		}
+	}
+
+	if opts.recurseSubmodules {
+		// FIXME: use auth helper otherwise user is prompted for password
+		for _, c := range [][]string{{"submodule", "sync", "--recursive"}, {"submodule", "update", "--init", "--recursive"}} {
+			cmd, err := gitCmd.Command(ctx.Context(), c...)
+			if err != nil {
+				return err
+			}
+			if err := cmd.Run(); err != nil {
+				return err
+			}
 		}
 	}
 
 	if repo.IsFork != nil && *repo.IsFork {
-		repo, err = repoClient.GetRepositoryWithParent(rctx, git.GetRepositoryWithParentArgs{
+		repo, err = repoClient.GetRepositoryWithParent(ctx.Context(), git.GetRepositoryWithParentArgs{
 			RepositoryId:  lo.ToPtr(repo.Id.String()),
 			IncludeParent: lo.ToPtr(true),
 		})
@@ -161,7 +138,7 @@ func runClone(ctx util.CmdContext, opts *cloneOptions) (err error) {
 			return err
 		}
 
-		fork, err := repoClient.GetRepository(rctx, git.GetRepositoryArgs{
+		fork, err := repoClient.GetRepository(ctx.Context(), git.GetRepositoryArgs{
 			Project:      lo.ToPtr(repo.ParentRepository.Project.Id.String()),
 			RepositoryId: lo.ToPtr(repo.ParentRepository.Id.String()),
 		})
@@ -176,16 +153,16 @@ func runClone(ctx util.CmdContext, opts *cloneOptions) (err error) {
 			upstreamURL = *fork.WebUrl
 		}
 
-		_, err = gitClient.AddRemote(rctx, opts.upstreamName, upstreamURL, []string{strings.TrimPrefix(*fork.DefaultBranch, "refs/heads/")})
+		_, err = gitCmd.AddRemote(ctx.Context(), opts.upstreamName, upstreamURL, []string{strings.TrimPrefix(*fork.DefaultBranch, "refs/heads/")})
 		if err != nil {
 			return err
 		}
 
-		if err := gitClient.Fetch(rctx, opts.upstreamName, ""); err != nil {
+		if err := gitCmd.Fetch(ctx.Context(), opts.upstreamName, ""); err != nil {
 			return err
 		}
 
-		if err := gitClient.SetRemoteBranches(rctx, opts.upstreamName, `*`); err != nil {
+		if err := gitCmd.SetRemoteBranches(ctx.Context(), opts.upstreamName, `*`); err != nil {
 			return err
 		}
 
