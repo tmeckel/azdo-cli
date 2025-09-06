@@ -25,8 +25,12 @@ lint: ## lint source
 	@echo "Executing golangci-lint"; golangci-lint run -v --timeout $(TIMEOUT)
 
 .PHONY: help
-tidy: # call go mod tidy on all existing go.mod files
+tidy: ## call go mod tidy on all existing go.mod files
 	find . -name go.mod -execdir go mod tidy \;
+
+.PHONY: docs
+docs: ## create documentation
+	go run cmd/gen-docs/gen-docs.go --doc-path ./docs --website
 
 .PHONY: help
 help:
