@@ -41,11 +41,11 @@ func NewCmdConfigGet(ctx util.CmdContext) *cobra.Command {
 func getRun(ctx util.CmdContext, opts *getOptions) (err error) {
 	cfg, err := ctx.Config()
 	if err != nil {
-		return util.FlagErrorf("error getting io configuration: %w", err)
+		return util.FlagErrorf("error getting io configuration: %w", err) //nolint:error,wrapcheck
 	}
 	iostrms, err := ctx.IOStreams()
 	if err != nil {
-		return util.FlagErrorf("error getting io streams: %w", err)
+		return util.FlagErrorf("error getting io streams: %w", err) //nolint:error,wrapcheck
 	}
 
 	if opts.organizationName != "" {
@@ -63,7 +63,7 @@ func getRun(ctx util.CmdContext, opts *getOptions) (err error) {
 	if opts.organizationName != "" && opts.key == "pat" {
 		token, err := cfg.Authentication().GetToken(opts.organizationName)
 		if err != nil {
-			return util.FlagErrorf("failed to get token for organization %s; %w", opts.organizationName, err)
+			return util.FlagErrorf("failed to get token for organization %s; %w", opts.organizationName, err) //nolint:error,wrapcheck
 		}
 		fmt.Fprintf(iostrms.Out, "%s\n", token)
 		return nil
@@ -76,7 +76,7 @@ func getRun(ctx util.CmdContext, opts *getOptions) (err error) {
 	keys = append(keys, opts.key)
 	val, err := cfg.GetOrDefault(keys)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to get value or default for key %+v: %w", keys, err)
 	}
 
 	if val != "" {
