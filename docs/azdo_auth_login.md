@@ -30,7 +30,7 @@ To use azdo in Azure DevOps Pipeline Tasks (or other automation environments), a
 
 	Save authentication credentials in plain text instead of credential store
 
-* `-o`, `--organizationUrl` `string`
+* `-o`, `--organization-url` `string`
 
 	The URL to the Azure DevOps organization to authenticate with
 
