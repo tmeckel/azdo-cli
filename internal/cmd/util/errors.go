@@ -10,7 +10,7 @@ import (
 
 // FlagErrorf returns a new FlagError that wraps an error produced by
 // fmt.Errorf(format, args...).
-func FlagErrorf(format string, args ...interface{}) error {
+func FlagErrorf(format string, args ...any) error {
 	return FlagErrorWrap(fmt.Errorf(format, args...))
 }
 
@@ -84,3 +84,6 @@ func NewExternalCommandExitError(err *exec.ExitError) ExternalCommandExitError {
 		err: err,
 	}
 }
+
+// NotImplemented is an error that indicates a feature is not implemented
+var ErrNotImplemented = errors.New("NotImplementedError")
