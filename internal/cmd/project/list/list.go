@@ -2,6 +2,8 @@ package list
 
 import (
 	"fmt"
+	"sort"
+	"strings"
 
 	"github.com/MakeNowJust/heredoc"
 	"github.com/microsoft/azure-devops-go-api/azuredevops/v7/core"
@@ -22,7 +24,7 @@ func NewCmdProjectList(ctx util.CmdContext) *cobra.Command {
 
 	cmd := &cobra.Command{
 		Short: "List the projects for an organization",
-		Use:   "list",
+		Use:   "list [organization]",
 		Example: heredoc.Doc(`
 			# list the default organizations's projects
 			azdo project list
@@ -30,13 +32,16 @@ func NewCmdProjectList(ctx util.CmdContext) *cobra.Command {
 			# list the projects for an Azure DevOps organization including closed projects
 			azdo project list --organization myorg --closed
 		`),
+		Args:    cobra.MaximumNArgs(1),
 		Aliases: []string{"ls"},
 		RunE: func(cmd *cobra.Command, args []string) error {
+			if len(args) > 0 {
+				opts.organizationName = args[0]
+			}
 			return runList(ctx, opts)
 		},
 	}
 
-	cmd.Flags().StringVarP(&opts.organizationName, "organization", "o", "", "Get per-organization configuration")
 	util.StringEnumFlag(cmd, &opts.format, "format", "", "table", []string{"json"}, "Output format")
 	util.StringEnumFlag(cmd, &opts.state, "state", "", "",
 		[]string{
@@ -54,6 +59,14 @@ func NewCmdProjectList(ctx util.CmdContext) *cobra.Command {
 }
 
 func runList(ctx util.CmdContext, opts *listOptions) (err error) {
+	iostreams, err := ctx.IOStreams()
+	if err != nil {
+		return err
+	}
+
+	iostreams.StartProgressIndicator()
+	defer iostreams.StopProgressIndicator()
+
 	cfg, err := ctx.Config()
 	if err != nil {
 		return util.FlagErrorf("error getting io configuration: %w", err)
@@ -68,16 +81,11 @@ func runList(ctx util.CmdContext, opts *listOptions) (err error) {
 	if organizationName == "" {
 		return util.FlagErrorf("no organization specified")
 	}
-	conn, err := ctx.Connection(organizationName)
+	conn, err := ctx.ConnectionFactory().Connection(organizationName)
 	if err != nil {
 		return
 	}
-	rctx, err := ctx.Context()
-	if err != nil {
-		return err
-	}
-
-	orgClient, err := core.NewClient(rctx, conn)
+	orgClient, err := core.NewClient(ctx.Context(), conn)
 	if err != nil {
 		return err
 	}
@@ -87,7 +95,7 @@ func runList(ctx util.CmdContext, opts *listOptions) (err error) {
 		state := core.ProjectState(opts.state)
 		args.StateFilter = &state
 	}
-	res, err := orgClient.GetProjects(rctx, args)
+	res, err := orgClient.GetProjects(ctx.Context(), args)
 	if err != nil {
 		return
 	}
@@ -99,6 +107,12 @@ func runList(ctx util.CmdContext, opts *listOptions) (err error) {
 	if err != nil {
 		return
 	}
+
+	sort.Slice(res.Value, func(i, j int) bool {
+		return strings.ToLower(*(res.Value[i].Name)) < strings.ToLower(*(res.Value[j].Name))
+	})
+
+	iostreams.StopProgressIndicator()
 
 	tp.AddColumns("ID", "Name", "State")
 	for _, p := range res.Value {
