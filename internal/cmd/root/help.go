@@ -112,7 +112,7 @@ func rootHelpFunc(iostrms *iostreams.IOStreams, command *cobra.Command, _ []stri
 	}
 	if longText != "" && command.LocalFlags().Lookup("jq") != nil {
 		longText = strings.TrimRight(longText, "\n") +
-			"\n\nFor more information about output formatting flags, see `gh help formatting`."
+			"\n\nFor more information about output formatting flags, see `azdo help formatting`."
 	}
 
 	helpEntries := []helpEntry{}
