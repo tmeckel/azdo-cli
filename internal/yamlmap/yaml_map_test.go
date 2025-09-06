@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestMapAddEntry(t *testing.T) {
@@ -35,9 +36,9 @@ func TestMapAddEntry(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			m.AddEntry(tt.key, StringValue(tt.value))
 			entry, err := m.FindEntry(tt.key)
-			assert.NoError(t, err)
+			require.NoError(t, err)
 			assert.Equal(t, tt.wantValue, entry.Value)
-			assert.Equal(t, tt.wantLength, len(m.Content))
+			assert.Len(t, m.Content, tt.wantLength)
 			assert.True(t, m.IsModified())
 		})
 	}
@@ -45,9 +46,9 @@ func TestMapAddEntry(t *testing.T) {
 
 func TestMapEmpty(t *testing.T) {
 	m := blankMap()
-	assert.Equal(t, true, m.Empty())
+	assert.True(t, m.Empty())
 	m.AddEntry("test", StringValue("test"))
-	assert.Equal(t, false, m.Empty())
+	assert.False(t, m.Empty())
 }
 
 func TestMapFindEntry(t *testing.T) {
@@ -84,11 +85,11 @@ func TestMapFindEntry(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			out, err := m.FindEntry(tt.key)
 			if tt.wantErr {
-				assert.EqualError(t, err, "not found")
+				require.EqualError(t, err, "not found")
 				assert.False(t, m.IsModified())
 				return
 			}
-			assert.NoError(t, err)
+			require.NoError(t, err)
 			assert.Equal(t, tt.output, out.Value)
 			assert.False(t, m.IsModified())
 		})
@@ -98,12 +99,12 @@ func TestMapFindEntry(t *testing.T) {
 func TestMapFindEntryModified(t *testing.T) {
 	m := testMap()
 	entry, err := m.FindEntry("valid")
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.Equal(t, "present", entry.Value)
 	entry.Value = "test"
 	assert.Equal(t, "test", entry.Value)
 	entry2, err := m.FindEntry("valid")
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.Equal(t, "test", entry2.Value)
 }
 
@@ -163,15 +164,15 @@ func TestMapRemoveEntry(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			err := m.RemoveEntry(tt.key)
 			if tt.wantErr {
-				assert.EqualError(t, err, "not found")
+				require.EqualError(t, err, "not found")
 				assert.False(t, m.IsModified())
 			} else {
-				assert.NoError(t, err)
+				require.NoError(t, err)
 				assert.True(t, m.IsModified())
 			}
-			assert.Equal(t, tt.wantLength, len(m.Content))
+			assert.Len(t, m.Content, tt.wantLength)
 			_, err = m.FindEntry(tt.key)
-			assert.EqualError(t, err, "not found")
+			require.EqualError(t, err, "not found")
 		})
 	}
 }
@@ -201,9 +202,9 @@ func TestMapSetEntry(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			m.SetEntry(tt.key, tt.value)
 			assert.True(t, m.IsModified())
-			assert.Equal(t, tt.wantLength, len(m.Content))
+			assert.Len(t, m.Content, tt.wantLength)
 			e, err := m.FindEntry(tt.key)
-			assert.NoError(t, err)
+			require.NoError(t, err)
 			assert.Equal(t, tt.value.Value, e.Value)
 		})
 	}
@@ -240,11 +241,11 @@ func TestUnmarshal(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			m, err := Unmarshal(tt.data)
 			if tt.wantErr != "" {
-				assert.EqualError(t, err, tt.wantErr)
+				require.EqualError(t, err, tt.wantErr)
 				assert.Nil(t, m)
 				return
 			}
-			assert.NoError(t, err)
+			require.NoError(t, err)
 			assert.Equal(t, tt.wantEmpty, m.Empty())
 		})
 	}
