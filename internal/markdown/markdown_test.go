@@ -3,7 +3,7 @@ package markdown
 import (
 	"testing"
 
-	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func Test_Render(t *testing.T) {
@@ -32,7 +32,7 @@ func Test_Render(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			_, err := Render(tt.text, WithTheme(tt.theme))
-			assert.NoError(t, err)
+			require.NoError(t, err)
 		})
 	}
 }
