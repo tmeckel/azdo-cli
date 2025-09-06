@@ -4,6 +4,7 @@ package yamlmap
 
 import (
 	"errors"
+	"strings"
 
 	"gopkg.in/yaml.v3"
 )
@@ -53,10 +54,11 @@ func Unmarshal(data []byte) (*Map, error) {
 }
 
 func Marshal(m *Map) ([]byte, error) {
-	return yaml.Marshal(m.Node)
+	return yaml.Marshal(m.Node) //nolint:error,wrapcheck
 }
 
 func (m *Map) AddEntry(key string, value *Map) {
+	key = strings.TrimSpace(key)
 	keyNode := &yaml.Node{
 		Kind:  yaml.ScalarNode,
 		Tag:   "!!str",
@@ -67,10 +69,11 @@ func (m *Map) AddEntry(key string, value *Map) {
 }
 
 func (m *Map) Empty() bool {
-	return m.Content == nil || len(m.Content) == 0
+	return len(m.Content) == 0
 }
 
 func (m *Map) FindEntry(key string) (*Map, error) {
+	key = strings.TrimSpace(key)
 	// Note: The content slice of a yamlMap looks like [key1, value1, key2, value2, ...].
 	// When iterating over the content slice we only want to compare the keys of the yamlMap.
 	for i, v := range m.Content {
@@ -100,6 +103,7 @@ func (m *Map) Keys() []string {
 }
 
 func (m *Map) RemoveEntry(key string) error {
+	key = strings.TrimSpace(key)
 	// Note: The content slice of a yamlMap looks like [key1, value1, key2, value2, ...].
 	// When iterating over the content slice we only want to compare the keys of the yamlMap.
 	// If we find they key to remove, remove the key and its value from the content slice.
@@ -126,6 +130,7 @@ func (m *Map) RemoveEntry(key string) error {
 }
 
 func (m *Map) SetEntry(key string, value *Map) {
+	key = strings.TrimSpace(key)
 	// Note: The content slice of a yamlMap looks like [key1, value1, key2, value2, ...].
 	// When iterating over the content slice we only want to compare the keys of the yamlMap.
 	// If we find they key to set, set the next item in the content slice to the new value.
