@@ -42,7 +42,7 @@ func TestClientCommand(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			in, out, errOut := &bytes.Buffer{}, &bytes.Buffer{}, &bytes.Buffer{}
-			client := Client{
+			client := client{
 				Stdin:   in,
 				Stdout:  out,
 				Stderr:  errOut,
@@ -50,7 +50,7 @@ func TestClientCommand(t *testing.T) {
 				GitPath: tt.gitPath,
 			}
 			cmd, err := client.Command(context.Background(), "ref-log")
-			assert.NoError(t, err)
+			require.NoError(t, err)
 			assert.Equal(t, tt.wantExe, cmd.Path)
 			assert.Equal(t, tt.wantArgs, cmd.Args)
 			assert.Equal(t, in, cmd.Stdin)
@@ -78,12 +78,12 @@ func TestClientAuthenticatedCommand(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			client := Client{
+			client := client{
 				AzDoPath: tt.path,
 				GitPath:  "path/to/git",
 			}
 			cmd, err := client.AuthenticatedCommand(context.Background(), "fetch")
-			assert.NoError(t, err)
+			require.NoError(t, err)
 			assert.Equal(t, tt.wantArgs, cmd.Args)
 		})
 	}
@@ -107,12 +107,12 @@ func TestClientAuthenticatedCloneCommand(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			client := Client{
+			client := client{
 				AzDoPath: tt.path,
 				GitPath:  "path/to/git",
 			}
 			cmd, err := client.AuthenticatedCommand(context.Background(), "clone")
-			assert.NoError(t, err)
+			require.NoError(t, err)
 			assert.Equal(t, tt.wantArgs, cmd.Args)
 		})
 	}
@@ -131,24 +131,24 @@ func TestClientRemotes(t *testing.T) {
 	azdo-resolved = other
 [remote "upstream"]
 	url = https://dev.azure.com/monalisa/project/_git/repo/upstream.git
-	azdo-resolved = base
+	azdo-resolved = default
 [remote "github"]
 	url = git@github.com:v3/hubot/github.git
 `
 	f, err := os.OpenFile(remoteFile, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0o755)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	_, err = f.Write([]byte(remotes))
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	err = f.Close()
-	assert.NoError(t, err)
-	client := Client{
+	require.NoError(t, err)
+	client := client{
 		RepoDir: tempDir,
 	}
 	rs, err := client.Remotes(context.Background())
-	assert.NoError(t, err)
-	assert.Equal(t, 4, len(rs))
+	require.NoError(t, err)
+	assert.Len(t, rs, 4)
 	assert.Equal(t, "upstream", rs[0].Name)
-	assert.Equal(t, "base", rs[0].Resolved)
+	assert.Equal(t, "default", rs[0].Resolved)
 	assert.Equal(t, "github", rs[1].Name)
 	assert.Equal(t, "", rs[1].Resolved)
 	assert.Equal(t, "origin", rs[2].Name)
@@ -173,17 +173,17 @@ func TestClientRemotes_no_resolved_remote(t *testing.T) {
 	url = https://example.com/monalisa/upstream
 `
 	f, err := os.OpenFile(remoteFile, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0o755)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	_, err = f.Write([]byte(remotes))
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	err = f.Close()
-	assert.NoError(t, err)
-	client := Client{
+	require.NoError(t, err)
+	client := client{
 		RepoDir: tempDir,
 	}
 	rs, err := client.Remotes(context.Background())
-	assert.NoError(t, err)
-	assert.Equal(t, 4, len(rs))
+	require.NoError(t, err)
+	assert.Len(t, rs, 4)
 	assert.Equal(t, "origin", rs[1].Name)
 	assert.Equal(t, "test", rs[3].Name)
 	assert.Equal(t, "upstream", rs[0].Name)
@@ -203,7 +203,7 @@ func TestParseRemotes(t *testing.T) {
 	}
 
 	r := parseRemotes(remoteList)
-	assert.Equal(t, 5, len(r))
+	assert.Len(t, r, 5)
 
 	assert.Equal(t, "mona", r[0].Name)
 	assert.Equal(t, "ssh://git@dev.azure.com/v3/monalisa/project/myfork.git", r[0].FetchURL.String())
@@ -250,16 +250,16 @@ func TestClientUpdateRemoteURL(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			cmd, cmdCtx := createCommandContext(t, tt.cmdExitStatus, tt.cmdStdout, tt.cmdStderr)
-			client := Client{
+			client := client{
 				GitPath:        "path/to/git",
 				commandContext: cmdCtx,
 			}
 			err := client.UpdateRemoteURL(context.Background(), "test", "https://test.com")
 			assert.Equal(t, tt.wantCmdArgs, strings.Join(cmd.Args[3:], " "))
 			if tt.wantErrorMsg == "" {
-				assert.NoError(t, err)
+				require.NoError(t, err)
 			} else {
-				assert.EqualError(t, err, tt.wantErrorMsg)
+				require.EqualError(t, err, tt.wantErrorMsg)
 			}
 		})
 	}
@@ -289,16 +289,16 @@ func TestClientSetRemoteResolution(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			cmd, cmdCtx := createCommandContext(t, tt.cmdExitStatus, tt.cmdStdout, tt.cmdStderr)
-			client := Client{
+			client := client{
 				GitPath:        "path/to/git",
 				commandContext: cmdCtx,
 			}
 			err := client.SetRemoteResolution(context.Background(), "origin", "base")
 			assert.Equal(t, tt.wantCmdArgs, strings.Join(cmd.Args[3:], " "))
 			if tt.wantErrorMsg == "" {
-				assert.NoError(t, err)
+				require.NoError(t, err)
 			} else {
-				assert.EqualError(t, err, tt.wantErrorMsg)
+				require.EqualError(t, err, tt.wantErrorMsg)
 			}
 		})
 	}
@@ -342,16 +342,16 @@ func TestClientCurrentBranch(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			cmd, cmdCtx := createCommandContext(t, tt.cmdExitStatus, tt.cmdStdout, tt.cmdStderr)
-			client := Client{
+			client := client{
 				GitPath:        "path/to/git",
 				commandContext: cmdCtx,
 			}
 			branch, err := client.CurrentBranch(context.Background())
 			assert.Equal(t, tt.wantCmdArgs, strings.Join(cmd.Args[3:], " "))
 			if tt.wantErrorMsg == "" {
-				assert.NoError(t, err)
+				require.NoError(t, err)
 			} else {
-				assert.EqualError(t, err, tt.wantErrorMsg)
+				require.EqualError(t, err, tt.wantErrorMsg)
 			}
 			assert.Equal(t, tt.wantBranch, branch)
 		})
@@ -384,13 +384,13 @@ func TestClientShowRefs(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			cmd, cmdCtx := createCommandContext(t, tt.cmdExitStatus, tt.cmdStdout, tt.cmdStderr)
-			client := Client{
+			client := client{
 				GitPath:        "path/to/git",
 				commandContext: cmdCtx,
 			}
 			refs, err := client.ShowRefs(context.Background(), []string{"refs/heads/valid", "refs/heads/invalid"})
 			assert.Equal(t, tt.wantCmdArgs, strings.Join(cmd.Args[3:], " "))
-			assert.EqualError(t, err, tt.wantErrorMsg)
+			require.EqualError(t, err, tt.wantErrorMsg)
 			assert.Equal(t, tt.wantRefs, refs)
 		})
 	}
@@ -430,16 +430,16 @@ func TestClientConfig(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			cmd, cmdCtx := createCommandContext(t, tt.cmdExitStatus, tt.cmdStdout, tt.cmdStderr)
-			client := Client{
+			client := client{
 				GitPath:        "path/to/git",
 				commandContext: cmdCtx,
 			}
-			out, err := client.Config(context.Background(), "credential.helper")
+			out, err := client.GetConfig(context.Background(), "credential.helper")
 			assert.Equal(t, tt.wantCmdArgs, strings.Join(cmd.Args[3:], " "))
 			if tt.wantErrorMsg == "" {
-				assert.NoError(t, err)
+				require.NoError(t, err)
 			} else {
-				assert.EqualError(t, err, tt.wantErrorMsg)
+				require.EqualError(t, err, tt.wantErrorMsg)
 			}
 			assert.Equal(t, tt.wantOut, out)
 		})
@@ -476,13 +476,13 @@ func TestClientUncommittedChangeCount(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			cmd, cmdCtx := createCommandContext(t, tt.cmdExitStatus, tt.cmdStdout, tt.cmdStderr)
-			client := Client{
+			client := client{
 				GitPath:        "path/to/git",
 				commandContext: cmdCtx,
 			}
 			ucc, err := client.UncommittedChangeCount(context.Background())
 			assert.Equal(t, tt.wantCmdArgs, strings.Join(cmd.Args[3:], " "))
-			assert.NoError(t, err)
+			require.NoError(t, err)
 			assert.Equal(t, tt.wantChangeCount, ucc)
 		})
 	}
@@ -654,7 +654,7 @@ func TestClientCommits(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			cmd, cmdCtx := createCommitsCommandContext(t, tt.testData)
-			client := Client{
+			client := client{
 				GitPath:        "path/to/git",
 				commandContext: cmdCtx,
 			}
@@ -716,21 +716,21 @@ func createCommitsCommandContext(t *testing.T, testData stubbedCommitsCommandDat
 }
 
 func TestClientLastCommit(t *testing.T) {
-	client := Client{
+	client := client{
 		RepoDir: "./fixtures/simple.git",
 	}
 	c, err := client.LastCommit(context.Background())
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.Equal(t, "6f1a2405cace1633d89a79c74c65f22fe78f9659", c.Sha)
 	assert.Equal(t, "Second commit", c.Title)
 }
 
 func TestClientCommitBody(t *testing.T) {
-	client := Client{
+	client := client{
 		RepoDir: "./fixtures/simple.git",
 	}
 	body, err := client.CommitBody(context.Background(), "6f1a2405cace1633d89a79c74c65f22fe78f9659")
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.Equal(t, "I'm starting to get the hang of things\n", body)
 }
 
@@ -753,7 +753,7 @@ func TestClientReadBranchConfig(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			cmd, cmdCtx := createCommandContext(t, tt.cmdExitStatus, tt.cmdStdout, tt.cmdStderr)
-			client := Client{
+			client := client{
 				GitPath:        "path/to/git",
 				commandContext: cmdCtx,
 			}
@@ -788,16 +788,16 @@ func TestClientDeleteLocalTag(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			cmd, cmdCtx := createCommandContext(t, tt.cmdExitStatus, tt.cmdStdout, tt.cmdStderr)
-			client := Client{
+			client := client{
 				GitPath:        "path/to/git",
 				commandContext: cmdCtx,
 			}
 			err := client.DeleteLocalTag(context.Background(), "v1.0")
 			assert.Equal(t, tt.wantCmdArgs, strings.Join(cmd.Args[3:], " "))
 			if tt.wantErrorMsg == "" {
-				assert.NoError(t, err)
+				require.NoError(t, err)
 			} else {
-				assert.EqualError(t, err, tt.wantErrorMsg)
+				require.EqualError(t, err, tt.wantErrorMsg)
 			}
 		})
 	}
@@ -827,16 +827,16 @@ func TestClientDeleteLocalBranch(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			cmd, cmdCtx := createCommandContext(t, tt.cmdExitStatus, tt.cmdStdout, tt.cmdStderr)
-			client := Client{
+			client := client{
 				GitPath:        "path/to/git",
 				commandContext: cmdCtx,
 			}
 			err := client.DeleteLocalBranch(context.Background(), "trunk")
 			assert.Equal(t, tt.wantCmdArgs, strings.Join(cmd.Args[3:], " "))
 			if tt.wantErrorMsg == "" {
-				assert.NoError(t, err)
+				require.NoError(t, err)
 			} else {
-				assert.EqualError(t, err, tt.wantErrorMsg)
+				require.EqualError(t, err, tt.wantErrorMsg)
 			}
 		})
 	}
@@ -866,13 +866,13 @@ func TestClientHasLocalBranch(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			cmd, cmdCtx := createCommandContext(t, tt.cmdExitStatus, tt.cmdStdout, tt.cmdStderr)
-			client := Client{
+			client := client{
 				GitPath:        "path/to/git",
 				commandContext: cmdCtx,
 			}
 			out := client.HasLocalBranch(context.Background(), "trunk")
 			assert.Equal(t, tt.wantCmdArgs, strings.Join(cmd.Args[3:], " "))
-			assert.Equal(t, out, tt.wantOut)
+			assert.Equal(t, tt.wantOut, out)
 		})
 	}
 }
@@ -901,16 +901,16 @@ func TestClientCheckoutBranch(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			cmd, cmdCtx := createCommandContext(t, tt.cmdExitStatus, tt.cmdStdout, tt.cmdStderr)
-			client := Client{
+			client := client{
 				GitPath:        "path/to/git",
 				commandContext: cmdCtx,
 			}
 			err := client.CheckoutBranch(context.Background(), "trunk")
 			assert.Equal(t, tt.wantCmdArgs, strings.Join(cmd.Args[3:], " "))
 			if tt.wantErrorMsg == "" {
-				assert.NoError(t, err)
+				require.NoError(t, err)
 			} else {
-				assert.EqualError(t, err, tt.wantErrorMsg)
+				require.EqualError(t, err, tt.wantErrorMsg)
 			}
 		})
 	}
@@ -940,16 +940,16 @@ func TestClientCheckoutNewBranch(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			cmd, cmdCtx := createCommandContext(t, tt.cmdExitStatus, tt.cmdStdout, tt.cmdStderr)
-			client := Client{
+			client := client{
 				GitPath:        "path/to/git",
 				commandContext: cmdCtx,
 			}
 			err := client.CheckoutNewBranch(context.Background(), "origin", "trunk")
 			assert.Equal(t, tt.wantCmdArgs, strings.Join(cmd.Args[3:], " "))
 			if tt.wantErrorMsg == "" {
-				assert.NoError(t, err)
+				require.NoError(t, err)
 			} else {
-				assert.EqualError(t, err, tt.wantErrorMsg)
+				require.EqualError(t, err, tt.wantErrorMsg)
 			}
 		})
 	}
@@ -982,16 +982,16 @@ func TestClientToplevelDir(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			cmd, cmdCtx := createCommandContext(t, tt.cmdExitStatus, tt.cmdStdout, tt.cmdStderr)
-			client := Client{
+			client := client{
 				GitPath:        "path/to/git",
 				commandContext: cmdCtx,
 			}
 			dir, err := client.ToplevelDir(context.Background())
 			assert.Equal(t, tt.wantCmdArgs, strings.Join(cmd.Args[3:], " "))
 			if tt.wantErrorMsg == "" {
-				assert.NoError(t, err)
+				require.NoError(t, err)
 			} else {
-				assert.EqualError(t, err, tt.wantErrorMsg)
+				require.EqualError(t, err, tt.wantErrorMsg)
 			}
 			assert.Equal(t, tt.wantDir, dir)
 		})
@@ -1025,16 +1025,16 @@ func TestClientGitDir(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			cmd, cmdCtx := createCommandContext(t, tt.cmdExitStatus, tt.cmdStdout, tt.cmdStderr)
-			client := Client{
+			client := client{
 				GitPath:        "path/to/git",
 				commandContext: cmdCtx,
 			}
 			dir, err := client.GitDir(context.Background())
 			assert.Equal(t, tt.wantCmdArgs, strings.Join(cmd.Args[3:], " "))
 			if tt.wantErrorMsg == "" {
-				assert.NoError(t, err)
+				require.NoError(t, err)
 			} else {
-				assert.EqualError(t, err, tt.wantErrorMsg)
+				require.EqualError(t, err, tt.wantErrorMsg)
 			}
 			assert.Equal(t, tt.wantDir, dir)
 		})
@@ -1068,7 +1068,7 @@ func TestClientPathFromRoot(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			cmd, cmdCtx := createCommandContext(t, tt.cmdExitStatus, tt.cmdStdout, tt.cmdStderr)
-			client := Client{
+			client := client{
 				GitPath:        "path/to/git",
 				commandContext: cmdCtx,
 			}
@@ -1103,16 +1103,16 @@ func TestClientUnsetRemoteResolution(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			cmd, cmdCtx := createCommandContext(t, tt.cmdExitStatus, tt.cmdStdout, tt.cmdStderr)
-			client := Client{
+			client := client{
 				GitPath:        "path/to/git",
 				commandContext: cmdCtx,
 			}
 			err := client.UnsetRemoteResolution(context.Background(), "origin")
 			assert.Equal(t, tt.wantCmdArgs, strings.Join(cmd.Args[3:], " "))
 			if tt.wantErrorMsg == "" {
-				assert.NoError(t, err)
+				require.NoError(t, err)
 			} else {
-				assert.EqualError(t, err, tt.wantErrorMsg)
+				require.EqualError(t, err, tt.wantErrorMsg)
 			}
 		})
 	}
@@ -1142,16 +1142,16 @@ func TestClientSetRemoteBranches(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			cmd, cmdCtx := createCommandContext(t, tt.cmdExitStatus, tt.cmdStdout, tt.cmdStderr)
-			client := Client{
+			client := client{
 				GitPath:        "path/to/git",
 				commandContext: cmdCtx,
 			}
 			err := client.SetRemoteBranches(context.Background(), "origin", "trunk")
 			assert.Equal(t, tt.wantCmdArgs, strings.Join(cmd.Args[3:], " "))
 			if tt.wantErrorMsg == "" {
-				assert.NoError(t, err)
+				require.NoError(t, err)
 			} else {
-				assert.EqualError(t, err, tt.wantErrorMsg)
+				require.EqualError(t, err, tt.wantErrorMsg)
 			}
 		})
 	}
@@ -1187,16 +1187,16 @@ func TestClientFetch(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			cmd, cmdCtx := createCommandContext(t, tt.cmdExitStatus, tt.cmdStdout, tt.cmdStderr)
-			client := Client{
+			client := client{
 				GitPath:        "path/to/git",
 				commandContext: cmdCtx,
 			}
 			err := client.Fetch(context.Background(), "origin", "trunk", tt.mods...)
 			assert.Equal(t, tt.wantCmdArgs, strings.Join(cmd.Args[3:], " "))
 			if tt.wantErrorMsg == "" {
-				assert.NoError(t, err)
+				require.NoError(t, err)
 			} else {
-				assert.EqualError(t, err, tt.wantErrorMsg)
+				require.EqualError(t, err, tt.wantErrorMsg)
 			}
 		})
 	}
@@ -1232,16 +1232,16 @@ func TestClientPull(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			cmd, cmdCtx := createCommandContext(t, tt.cmdExitStatus, tt.cmdStdout, tt.cmdStderr)
-			client := Client{
+			client := client{
 				GitPath:        "path/to/git",
 				commandContext: cmdCtx,
 			}
 			err := client.Pull(context.Background(), "origin", "trunk", tt.mods...)
 			assert.Equal(t, tt.wantCmdArgs, strings.Join(cmd.Args[3:], " "))
 			if tt.wantErrorMsg == "" {
-				assert.NoError(t, err)
+				require.NoError(t, err)
 			} else {
-				assert.EqualError(t, err, tt.wantErrorMsg)
+				require.EqualError(t, err, tt.wantErrorMsg)
 			}
 		})
 	}
@@ -1277,16 +1277,16 @@ func TestClientPush(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			cmd, cmdCtx := createCommandContext(t, tt.cmdExitStatus, tt.cmdStdout, tt.cmdStderr)
-			client := Client{
+			client := client{
 				GitPath:        "path/to/git",
 				commandContext: cmdCtx,
 			}
 			err := client.Push(context.Background(), "origin", "trunk", tt.mods...)
 			assert.Equal(t, tt.wantCmdArgs, strings.Join(cmd.Args[3:], " "))
 			if tt.wantErrorMsg == "" {
-				assert.NoError(t, err)
+				require.NoError(t, err)
 			} else {
-				assert.EqualError(t, err, tt.wantErrorMsg)
+				require.EqualError(t, err, tt.wantErrorMsg)
 			}
 		})
 	}
@@ -1325,16 +1325,16 @@ func TestClientClone(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			cmd, cmdCtx := createCommandContext(t, tt.cmdExitStatus, tt.cmdStdout, tt.cmdStderr)
-			client := Client{
+			client := client{
 				GitPath:        "path/to/git",
 				commandContext: cmdCtx,
 			}
 			target, err := client.Clone(context.Background(), "github.com/cli/cli", []string{}, tt.mods...)
 			assert.Equal(t, tt.wantCmdArgs, strings.Join(cmd.Args[3:], " "))
 			if tt.wantErrorMsg == "" {
-				assert.NoError(t, err)
+				require.NoError(t, err)
 			} else {
-				assert.EqualError(t, err, tt.wantErrorMsg)
+				require.EqualError(t, err, tt.wantErrorMsg)
 			}
 			assert.Equal(t, tt.wantTarget, target)
 		})
@@ -1388,7 +1388,7 @@ func TestParseCloneArgs(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			args, dir := parseCloneArgs(tt.args)
 			got := wanted{args: args, dir: dir}
-			assert.Equal(t, got, tt.want)
+			assert.Equal(t, tt.want, got)
 		})
 	}
 }
@@ -1426,14 +1426,14 @@ func TestClientAddRemote(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.title, func(t *testing.T) {
 			cmd, cmdCtx := createCommandContext(t, tt.cmdExitStatus, tt.cmdStdout, tt.cmdStderr)
-			client := Client{
+			client := client{
 				GitPath:        "path/to/git",
 				RepoDir:        tt.dir,
 				commandContext: cmdCtx,
 			}
 			_, err := client.AddRemote(context.Background(), tt.name, tt.url, tt.branches)
 			assert.Equal(t, tt.wantCmdArgs, strings.Join(cmd.Args[3:], " "))
-			assert.NoError(t, err)
+			require.NoError(t, err)
 		})
 	}
 }
@@ -1442,16 +1442,16 @@ func initRepo(t *testing.T, dir string) {
 	errBuf := &bytes.Buffer{}
 	inBuf := &bytes.Buffer{}
 	outBuf := &bytes.Buffer{}
-	client := Client{
+	client := client{
 		RepoDir: dir,
 		Stderr:  errBuf,
 		Stdin:   inBuf,
 		Stdout:  outBuf,
 	}
 	cmd, err := client.Command(context.Background(), []string{"init", "--quiet"}...)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	_, err = cmd.Output()
-	assert.NoError(t, err)
+	require.NoError(t, err)
 }
 
 func TestHelperProcess(t *testing.T) {
