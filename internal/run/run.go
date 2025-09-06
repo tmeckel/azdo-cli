@@ -4,11 +4,13 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"os"
 	"os/exec"
 	"path/filepath"
 	"strings"
 
 	"go.uber.org/zap"
+	"go.uber.org/zap/zapcore"
 )
 
 // Runnable is typically an exec.Cmd or its stub in tests
@@ -30,12 +32,16 @@ type cmdWithStderr struct {
 
 func (c cmdWithStderr) Output() ([]byte, error) {
 	logger := zap.L().Sugar()
-	logger.Debugf("Executing command with output: %s", formatArgs(c.Cmd.Args))
+	if logger.Level() == zapcore.DebugLevel {
+		cw, _ := os.Getwd()
+		logger.Debugf("Executing command at %q with output: %s", cw, formatArgs(c.Cmd.Args))
+	}
 
 	out, err := c.Cmd.Output()
 	if c.Cmd.Stderr != nil || err == nil {
 		return out, err
 	}
+
 	cmdErr := &CmdError{
 		Args: c.Cmd.Args,
 		Err:  err,
