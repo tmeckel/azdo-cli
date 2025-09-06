@@ -95,14 +95,11 @@ func setupGitRun(ctx util.CmdContext, opts *setupGitOptions) (err error) {
 		organizationsToSetup = []string{opts.organizationName}
 	}
 
-	gitClient, err := ctx.GitClient()
+	gitClient, err := ctx.RepoContext().GitCommand()
 	if err != nil {
 		return
 	}
-	rctx, err := ctx.Context()
-	if err != nil {
-		return
-	}
+
 	for _, organizationName := range organizationsToSetup {
 
 		organizationURL, err := authCfg.GetURL(organizationName)
@@ -112,22 +109,22 @@ func setupGitRun(ctx util.CmdContext, opts *setupGitOptions) (err error) {
 
 		// first use a blank value to indicate to git we want to sever the chain of credential helpers
 		credHelperKey := fmt.Sprintf("credential.%s.helper", strings.TrimSuffix(organizationURL, "/"))
-		preConfigureCmd, err := gitClient.Command(rctx, "config", "--global", "--unset-all", credHelperKey, "")
+		preConfigureCmd, err := gitClient.Command(ctx.Context(), "config", "--global", "--unset-all", credHelperKey, "")
 		if err != nil {
 			return err
 		}
 		if _, err = preConfigureCmd.Output(); err != nil {
-			var ge *git.Error
+			var ge *git.GitError
 			if !errors.As(err, &ge) || ge.ExitCode != 5 {
 				return err
 			}
 		}
 
 		// second configure the actual helper for this host
-		configureCmd, err := gitClient.Command(rctx,
+		configureCmd, err := gitClient.Command(ctx.Context(),
 			"config", "--global", "--add",
 			credHelperKey,
-			fmt.Sprintf("!%s auth git-credential", gitClient.AzDoPath),
+			fmt.Sprintf("!%s auth git-credential", gitClient.GetAzDoPath()),
 		)
 		if err != nil {
 			return err
@@ -137,7 +134,7 @@ func setupGitRun(ctx util.CmdContext, opts *setupGitOptions) (err error) {
 			return err
 		}
 
-		configureCmd, err = gitClient.Command(rctx,
+		configureCmd, err = gitClient.Command(ctx.Context(),
 			"config", "--global", "--add",
 			fmt.Sprintf("%s.useHttpPath", strings.TrimSuffix(credHelperKey, ".helper")),
 			"true",
@@ -150,7 +147,7 @@ func setupGitRun(ctx util.CmdContext, opts *setupGitOptions) (err error) {
 			return err
 		}
 
-		rejectCmd, err := gitClient.Command(rctx, "credential", "reject")
+		rejectCmd, err := gitClient.Command(ctx.Context(), "credential", "reject")
 		if err != nil {
 			return err
 		}
@@ -170,7 +167,7 @@ func setupGitRun(ctx util.CmdContext, opts *setupGitOptions) (err error) {
 			return err
 		}
 
-		approveCmd, err := gitClient.Command(rctx, "credential", "approve")
+		approveCmd, err := gitClient.Command(ctx.Context(), "credential", "approve")
 		if err != nil {
 			return err
 		}
