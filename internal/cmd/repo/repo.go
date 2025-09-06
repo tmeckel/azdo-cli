@@ -5,6 +5,8 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/tmeckel/azdo-cli/internal/cmd/repo/clone"
 	"github.com/tmeckel/azdo-cli/internal/cmd/repo/list"
+	"github.com/tmeckel/azdo-cli/internal/cmd/repo/restore"
+	"github.com/tmeckel/azdo-cli/internal/cmd/repo/setdefault"
 	"github.com/tmeckel/azdo-cli/internal/cmd/util"
 )
 
@@ -31,5 +33,7 @@ func NewCmdRepo(ctx util.CmdContext) *cobra.Command {
 
 	cmd.AddCommand(list.NewCmdRepoList(ctx))
 	cmd.AddCommand(clone.NewCmdRepoClone(ctx))
+	cmd.AddCommand(setdefault.NewCmdRepoSetDefault(ctx))
+	cmd.AddCommand(restore.NewCmd(ctx))
 	return cmd
 }
