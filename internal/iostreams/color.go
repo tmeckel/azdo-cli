@@ -46,7 +46,7 @@ func (c *ColorScheme) Bold(t string) string {
 	return bold(t)
 }
 
-func (c *ColorScheme) Boldf(t string, args ...interface{}) string {
+func (c *ColorScheme) Boldf(t string, args ...any) string {
 	return c.Bold(fmt.Sprintf(t, args...))
 }
 
@@ -57,7 +57,7 @@ func (c *ColorScheme) Red(t string) string {
 	return red(t)
 }
 
-func (c *ColorScheme) Redf(t string, args ...interface{}) string {
+func (c *ColorScheme) Redf(t string, args ...any) string {
 	return c.Red(fmt.Sprintf(t, args...))
 }
 
@@ -68,7 +68,7 @@ func (c *ColorScheme) Yellow(t string) string {
 	return yellow(t)
 }
 
-func (c *ColorScheme) Yellowf(t string, args ...interface{}) string {
+func (c *ColorScheme) Yellowf(t string, args ...any) string {
 	return c.Yellow(fmt.Sprintf(t, args...))
 }
 
@@ -79,7 +79,7 @@ func (c *ColorScheme) Green(t string) string {
 	return green(t)
 }
 
-func (c *ColorScheme) Greenf(t string, args ...interface{}) string {
+func (c *ColorScheme) Greenf(t string, args ...any) string {
 	return c.Green(fmt.Sprintf(t, args...))
 }
 
@@ -100,7 +100,7 @@ func (c *ColorScheme) Gray(t string) string {
 	return gray(t)
 }
 
-func (c *ColorScheme) Grayf(t string, args ...interface{}) string {
+func (c *ColorScheme) Grayf(t string, args ...any) string {
 	return c.Gray(fmt.Sprintf(t, args...))
 }
 
@@ -111,7 +111,7 @@ func (c *ColorScheme) Magenta(t string) string {
 	return magenta(t)
 }
 
-func (c *ColorScheme) Magentaf(t string, args ...interface{}) string {
+func (c *ColorScheme) Magentaf(t string, args ...any) string {
 	return c.Magenta(fmt.Sprintf(t, args...))
 }
 
@@ -122,7 +122,7 @@ func (c *ColorScheme) Cyan(t string) string {
 	return cyan(t)
 }
 
-func (c *ColorScheme) Cyanf(t string, args ...interface{}) string {
+func (c *ColorScheme) Cyanf(t string, args ...any) string {
 	return c.Cyan(fmt.Sprintf(t, args...))
 }
 
@@ -140,7 +140,7 @@ func (c *ColorScheme) Blue(t string) string {
 	return blue(t)
 }
 
-func (c *ColorScheme) Bluef(t string, args ...interface{}) string {
+func (c *ColorScheme) Bluef(t string, args ...any) string {
 	return c.Blue(fmt.Sprintf(t, args...))
 }
 
