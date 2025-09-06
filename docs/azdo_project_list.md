@@ -1,7 +1,7 @@
 ## azdo project list
 List the projects for an organization
 ```
-azdo project list [flags]
+azdo project list [organization] [flags]
 ```
 ### Options
 
@@ -13,10 +13,6 @@ azdo project list [flags]
 * `-l`, `--limit` `int`
 
 	Maximum number of projects to fetch
-
-* `-o`, `--organization` `string`
-
-	Get per-organization configuration
 
 * `--state` `string`
 
