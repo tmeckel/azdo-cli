@@ -196,7 +196,7 @@ func (s *IOStreams) StartPager() error {
 
 	pagerArgs, err := shlex.Split(s.pagerCommand)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to split pager command: %w", err)
 	}
 
 	pagerEnv := os.Environ()
@@ -214,7 +214,7 @@ func (s *IOStreams) StartPager() error {
 
 	pagerExe, err := safeexec.LookPath(pagerArgs[0])
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to lookup path: %w", err)
 	}
 	pagerCmd := exec.Command(pagerExe, pagerArgs[1:]...)
 	pagerCmd.Env = pagerEnv
@@ -222,7 +222,7 @@ func (s *IOStreams) StartPager() error {
 	pagerCmd.Stderr = s.ErrOut
 	pagedOut, err := pagerCmd.StdinPipe()
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to pipe stdin: %w", err)
 	}
 	s.Out = &fdWriteCloser{
 		fd:          s.Out.Fd(),
@@ -230,7 +230,7 @@ func (s *IOStreams) StartPager() error {
 	}
 	err = pagerCmd.Start()
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to start pager: %w", err)
 	}
 	s.pagerProcess = pagerCmd.Process
 	return nil
@@ -377,18 +377,26 @@ func (s *IOStreams) ReadUserFile(fn string) ([]byte, error) {
 		var err error
 		r, err = os.Open(fn)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("failed to open file %q: %w", fn, err)
 		}
 	}
 	defer r.Close()
-	return io.ReadAll(r)
+	d, err := io.ReadAll(r)
+	if err != nil {
+		return d, fmt.Errorf("failed to read from file %q: %w", fn, err)
+	}
+	return d, nil
 }
 
 func (s *IOStreams) TempFile(dir, pattern string) (*os.File, error) {
 	if s.TempFileOverride != nil {
 		return s.TempFileOverride, nil
 	}
-	return os.CreateTemp(dir, pattern)
+	f, err := os.CreateTemp(dir, pattern)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create TEMP file: %w", err)
+	}
+	return f, nil
 }
 
 func System() *IOStreams {
