@@ -44,4 +44,5 @@ jobs:
         with:
           distribution: goreleaser
           version: latest
-          args: build --skip-validate --clean --single-target --id linux
+          # goreleaser v2 replaced --skip-validate with --skip=validate
+          args: build --skip=validate --clean --single-target --id linux
