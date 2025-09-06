@@ -1,3 +1,4 @@
+// Package text is a set of utility functions for text processing and outputting to the terminal.
 package text
 
 import (
@@ -7,32 +8,12 @@ import (
 	"time"
 	"unicode"
 
-	"github.com/muesli/reflow/ansi"
+	"github.com/charmbracelet/lipgloss"
 	"github.com/muesli/reflow/truncate"
 	"golang.org/x/text/runes"
 	"golang.org/x/text/transform"
 	"golang.org/x/text/unicode/norm"
 )
-
-func FuzzyAgo(a, b time.Time) string {
-	return RelativeTimeAgo(a, b)
-}
-
-// RemoveDiacritics returns the input value without "diacritics", or accent marks
-func RemoveDiacritics(value string) string {
-	// Mn = "Mark, nonspacing" unicode character category
-	removeMnTransfomer := runes.Remove(runes.In(unicode.Mn))
-
-	// 1/ Decompose the text into characters and diacritical marks,
-	// 2/ Remove the diacriticals marks
-	// 3/ Recompose the text
-	t := transform.Chain(norm.NFD, removeMnTransfomer, norm.NFC)
-	normalized, _, err := transform.String(t, value)
-	if err != nil {
-		return value
-	}
-	return normalized
-}
 
 const (
 	ellipsis            = "..."
@@ -52,7 +33,7 @@ func Indent(s, indent string) string {
 
 // DisplayWidth calculates what the rendered width of string s will be.
 func DisplayWidth(s string) int {
-	return ansi.PrintableRuneWidth(s)
+	return lipgloss.Width(s)
 }
 
 // Truncate returns a copy of the string s that has been shortened to fit the maximum display width.
@@ -70,6 +51,15 @@ func Truncate(maxWidth int, s string) string {
 		r += " "
 	}
 	return r
+}
+
+// PadRight returns a copy of the string s that has been padded on the right with whitespace to fit
+// the maximum display width.
+func PadRight(maxWidth int, s string) string {
+	if padWidth := maxWidth - DisplayWidth(s); padWidth > 0 {
+		s += strings.Repeat(" ", padWidth)
+	}
+	return s
 }
 
 // Pluralize returns a concatenated string with num and the plural form of thing if necessary.
@@ -106,4 +96,24 @@ func RelativeTimeAgo(a, b time.Time) string {
 	}
 
 	return fmtDuration(int(ago.Hours()/24/365), "year")
+}
+
+// RemoveDiacritics returns the input value without "diacritics", or accent marks.
+func RemoveDiacritics(value string) string {
+	// Mn = "Mark, nonspacing" unicode character category
+	removeMnTransfomer := runes.Remove(runes.In(unicode.Mn))
+
+	// 1. Decompose the text into characters and diacritical marks
+	// 2. Remove the diacriticals marks
+	// 3. Recompose the text
+	t := transform.Chain(norm.NFD, removeMnTransfomer, norm.NFC)
+	normalized, _, err := transform.String(t, value)
+	if err != nil {
+		return value
+	}
+	return normalized
+}
+
+func FuzzyAgo(a, b time.Time) string {
+	return RelativeTimeAgo(a, b)
 }
