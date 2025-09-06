@@ -1,0 +1,14 @@
+defaultorg:
+    url: https://dev.azure.com/DEFAULTORG
+    pat: foobar_defaultorg
+    git_protocol: https
+
+org:
+    url: https://dev.azure.com/ORG
+    pat: foobar_org
+    git_protocol: https
+
+exampleorg:
+    url: https://example.com/EXAMPLEORG
+    pat: foobar_org
+    git_protocol: https
