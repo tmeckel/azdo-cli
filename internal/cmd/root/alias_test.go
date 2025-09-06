@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestExpandAlias(t *testing.T) {
@@ -63,10 +64,10 @@ func TestExpandAlias(t *testing.T) {
 			gotExpanded, err := expandAlias(tt.expansion, tt.args)
 			if tt.wantErr != "" {
 				assert.Nil(t, gotExpanded)
-				assert.EqualError(t, err, tt.wantErr)
+				require.EqualError(t, err, tt.wantErr)
 				return
 			}
-			assert.NoError(t, err)
+			require.NoError(t, err)
 			assert.Equal(t, tt.wantExpanded, gotExpanded)
 		})
 	}
@@ -113,10 +114,10 @@ func TestExpandShellAlias(t *testing.T) {
 			gotExpanded, err := expandShellAlias(tt.expansion, tt.args, tt.findSh)
 			if tt.wantErr != "" {
 				assert.Nil(t, gotExpanded)
-				assert.EqualError(t, err, tt.wantErr)
+				require.EqualError(t, err, tt.wantErr)
 				return
 			}
-			assert.NoError(t, err)
+			require.NoError(t, err)
 			assert.Equal(t, tt.wantExpanded, gotExpanded)
 		})
 	}
