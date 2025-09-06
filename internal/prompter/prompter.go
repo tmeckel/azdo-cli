@@ -108,7 +108,7 @@ func (p *surveyPrompter) MultiSelect(message string, defaultValues, options []st
 	return
 }
 
-func (p *surveyPrompter) ask(q survey.Prompt, response interface{}, opts ...survey.AskOpt) error {
+func (p *surveyPrompter) ask(q survey.Prompt, response any, opts ...survey.AskOpt) error {
 	opts = append(opts, survey.WithStdio(p.stdin, p.stdout, p.stderr))
 	err := survey.AskOne(q, response, opts...)
 	if err == nil {
@@ -134,7 +134,7 @@ func (p *surveyPrompter) ConfirmDeletion(requiredValue string) error {
 		},
 		&result,
 		survey.WithValidator(
-			func(val interface{}) error {
+			func(val any) error {
 				if str := val.(string); !strings.EqualFold(str, requiredValue) {
 					return fmt.Errorf("You entered %s", str)
 				}
@@ -146,7 +146,7 @@ func (p *surveyPrompter) InputOrganizationName() (result string, err error) {
 	err = p.ask(
 		&survey.Input{
 			Message: "Organization name:",
-		}, &result, survey.WithValidator(func(v interface{}) error {
+		}, &result, survey.WithValidator(func(v any) error {
 			hostname := v.(string)
 			if len(strings.TrimSpace(hostname)) < 1 {
 				return fmt.Errorf("a value is required")
