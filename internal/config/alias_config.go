@@ -1,5 +1,7 @@
 package config
 
+import "fmt"
+
 type AliasConfig interface {
 	Get(string) (string, error)
 	Add(string, string) error
@@ -12,7 +14,11 @@ type aliasConfig struct {
 }
 
 func (a *aliasConfig) Get(alias string) (string, error) {
-	return a.cfg.Get([]string{Aliases, alias})
+	value, err := a.cfg.Get([]string{Aliases, alias})
+	if err != nil {
+		return "", fmt.Errorf("unable to get alias %q: %w", alias, err)
+	}
+	return value, nil
 }
 
 func (a *aliasConfig) Add(alias, expansion string) error {
@@ -21,7 +27,11 @@ func (a *aliasConfig) Add(alias, expansion string) error {
 }
 
 func (a *aliasConfig) Delete(alias string) error {
-	return a.cfg.Remove([]string{Aliases, alias})
+	err := a.cfg.Remove([]string{Aliases, alias})
+	if err != nil {
+		return fmt.Errorf("failed to remove alias: %w", err)
+	}
+	return nil
 }
 
 func (a *aliasConfig) All() map[string]string {
