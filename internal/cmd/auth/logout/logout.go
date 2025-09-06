@@ -22,19 +22,19 @@ func NewCmdLogout(ctx util.CmdContext) *cobra.Command {
 	opts := &logoutOptions{}
 
 	cmd := &cobra.Command{
-		Use:   "logout",
+		Use:   "logout [ORG]",
 		Args:  cobra.ExactArgs(0),
 		Short: "Log out of a Azure DevOps organization",
 		Long: heredoc.Docf(`Remove authentication for a Azure DevOps organization.
 
 			This command removes the authentication configuration for an organization either specified
-			interactively or via %[1]s--organization%[1]s.
+			interactively or via passing an organization name.
 		`, "`"),
 		Example: heredoc.Doc(`
 			$ azdo auth logout
 			# => select what organization to log out of via a prompt
 
-			$ azdo auth logout --hostname enterprise.internal
+			$ azdo auth logout my-org
 			# => log out of specified organization
 		`),
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -50,9 +50,6 @@ func NewCmdLogout(ctx util.CmdContext) *cobra.Command {
 			return logoutRun(ctx, opts)
 		},
 	}
-
-	cmd.Flags().StringVarP(&opts.organizationName, "organization", "o", "", "The Azure DevOps organization to log out of")
-
 	return cmd
 }
 
@@ -138,25 +135,20 @@ func logoutRun(ctx util.CmdContext, opts *logoutOptions) (err error) {
 		return err
 	}
 
-	rctx, err := ctx.Context()
-	if err != nil {
-		return
-	}
-
-	gitClient, err := ctx.GitClient()
+	gitClient, err := ctx.RepoContext().GitCommand()
 	if err != nil {
 		return
 	}
 
 	credHelperKey := fmt.Sprintf("credential.%s", strings.TrimSuffix(organizationURL, "/"))
-	preConfigureCmd, err := gitClient.Command(rctx, "config", "--global", "--remove-section", credHelperKey)
+	preConfigureCmd, err := gitClient.Command(ctx.Context(), "config", "--global", "--remove-section", credHelperKey)
 	if err != nil {
 		return err
 	}
 	if _, err = preConfigureCmd.Output(); err != nil {
 		logger.Debugf("failed to execute command. Error type %T; %+v", err, err)
 
-		var ge *git.Error
+		var ge *git.GitError
 		if !errors.As(err, &ge) || (ge.ExitCode != 5 && ge.ExitCode != 128) {
 			return err
 		}
