@@ -64,11 +64,11 @@ func NewCmdConfigSet(ctx util.CmdContext) *cobra.Command {
 func setRun(ctx util.CmdContext, opts *setOptions) (err error) {
 	cfg, err := ctx.Config()
 	if err != nil {
-		return util.FlagErrorf("error getting io configuration: %w", err)
+		return util.FlagErrorf("error getting io configuration: %w", err) //nolint:error,wrapcheck
 	}
 	iostrms, err := ctx.IOStreams()
 	if err != nil {
-		return util.FlagErrorf("error getting io streams: %w", err)
+		return util.FlagErrorf("error getting io streams: %w", err) //nolint:error,wrapcheck
 	}
 
 	err = validateKey(opts.key)
@@ -92,7 +92,7 @@ func setRun(ctx util.CmdContext, opts *setOptions) (err error) {
 		err = cfg.Remove([]string{config.Organizations, opts.organizationName, opts.key})
 		if err != nil {
 			if !errors.Is(err, &config.KeyNotFoundError{}) {
-				return err
+				return fmt.Errorf("failed to remove key %q from organization %q: %w", opts.key, opts.organizationName)
 			}
 			return nil // no need to write configuration because it didn't change
 		}
