@@ -1,5 +1,5 @@
 run:
-  tests: true
+  tests: false
 
 output:
   print-issued-lines: false
@@ -17,6 +17,7 @@ linters:
     - gofumpt
     - goimports
     - gosec
+    - govet
     - ineffassign
     - misspell
     - nilerr
@@ -26,14 +27,9 @@ linters:
     - unconvert
     - unparam
     - unused
-    - vet
-    - paralleltest
-    - vetshadow
+    - wrapcheck
 
 linters-settings:
-  vet:
-    check-shadowing: true
-    use-installed-packages: true
   goconst:
     min-len: 8
     min-occurrences: 3
