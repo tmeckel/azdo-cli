@@ -2,6 +2,8 @@ package list
 
 import (
 	"fmt"
+	"sort"
+	"strings"
 
 	"github.com/MakeNowJust/heredoc"
 	"github.com/microsoft/azure-devops-go-api/azuredevops/v7/git"
@@ -24,13 +26,13 @@ func NewCmdRepoList(ctx util.CmdContext) *cobra.Command {
 
 	cmd := &cobra.Command{
 		Short: "List repositories of a project inside an organization",
-		Use:   "list <project>",
+		Use:   "list [organization/]<project>",
 		Example: heredoc.Doc(`
 			# list the repositories of a project using default organization
 			azdo repo list myproject
 
 			# list the repositories of a project using specified organization
-			azdo repo list myproject --organization myorg
+			azdo repo list myorg/myproject
 		`),
 		Args:    util.ExactArgs(1, "cannot list: project name required"),
 		Aliases: []string{"ls"},
@@ -39,13 +41,21 @@ func NewCmdRepoList(ctx util.CmdContext) *cobra.Command {
 				return util.FlagErrorf("invalid limit: %v", opts.limit)
 			}
 
-			opts.project = args[0]
+			n := strings.Split(args[0], "/")
+			switch len(n) {
+			case 1:
+				opts.project = n[0]
+			case 2:
+				opts.organizationName = n[0]
+				opts.project = n[1]
+			default:
+				return util.FlagErrorf("invalid project name %q", args[0])
+			}
 
 			return runList(ctx, opts)
 		},
 	}
 
-	cmd.Flags().StringVarP(&opts.organizationName, "organization", "o", "", "Get per-organization configuration")
 	cmd.Flags().IntVarP(&opts.limit, "limit", "L", 30, "Maximum number of repositories to list")
 	util.StringEnumFlag(cmd, &opts.visibility, "visibility", "", "", []string{"public", "private"}, "Filter by repository visibility")
 	util.StringEnumFlag(cmd, &opts.format, "format", "", "table", []string{"json"}, "Output format")
@@ -55,6 +65,14 @@ func NewCmdRepoList(ctx util.CmdContext) *cobra.Command {
 }
 
 func runList(ctx util.CmdContext, opts *listOptions) (err error) {
+	iostreams, err := ctx.IOStreams()
+	if err != nil {
+		return err
+	}
+
+	iostreams.StartProgressIndicator()
+	defer iostreams.StopProgressIndicator()
+
 	cfg, err := ctx.Config()
 	if err != nil {
 		return util.FlagErrorf("error getting io configuration: %w", err)
@@ -67,23 +85,19 @@ func runList(ctx util.CmdContext, opts *listOptions) (err error) {
 		organizationName, _ = cfg.Authentication().GetDefaultOrganization()
 	}
 	if organizationName == "" {
-		return util.FlagErrorf("no organization specified")
+		return util.FlagErrorf("no organization specified or no default organization set")
 	}
-	conn, err := ctx.Connection(organizationName)
+	conn, err := ctx.ConnectionFactory().Connection(organizationName)
 	if err != nil {
 		return
 	}
-	rctx, err := ctx.Context()
+
+	repoClient, err := git.NewClient(ctx.Context(), conn)
 	if err != nil {
 		return err
 	}
 
-	repoClient, err := git.NewClient(rctx, conn)
-	if err != nil {
-		return err
-	}
-
-	res, err := repoClient.GetRepositories(rctx, git.GetRepositoriesArgs{
+	res, err := repoClient.GetRepositories(ctx.Context(), git.GetRepositoriesArgs{
 		Project:       &opts.project,
 		IncludeHidden: &opts.includeHidden,
 	})
@@ -99,6 +113,12 @@ func runList(ctx util.CmdContext, opts *listOptions) (err error) {
 	if err != nil {
 		return
 	}
+
+	sort.Slice(*res, func(i, j int) bool {
+		return strings.ToLower(*((*res)[i].Name)) < strings.ToLower(*((*res)[j].Name))
+	})
+
+	iostreams.StopProgressIndicator()
 
 	tp.AddColumns("ID", "Name", "SSHUrl", "HTTPUrl")
 	for _, p := range *res {
