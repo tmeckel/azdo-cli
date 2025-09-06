@@ -55,6 +55,9 @@ func NewCmdLogin(ctx util.CmdContext) *cobra.Command {
 		# authenticate with a specific Azure DevOps Organization
 		$ azdo auth login --organizationUrl https://dev.azure.com/myorg
 	`),
+		PreRun: func(cmd *cobra.Command, args []string) {
+			cmd.InheritedFlags().Lookup("org").Hidden = true
+		},
 		RunE: func(cmd *cobra.Command, args []string) error {
 			iostreams, err := ctx.IOStreams()
 			if err != nil {
@@ -78,7 +81,7 @@ func NewCmdLogin(ctx util.CmdContext) *cobra.Command {
 		},
 	}
 
-	cmd.Flags().StringVarP(&opts.OrganizationURL, "organizationUrl", "o", "", "The URL to the Azure DevOps organization to authenticate with")
+	cmd.Flags().StringVarP(&opts.OrganizationURL, "organization-url", "o", "", "The URL to the Azure DevOps organization to authenticate with")
 	cmd.Flags().BoolVar(&tokenStdin, "with-token", false, "Read token from standard input")
 	util.StringEnumFlag(cmd, &opts.GitProtocol, "git-protocol", "p", "", []string{"ssh", "https"}, "The protocol to use for git operations")
 	cmd.Flags().BoolVar(&opts.InsecureStorage, "insecure-storage", false, "Save authentication credentials in plain text instead of credential store")
