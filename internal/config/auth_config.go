@@ -109,37 +109,44 @@ func (c *authConfig) GetTokenFromKeyring(organizationName string) (token string,
 
 // GetUrl will retrieve the url for the Azure DevOps organization
 func (c *authConfig) GetURL(organizationName string) (string, error) {
+	organizationName = strings.ToLower(organizationName)
 	return c.cfg.Get([]string{Organizations, organizationName, "url"})
 }
 
 // GetGitProtocol will retrieve the git protocol for the logged in user at the given organizationName.
 // If none is set it will return the default value.
 func (c *authConfig) GetGitProtocol(organizationName string) (string, error) {
+	organizationName = strings.ToLower(organizationName)
 	key := "git_protocol"
 	val, err := c.cfg.Get([]string{Organizations, organizationName, key})
-	if err == nil {
-		return val, err
+	if err != nil {
+		return defaultFor(key), nil
 	}
-	return defaultFor(key), nil
+	return val, nil
 }
 
 // GetDefaultOrganization will return the default organization for Azure DevOps
 // If no default organization is set, the empty string will be returned
 func (c *authConfig) GetDefaultOrganization() (organizationName string, err error) {
-	if organizationName, ok := os.LookupEnv(azdoOrganization); ok {
-		return organizationName, nil
-	}
-
-	if organizations := c.GetOrganizations(); len(organizations) == 1 {
-		organizationName = organizations[0]
-	} else {
-		key := "default_organization"
-		organizationName, err = c.cfg.Get([]string{key})
-		if err != nil {
-			if errors.Is(err, &KeyNotFoundError{}) {
-				return defaultFor(key), nil
+	organizationName = strings.ToLower(organizationName)
+	if o, ok := os.LookupEnv(azdoOrganization); !ok {
+		if organizations := c.GetOrganizations(); len(organizations) == 1 {
+			organizationName = organizations[0]
+		} else {
+			key := "default_organization"
+			organizationName, err = c.cfg.Get([]string{key})
+			if err != nil {
+				if !errors.Is(err, &KeyNotFoundError{}) {
+					return
+				}
 			}
 		}
+	} else {
+		organizationName = o
+	}
+	organizationName = strings.TrimSpace(organizationName)
+	if organizationName == "" {
+		return "", fmt.Errorf("no default organization defined")
 	}
 	return
 }
