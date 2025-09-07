@@ -9,6 +9,8 @@ github.com/AlecAivazis/survey/v2/terminal
 # github.com/MakeNowJust/heredoc v1.0.0
 ## explicit; go 1.12
 github.com/MakeNowJust/heredoc
+# github.com/MakeNowJust/heredoc/v2 v2.0.1
+## explicit; go 1.12
 # github.com/alecthomas/chroma/v2 v2.14.0
 ## explicit; go 1.19
 github.com/alecthomas/chroma/v2
