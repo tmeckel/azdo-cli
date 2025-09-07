@@ -46,7 +46,7 @@ jobs:
           go mod download
 
       - name: Run Lint checks
-        uses: golangci/golangci-lint-action@v3
+        uses: golangci/golangci-lint-action@v8
         with:
           version: v${{ env.LINT_VERSION }}
           install-mode: binary
