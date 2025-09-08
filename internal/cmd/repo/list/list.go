@@ -87,15 +87,15 @@ func runList(ctx util.CmdContext, opts *listOptions) (err error) {
 	if organizationName == "" {
 		return util.FlagErrorf("no organization specified or no default organization set")
 	}
-	conn, err := ctx.ConnectionFactory().Connection(organizationName)
-	if err != nil {
-		return
-	}
+    _, err = ctx.ConnectionFactory().Connection(organizationName)
+    if err != nil {
+        return
+    }
 
-	repoClient, err := git.NewClient(ctx.Context(), conn)
-	if err != nil {
-		return err
-	}
+    repoClient, err := ctx.ConnectionFactory().Git(ctx.Context(), organizationName)
+    if err != nil {
+        return err
+    }
 
 	res, err := repoClient.GetRepositories(ctx.Context(), git.GetRepositoriesArgs{
 		Project:       &opts.project,
