@@ -108,15 +108,15 @@ func runCmd(ctx util.CmdContext, opts *listOptions) (err error) {
 		return util.FlagErrorf("unable to get current repository: %w", err)
 	}
 
-	conn, err := ctx.ConnectionFactory().Connection(repo.Organization())
-	if err != nil {
-		return
-	}
+    conn, err := ctx.ConnectionFactory().Connection(repo.Organization())
+    if err != nil {
+        return
+    }
 
-	repoClient, err := git.NewClient(ctx.Context(), conn)
-	if err != nil {
-		return err
-	}
+    repoClient, err := ctx.ConnectionFactory().Git(ctx.Context(), repo.Organization())
+    if err != nil {
+        return err
+    }
 
 	gitRepo, err := repo.GitRepository(ctx.Context(), repoClient)
 	if err != nil {
