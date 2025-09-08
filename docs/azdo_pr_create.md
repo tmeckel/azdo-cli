@@ -63,13 +63,17 @@ To authorize, run `gh auth refresh -s project`.
 
 	The branch that contains commits for your pull request (default [current branch])
 
+* `-o`, `--optional-reviewer` `strings`
+
+	Optional reviewers (comma-separated)
+
 * `--recover` `string`
 
 	Recover input from a failed run of create
 
-* `-r`, `--reviewer` `handle`
+* `-r`, `--required-reviewer` `strings`
 
-	Request reviews from people or teams by their handle
+	Required reviewers (comma-separated)
 
 * `-t`, `--title` `string`
 

@@ -10,9 +10,9 @@ Work with Azure DevOps pull requests.
 * [azdo pr close](./azdo_pr_close.md)
 * [azdo pr comment](./azdo_pr_comment.md)
 * [azdo pr diff](./azdo_pr_diff.md)
+* [azdo pr edit](./azdo_pr_edit.md)
 * [azdo pr merge](./azdo_pr_merge.md)
 * [azdo pr reopen](./azdo_pr_reopen.md)
-* [azdo pr update](./azdo_pr_update.md)
 * [azdo pr view](./azdo_pr_view.md)
 
 ### Examples

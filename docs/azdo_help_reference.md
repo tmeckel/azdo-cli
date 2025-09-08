@@ -103,19 +103,20 @@ Comment a pull request
 Create a pull request
 
 ```
--B, --base branch             The branch into which you want your code merged
--D, --description string      Description for the pull request
--F, --description-file file   Read description text from file (use "-" to read from standard input)
--d, --draft                   Mark pull request as a draft
-    --dry-run                 Print details instead of creating the PR. May still push git changes.
--f, --fill                    Use commit info for title and body
-    --fill-first              Use first commit info for title and body
-    --fill-verbose            Use commits msg+body for description
--H, --head branch             The branch that contains commits for your pull request (default [current branch])
-    --recover string          Recover input from a failed run of create
--r, --reviewer handle         Request reviews from people or teams by their handle
--t, --title string            Title for the pull request
-    --use-template            Use a pull request template for the description of the new pull request. The command will fail if no template is found
+-B, --base branch                 The branch into which you want your code merged
+-D, --description string          Description for the pull request
+-F, --description-file file       Read description text from file (use "-" to read from standard input)
+-d, --draft                       Mark pull request as a draft
+    --dry-run                     Print details instead of creating the PR. May still push git changes.
+-f, --fill                        Use commit info for title and body
+    --fill-first                  Use first commit info for title and body
+    --fill-verbose                Use commits msg+body for description
+-H, --head branch                 The branch that contains commits for your pull request (default [current branch])
+-o, --optional-reviewer strings   Optional reviewers (comma-separated)
+    --recover string              Recover input from a failed run of create
+-r, --required-reviewer strings   Required reviewers (comma-separated)
+-t, --title string                Title for the pull request
+    --use-template                Use a pull request template for the description of the new pull request. The command will fail if no template is found
 ````
 
 ### `azdo pr diff [<number> | <branch> | <url>] [flags]`
@@ -125,6 +126,23 @@ View changes in a pull request
 ```
 --color string   Use color in diff output: {always|never|auto} (default "auto")
 --name-only      Display only names of changed files
+````
+
+### `azdo pr edit [<number> | <branch> | <url>] [flags]`
+
+Edit a pull request
+
+```
+    --add-label strings                  Add labels (comma-separated)
+    --add-optional-reviewer strings      Add optional reviewers (comma-separated)
+    --add-required-reviewer strings      Add required reviewers (comma-separated)
+-B, --base string                        Change the base branch for this pull request
+-b, --body string                        Set the new body.
+-F, --body-file string                   Read body text from file (use "-" to read from standard input)
+    --remove-label strings               Remove labels (comma-separated)
+    --remove-optional-reviewer strings   Remove optional reviewers (comma-separated)
+    --remove-required-reviewer strings   Remove required reviewers (comma-separated)
+-t, --title string                       Set the new title.
 ````
 
 ### `azdo pr list [[organization/]project/repository] [flags]`
@@ -158,9 +176,13 @@ Merge a pull request
     --transition-work-items   Transition linked work item statuses upon merging (default true)
 ````
 
-### `azdo pr reopen <number> | <branch> | <url>`
+### `azdo pr reopen <number> | <branch> | <url> [flags]`
 
 Reopen a pull request
+
+```
+-c, --comment string   Add a reopening comment
+````
 
 ### `azdo pr status [flags]`
 
@@ -172,10 +194,6 @@ Show status of relevant pull requests
     --json fields       Output JSON with the specified fields
 -t, --template string   Format JSON output using a Go template; see "azdo help formatting"
 ````
-
-### `azdo pr update [<number> | <branch> | <url>]`
-
-Update a pull request
 
 ### `azdo pr view [<number> | <branch> | <url>] [flags]`
 
