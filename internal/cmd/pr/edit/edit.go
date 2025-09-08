@@ -9,7 +9,6 @@ import (
 	"github.com/MakeNowJust/heredoc"
 	"github.com/microsoft/azure-devops-go-api/azuredevops/v7/core"
 	"github.com/microsoft/azure-devops-go-api/azuredevops/v7/git"
-	"github.com/microsoft/azure-devops-go-api/azuredevops/v7/identity"
 	"github.com/spf13/cobra"
 	"github.com/tmeckel/azdo-cli/internal/cmd/pr/shared"
 	"github.com/tmeckel/azdo-cli/internal/cmd/util"
@@ -113,15 +112,10 @@ func runCmd(ctx util.CmdContext, opts *editOptions) (err error) {
 		return fmt.Errorf("failed to get repository: %w", err)
 	}
 
-	connection, err := ctx.ConnectionFactory().Connection(prRepo.Organization())
-	if err != nil {
-		return fmt.Errorf("failed to create Azure DevOps connection: %w", err)
-	}
-
-	identityClient, err := identity.NewClient(ctx.Context(), connection)
-	if err != nil {
-		return fmt.Errorf("failed to create Identity client: %w", err)
-	}
+    identityClient, err := ctx.ConnectionFactory().Identity(ctx.Context(), prRepo.Organization())
+    if err != nil {
+        return fmt.Errorf("failed to create Identity client: %w", err)
+    }
 
 	updatePullRequest := git.GitPullRequest{}
 
