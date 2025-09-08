@@ -32,6 +32,10 @@ tidy: ## call go mod tidy on all existing go.mod files
 docs: ## create documentation
 	go run cmd/gen-docs/gen-docs.go --doc-path ./docs --website
 
+.PHONY: generate-mocks
+generate-mocks: ## regenerate Go mocks (requires mockgen)
+	bash scripts/generate_mocks.sh
+
 .PHONY: help
 help:
 	@grep '^[^#.][A-Za-z._/]\+:\s\+.*#' Makefile | \
