@@ -3,10 +3,10 @@ package create
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"github.com/MakeNowJust/heredoc"
 	"github.com/microsoft/azure-devops-go-api/azuredevops/v7/git"
-	"github.com/microsoft/azure-devops-go-api/azuredevops/v7/identity"
 	"github.com/spf13/cobra"
 	"github.com/tmeckel/azdo-cli/internal/cmd/pr/shared"
 	"github.com/tmeckel/azdo-cli/internal/cmd/util"
@@ -202,10 +202,6 @@ func runCmd(ctx util.CmdContext, opts *createOptions) (err error) {
 		return err
 	}
 
-	finder, err := shared.NewFinder(ctx)
-	if err != nil {
-		return err
-	}
 	repo, err := ctx.RepoContext().GitRepository()
 	if err != nil {
 		return fmt.Errorf("failed to get remote repository: %w", err)
@@ -216,11 +212,18 @@ func runCmd(ctx util.CmdContext, opts *createOptions) (err error) {
 		return fmt.Errorf("failed to find local remote for repository: %w", err)
 	}
 
-	if opts.baseBranch == "" {
-		if repo.DefaultBranch == nil {
-			return fmt.Errorf("repository does not specify a default branch. Specify the base branch using --base or -B")
-		}
-		opts.baseBranch = *repo.DefaultBranch
+    if opts.baseBranch == "" {
+        if repo.DefaultBranch == nil {
+            return fmt.Errorf("repository does not specify a default branch. Specify the base branch using --base or -B")
+        }
+        opts.baseBranch = normalizeBranch(*repo.DefaultBranch)
+    } else {
+        // Normalize provided base branch to allow inputs like "refs/heads/<name>"
+        opts.baseBranch = normalizeBranch(opts.baseBranch)
+    }
+
+	if opts.headBranch != "" {
+		opts.headBranch = normalizeBranch(opts.headBranch)
 	}
 
 	// Prequisites
@@ -248,6 +251,10 @@ func runCmd(ctx util.CmdContext, opts *createOptions) (err error) {
 		opts.headBranch = currentBranch
 	}
 
+	if opts.headBranch == opts.baseBranch {
+		return fmt.Errorf("head branch '%s' is the same as base branch. Cannot create PR from a branch to itself", opts.headBranch)
+	}
+
 	if !gitCmd.HasLocalBranch(ctx.Context(), opts.headBranch) && !gitCmd.HasRemoteBranch(ctx.Context(), remote.Name, opts.headBranch) {
 		return fmt.Errorf("head branch '%s' does not exist", opts.headBranch)
 	}
@@ -257,44 +264,48 @@ func runCmd(ctx util.CmdContext, opts *createOptions) (err error) {
 			fmt.Fprintf(iostreams.ErrOut, "Warning: current branch contains %s\n", text.Pluralize(ucc, "uncommitted change"))
 		}
 	}
-	// 5. Ensure head branch is pushed to remote
-	err = gitCmd.Push(ctx.Context(), remote.Name, opts.baseBranch)
-	if err != nil {
-		return fmt.Errorf("failed to push head branch '%s' to remote: %w", opts.headBranch, err)
+
+	// Ensure head branch is pushed to remote if missing there
+	if !gitCmd.HasRemoteBranch(ctx.Context(), remote.Name, opts.headBranch) {
+		if err = gitCmd.Push(ctx.Context(), remote.Name, opts.headBranch); err != nil {
+			return fmt.Errorf("failed to push head branch '%s' to remote: %w", opts.headBranch, err)
+		}
 	}
 
-	existingPR, prRepo, err := finder.Find(shared.FindOptions{
-		Selector:   opts.headBranch,
-		BaseBranch: opts.baseBranch,
-		States: []string{
-			string(git.PullRequestStatusValues.Active),
-		},
+	// Existing PR check via REST using explicit source/target refs
+	restGitClient, err := ctx.RepoContext().GitClient()
+	if err != nil {
+		return fmt.Errorf("failed to get Git REST client: %w", err)
+	}
+	search := &git.GitPullRequestSearchCriteria{
+		Status:        types.ToPtr(git.PullRequestStatusValues.Active),
+		SourceRefName: types.ToPtr("refs/heads/" + opts.headBranch),
+		TargetRefName: types.ToPtr("refs/heads/" + opts.baseBranch),
+	}
+	prList, err := restGitClient.GetPullRequests(ctx.Context(), git.GetPullRequestsArgs{
+		RepositoryId:   types.ToPtr(repo.Id.String()),
+		Project:        types.ToPtr(*repo.Project.Name),
+		SearchCriteria: search,
+		Top:            types.ToPtr(1),
 	})
 	if err != nil {
 		return fmt.Errorf("error checking for existing pull request: %w", err)
 	}
-	if existingPR != nil {
-		return fmt.Errorf("a pull request for branch %q into branch %q already exists:\n%s",
-			opts.headBranch, opts.baseBranch, *existingPR.Url)
+	if prList != nil && len(*prList) > 0 {
+		existing := (*prList)[0]
+		return fmt.Errorf("a pull request for branch %q into branch %q already exists:\n%s", opts.headBranch, opts.baseBranch, *existing.Url)
 	}
 
 	// Create pull request using REST API
-	restGitClient, err := prRepo.GitClient(ctx.Context(), ctx.ConnectionFactory())
+	// Build Identity client for resolving reviewers
+	azRepo, err := ctx.RepoContext().Repo()
 	if err != nil {
-		return fmt.Errorf("failed to get Git REST client: %w", err)
+		return fmt.Errorf("failed to get repository from context: %w", err)
 	}
-	repoDetails, err := prRepo.GitRepository(ctx.Context(), restGitClient)
-	if err != nil {
-		return fmt.Errorf("failed to get repository details: %w", err)
-	}
-	connection, err := ctx.ConnectionFactory().Connection(prRepo.Organization())
-	if err != nil {
-		return fmt.Errorf("failed to create Azure DevOps connection: %w", err)
-	}
-	identityClient, err := identity.NewClient(ctx.Context(), connection)
-	if err != nil {
-		return fmt.Errorf("failed to create Identity client: %w", err)
-	}
+    identityClient, err := ctx.ConnectionFactory().Identity(ctx.Context(), azRepo.Organization())
+    if err != nil {
+        return fmt.Errorf("failed to create Identity client: %w", err)
+    }
 
 	prRequest := git.GitPullRequest{
 		Title:         types.ToPtr(opts.title),
@@ -331,12 +342,16 @@ func runCmd(ctx util.CmdContext, opts *createOptions) (err error) {
 
 	createdPr, err := restGitClient.CreatePullRequest(ctx.Context(), git.CreatePullRequestArgs{
 		GitPullRequestToCreate: &prRequest,
-		RepositoryId:           types.ToPtr(repoDetails.Id.String()),
-		Project:                types.ToPtr(prRepo.Project()),
+		RepositoryId:           types.ToPtr(repo.Id.String()),
+		Project:                types.ToPtr(*repo.Project.Name),
 	})
 	if err != nil {
 		return fmt.Errorf("failed to create pull request: %w", err)
 	}
 	fmt.Fprintf(iostreams.Out, "Pull request #%d created: %s\n", *createdPr.PullRequestId, *createdPr.Url)
 	return nil
+}
+
+func normalizeBranch(b string) string {
+	return strings.TrimPrefix(b, "refs/heads/")
 }
