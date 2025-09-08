@@ -48,12 +48,10 @@ func fetchOrganizationStates(ctx util.CmdContext, organizationsToCheck []string)
 
 	go func(channel chan<- organizationStatus) error {
 		for _, organizationName := range organizationsToCheck {
-			conn, err := ctx.ConnectionFactory().Connection(organizationName)
-			if err != nil {
-				return err
-			}
-
-			client := security.NewClient(ctx.Context(), conn)
+        client, err := ctx.ConnectionFactory().Security(ctx.Context(), organizationName)
+        if err != nil {
+            return err
+        }
 
 			_, err = client.QuerySecurityNamespaces(ctx.Context(), security.QuerySecurityNamespacesArgs{SecurityNamespaceId: lo.ToPtr(uuid.MustParse("5a27515b-ccd7-42c9-84f1-54c998f03866"))})
 
