@@ -7,7 +7,11 @@ import (
 	"strings"
 
 	"github.com/microsoft/azure-devops-go-api/azuredevops/v7"
+	"github.com/microsoft/azure-devops-go-api/azuredevops/v7/core"
 	azdogit "github.com/microsoft/azure-devops-go-api/azuredevops/v7/git"
+	"github.com/microsoft/azure-devops-go-api/azuredevops/v7/graph"
+	"github.com/microsoft/azure-devops-go-api/azuredevops/v7/identity"
+	"github.com/microsoft/azure-devops-go-api/azuredevops/v7/security"
 	"github.com/tmeckel/azdo-cli/internal/azdo"
 	"github.com/tmeckel/azdo-cli/internal/config"
 	"github.com/tmeckel/azdo-cli/internal/git"
@@ -67,13 +71,14 @@ func NewCmdContext() (ctx CmdContext, err error) {
 		return
 	}
 
-	ctx = &cmdContext{
+	c := &cmdContext{
 		ioStreams: iostrms,
 		prompter:  p,
 		ctx:       context.Background(),
 		cfg:       cfg,
 		auth:      auth,
 	}
+	ctx = c
 	return
 }
 
@@ -93,6 +98,46 @@ func (c *cmdContext) RepoContext() RepoContext {
 
 func (c *cmdContext) ConnectionFactory() azdo.ConnectionFactory {
 	return c
+}
+
+func (c *cmdContext) Git(ctx context.Context, org string) (azdogit.Client, error) {
+	conn, err := c.Connection(org)
+	if err != nil {
+		return nil, err
+	}
+	return azdogit.NewClient(ctx, conn)
+}
+
+func (c *cmdContext) Identity(ctx context.Context, org string) (identity.Client, error) {
+	conn, err := c.Connection(org)
+	if err != nil {
+		return nil, err
+	}
+	return identity.NewClient(ctx, conn)
+}
+
+func (c *cmdContext) Graph(ctx context.Context, org string) (graph.Client, error) {
+	conn, err := c.Connection(org)
+	if err != nil {
+		return nil, err
+	}
+	return graph.NewClient(ctx, conn)
+}
+
+func (c *cmdContext) Core(ctx context.Context, org string) (core.Client, error) {
+	conn, err := c.Connection(org)
+	if err != nil {
+		return nil, err
+	}
+	return core.NewClient(ctx, conn)
+}
+
+func (c *cmdContext) Security(ctx context.Context, org string) (security.Client, error) {
+	conn, err := c.Connection(org)
+	if err != nil {
+		return nil, err
+	}
+	return security.NewClient(ctx, conn), nil
 }
 
 func (c *cmdContext) GitClient() (azdogit.Client, error) {
