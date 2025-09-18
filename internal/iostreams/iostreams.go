@@ -375,7 +375,7 @@ func (s *IOStreams) ReadUserFile(fn string) ([]byte, error) {
 		r = s.In
 	} else {
 		var err error
-		r, err = os.Open(fn)
+		r, err = os.Open(fn) //nolint:gosec
 		if err != nil {
 			return nil, fmt.Errorf("failed to open file %q: %w", fn, err)
 		}

@@ -17,14 +17,14 @@ func NewPatAuthenticator(cfg config.Config) (instance Authenticator, err error) 
 	instance = &patAuthenticator{
 		cfg: cfg,
 	}
-	return
+	return instance, err
 }
 
 func (p *patAuthenticator) GetAuthorizationHeader(organizationName string) (hdrValue string, err error) {
 	pat, err := p.cfg.Authentication().GetToken(organizationName)
 	if err != nil {
-		return
+		return hdrValue, err
 	}
 	hdrValue = azuredevops.CreateBasicAuthHeaderValue("", pat)
-	return
+	return hdrValue, err
 }

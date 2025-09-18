@@ -43,7 +43,7 @@ func hasNonHelpFlags(fs *pflag.FlagSet) (found bool) {
 			found = true
 		}
 	})
-	return
+	return found
 }
 
 type flagView struct {
@@ -177,7 +177,7 @@ func GenMarkdownTreeCustom(cmd *cobra.Command, dir string, filePrepender, linkHa
 	}
 
 	filename := filepath.Join(dir, cmdManualPath(cmd))
-	f, err := os.Create(filename)
+	f, err := os.Create(filename) //nolint:gosec
 	if err != nil {
 		return err
 	}

@@ -22,7 +22,7 @@ func NewJSONPrinter(w io.Writer) (jp JSONPrinter, err error) {
 		currentColumn: -1,
 		rows:          []map[string]string{},
 	}
-	return
+	return jp, err
 }
 
 type jsonPrinter struct {

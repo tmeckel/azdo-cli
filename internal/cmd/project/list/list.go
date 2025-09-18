@@ -81,10 +81,10 @@ func runList(ctx util.CmdContext, opts *listOptions) (err error) {
 	if organizationName == "" {
 		return util.FlagErrorf("no organization specified")
 	}
-    orgClient, err := ctx.ConnectionFactory().Core(ctx.Context(), organizationName)
-    if err != nil {
-        return err
-    }
+	orgClient, err := ctx.ConnectionFactory().Core(ctx.Context(), organizationName)
+	if err != nil {
+		return err
+	}
 
 	args := core.GetProjectsArgs{}
 	if opts.state != "" {
@@ -93,7 +93,7 @@ func runList(ctx util.CmdContext, opts *listOptions) (err error) {
 	}
 	res, err := orgClient.GetProjects(ctx.Context(), args)
 	if err != nil {
-		return
+		return err
 	}
 	if len(res.Value) == 0 {
 		return util.NewNoResultsError(fmt.Sprintf("No projects found for organization %s", organizationName))
@@ -101,7 +101,7 @@ func runList(ctx util.CmdContext, opts *listOptions) (err error) {
 
 	tp, err := ctx.Printer(opts.format)
 	if err != nil {
-		return
+		return err
 	}
 
 	sort.Slice(res.Value, func(i, j int) bool {

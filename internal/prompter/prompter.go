@@ -79,7 +79,7 @@ func (p *surveyPrompter) Select(message, defaultValue string, options []string) 
 
 	err = p.ask(q, &result)
 
-	return
+	return result, err
 }
 
 func (p *surveyPrompter) MultiSelect(message string, defaultValues, options []string) (result []int, err error) {
@@ -105,7 +105,7 @@ func (p *surveyPrompter) MultiSelect(message string, defaultValues, options []st
 
 	err = p.ask(q, &result)
 
-	return
+	return result, err
 }
 
 func (p *surveyPrompter) ask(q survey.Prompt, response any, opts ...survey.AskOpt) error {
@@ -123,7 +123,7 @@ func (p *surveyPrompter) Input(prompt, defaultValue string) (result string, err 
 		Default: defaultValue,
 	}, &result)
 
-	return
+	return result, err
 }
 
 func (p *surveyPrompter) ConfirmDeletion(requiredValue string) error {
@@ -136,7 +136,7 @@ func (p *surveyPrompter) ConfirmDeletion(requiredValue string) error {
 		survey.WithValidator(
 			func(val any) error {
 				if str := val.(string); !strings.EqualFold(str, requiredValue) {
-					return fmt.Errorf("You entered %s", str)
+					return fmt.Errorf("You entered %s", str) //nolint:staticcheck
 				}
 				return nil
 			}))
@@ -156,7 +156,7 @@ func (p *surveyPrompter) InputOrganizationName() (result string, err error) {
 			}
 			return nil
 		}))
-	return
+	return result, err
 }
 
 func (p *surveyPrompter) Password(prompt string) (result string, err error) {
@@ -164,7 +164,7 @@ func (p *surveyPrompter) Password(prompt string) (result string, err error) {
 		Message: prompt,
 	}, &result)
 
-	return
+	return result, err
 }
 
 func (p *surveyPrompter) Confirm(prompt string, defaultValue bool) (result bool, err error) {
@@ -173,7 +173,7 @@ func (p *surveyPrompter) Confirm(prompt string, defaultValue bool) (result bool,
 		Default: defaultValue,
 	}, &result)
 
-	return
+	return result, err
 }
 
 func (p *surveyPrompter) AuthToken() (result string, err error) {
@@ -181,5 +181,5 @@ func (p *surveyPrompter) AuthToken() (result string, err error) {
 		Message: "Paste your authentication token:",
 	}, &result, survey.WithValidator(survey.Required))
 
-	return
+	return result, err
 }

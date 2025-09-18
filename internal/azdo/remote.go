@@ -133,5 +133,5 @@ func TranslateRemotes(gitRemotes git.RemoteSet, translator Translator) (remotes 
 			repo:   repo,
 		})
 	}
-	return
+	return remotes
 }

@@ -66,7 +66,7 @@ func (c *Context) GenerateSSHKey(keyName string, passphrase string) (*KeyPair, e
 		return &keyPair, ErrKeyAlreadyExists
 	}
 
-	if err := os.MkdirAll(filepath.Dir(keyFile), 0o711); err != nil {
+	if err := os.MkdirAll(filepath.Dir(keyFile), 0o600); err != nil {
 		return nil, err
 	}
 

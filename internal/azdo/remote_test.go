@@ -15,7 +15,7 @@ func createRepository(t *testing.T, organization, project, name string) (repo Re
 	if err != nil {
 		t.Fatalf("failed to create repository: %v", err)
 	}
-	return
+	return repo
 }
 
 func Test_Remotes_FindByName(t *testing.T) {

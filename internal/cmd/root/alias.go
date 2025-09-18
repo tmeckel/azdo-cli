@@ -18,7 +18,7 @@ import (
 func NewCmdShellAlias(ctx util.CmdContext, aliasName, aliasValue string) (cmd *cobra.Command, err error) {
 	iostrms, err := ctx.IOStreams()
 	if err != nil {
-		return
+		return cmd, err
 	}
 	cmd = &cobra.Command{
 		Use:   aliasName,
@@ -48,7 +48,7 @@ func NewCmdShellAlias(ctx util.CmdContext, aliasName, aliasValue string) (cmd *c
 		},
 		DisableFlagParsing: true,
 	}
-	return
+	return cmd, err
 }
 
 func NewCmdAlias(ctx util.CmdContext, aliasName, aliasValue string) (cmd *cobra.Command, err error) {
@@ -70,7 +70,7 @@ func NewCmdAlias(ctx util.CmdContext, aliasName, aliasValue string) (cmd *cobra.
 		},
 		DisableFlagParsing: true,
 	}
-	return
+	return cmd, err
 }
 
 // ExpandAlias processes argv to see if it should be rewritten according to a user's aliases.

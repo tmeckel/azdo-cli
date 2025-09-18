@@ -31,7 +31,7 @@ func NewTablePrinter(w io.Writer, isTTY bool, maxWidth int) (tp TablePrinter, er
 			out: w,
 		}
 	}
-	return
+	return tp, err
 }
 
 type tableField struct {

@@ -67,7 +67,7 @@ func runClone(ctx util.CmdContext, opts *cloneOptions) (err error) {
 
 	r, err := azdo.RepositoryFromName(opts.repository)
 	if err != nil {
-		return
+		return err
 	}
 
 	repoClient, err := r.GitClient(ctx.Context(), ctx.ConnectionFactory())
@@ -77,7 +77,7 @@ func runClone(ctx util.CmdContext, opts *cloneOptions) (err error) {
 
 	repo, err := r.GitRepository(ctx.Context(), repoClient)
 	if err != nil {
-		return
+		return err
 	}
 
 	protocol, err := cfg.GetOrDefault([]string{config.Organizations, r.Organization(), "git_protocol"})
@@ -93,7 +93,7 @@ func runClone(ctx util.CmdContext, opts *cloneOptions) (err error) {
 	}
 	gitCmd, err := ctx.RepoContext().GitCommand()
 	if err != nil {
-		return
+		return err
 	}
 	cloneDir, err := gitCmd.Clone(ctx.Context(), canonicalCloneURL, opts.gitArgs)
 	if err != nil {
@@ -167,5 +167,5 @@ func runClone(ctx util.CmdContext, opts *cloneOptions) (err error) {
 		}
 
 	}
-	return
+	return err
 }

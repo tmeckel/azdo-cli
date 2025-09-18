@@ -54,7 +54,7 @@ func run(args []string) error {
 	rootCmd, _ := root.NewCmdRoot(cmdCtx, "", "")
 	rootCmd.InitDefaultHelpCmd()
 
-	if err := os.MkdirAll(*dir, 0o755); err != nil {
+	if err := os.MkdirAll(*dir, 0o755); err != nil { //nolint:gosec
 		return err
 	}
 

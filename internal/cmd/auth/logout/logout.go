@@ -62,7 +62,7 @@ func logoutRun(ctx util.CmdContext, opts *logoutOptions) (err error) {
 	}
 	iostrms, err := ctx.IOStreams()
 	if err != nil {
-		return
+		return err
 	}
 	p, err := ctx.Prompter()
 	if err != nil {
@@ -137,7 +137,7 @@ func logoutRun(ctx util.CmdContext, opts *logoutOptions) (err error) {
 
 	gitClient, err := ctx.RepoContext().GitCommand()
 	if err != nil {
-		return
+		return err
 	}
 
 	credHelperKey := fmt.Sprintf("credential.%s", strings.TrimSuffix(organizationURL, "/"))

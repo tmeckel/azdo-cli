@@ -48,10 +48,10 @@ func fetchOrganizationStates(ctx util.CmdContext, organizationsToCheck []string)
 
 	go func(channel chan<- organizationStatus) error {
 		for _, organizationName := range organizationsToCheck {
-        client, err := ctx.ConnectionFactory().Security(ctx.Context(), organizationName)
-        if err != nil {
-            return err
-        }
+			client, err := ctx.ConnectionFactory().Security(ctx.Context(), organizationName)
+			if err != nil {
+				return err
+			}
 
 			_, err = client.QuerySecurityNamespaces(ctx.Context(), security.QuerySecurityNamespacesArgs{SecurityNamespaceId: lo.ToPtr(uuid.MustParse("5a27515b-ccd7-42c9-84f1-54c998f03866"))})
 
@@ -75,7 +75,7 @@ func fetchOrganizationStates(ctx util.CmdContext, organizationsToCheck []string)
 func statusRun(ctx util.CmdContext, opts *statusOptions) (err error) {
 	cfg, err := ctx.Config()
 	if err != nil {
-		return
+		return err
 	}
 	authCfg := cfg.Authentication()
 
@@ -83,7 +83,7 @@ func statusRun(ctx util.CmdContext, opts *statusOptions) (err error) {
 
 	iostrms, err := ctx.IOStreams()
 	if err != nil {
-		return
+		return err
 	}
 
 	stderr := iostrms.ErrOut

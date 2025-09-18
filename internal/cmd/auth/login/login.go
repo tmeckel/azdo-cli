@@ -105,7 +105,7 @@ func loginRun(ctx util.CmdContext, opts *loginOptions) (err error) {
 	if opts.Interactive && organizationURL == "" {
 		organizationURL, organizationName, err = promptForOrganizationName(ctx, opts)
 		if err != nil {
-			return
+			return err
 		}
 	}
 
@@ -130,39 +130,39 @@ func loginRun(ctx util.CmdContext, opts *loginOptions) (err error) {
 	if opts.Token == "" {
 		authToken, err = p.AuthToken()
 		if err != nil {
-			return
+			return err
 		}
 	}
 
 	authCfg := cfg.Authentication()
 	if err = authCfg.Login(organizationName, organizationURL, authToken, gitProtocol, !opts.InsecureStorage); err != nil {
-		return
+		return err
 	}
 
-	return
+	return err
 }
 
 func promptForOrganizationName(ctx util.CmdContext, _ *loginOptions) (organizationURL string, organizationName string, err error) {
 	options := []string{"https://dev.azure.com/{organization}", "https://{organization}.visualstudio.com"}
 	p, err := ctx.Prompter()
 	if err != nil {
-		return
+		return organizationURL, organizationName, err
 	}
 	orgType, err := p.Select(
 		"Azure DevOps Organization URL type?",
 		options[0],
 		options)
 	if err != nil {
-		return
+		return organizationURL, organizationName, err
 	}
 
 	organizationName, err = p.InputOrganizationName()
 	if err != nil {
-		return
+		return organizationURL, organizationName, err
 	}
 
 	organizationName = strings.ToLower(organizationName)
 	organizationURL = strings.ReplaceAll(options[orgType], "{organization}", organizationName)
 
-	return
+	return organizationURL, organizationName, err
 }

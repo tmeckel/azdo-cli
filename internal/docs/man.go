@@ -54,7 +54,7 @@ func genManTreeFromOpts(cmd *cobra.Command, opts GenManTreeOptions) error {
 	}
 	basename := strings.ReplaceAll(cmd.CommandPath(), " ", separator)
 	filename := filepath.Join(opts.Path, basename+"."+section)
-	f, err := os.Create(filename)
+	f, err := os.Create(filename) //nolint:gosec
 	if err != nil {
 		return err
 	}
@@ -125,12 +125,12 @@ func fillHeader(header *GenManHeader, name string) error {
 }
 
 func manPreamble(buf *bytes.Buffer, header *GenManHeader, cmd *cobra.Command, dashedName string) {
-	buf.WriteString(fmt.Sprintf(`%% "%s" "%s" "%s" "%s" "%s"
+	fmt.Fprintf(buf, `%% "%s" "%s" "%s" "%s" "%s"
 # NAME
-`, header.Title, header.Section, header.Date.Format("Jan 2006"), header.Source, header.Manual))
-	buf.WriteString(fmt.Sprintf("%s \\- %s\n\n", dashedName, cmd.Short))
+`, header.Title, header.Section, header.Date.Format("Jan 2006"), header.Source, header.Manual)
+	fmt.Fprintf(buf, "%s - %s\n\n", dashedName, cmd.Short)
 	buf.WriteString("# SYNOPSIS\n")
-	buf.WriteString(fmt.Sprintf("`%s`\n\n", cmd.UseLine()))
+	fmt.Fprintf(buf, "`%s`\n\n", cmd.UseLine())
 
 	if cmd.Long != "" && cmd.Long != cmd.Short {
 		buf.WriteString("# DESCRIPTION\n")
@@ -145,16 +145,16 @@ func manPrintFlags(buf *bytes.Buffer, flags *pflag.FlagSet) {
 		}
 		varname, usage := pflag.UnquoteUsage(flag)
 		if len(flag.Shorthand) > 0 && len(flag.ShorthandDeprecated) == 0 {
-			buf.WriteString(fmt.Sprintf("`-%s`, `--%s`", flag.Shorthand, flag.Name))
+			fmt.Fprintf(buf, "`-%s`, `--%s`", flag.Shorthand, flag.Name)
 		} else {
-			buf.WriteString(fmt.Sprintf("`--%s`", flag.Name))
+			fmt.Fprintf(buf, "`--%s`", flag.Name)
 		}
 		if varname == "" {
 			buf.WriteString("\n")
 		} else {
-			buf.WriteString(fmt.Sprintf(" `<%s>`\n", varname))
+			fmt.Fprintf(buf, " <%s>\n", varname)
 		}
-		buf.WriteString(fmt.Sprintf(":   %s\n\n", usage))
+		fmt.Fprintf(buf, ":   %s\n\n", usage)
 	})
 }
 
@@ -192,11 +192,11 @@ func genMan(cmd *cobra.Command, header *GenManHeader) []byte {
 	manPrintOptions(buf, cmd)
 	if len(cmd.Example) > 0 {
 		buf.WriteString("# EXAMPLE\n")
-		buf.WriteString(fmt.Sprintf("```\n%s\n```\n", cmd.Example))
+		fmt.Fprintf(buf, "```\n%s\n```\n", cmd.Example)
 	}
 	if cmd.HasParent() {
 		buf.WriteString("# SEE ALSO\n")
-		buf.WriteString(fmt.Sprintf("`%s`\n", manLink(cmd.Parent())))
+		fmt.Fprintf(buf, "`%s`\n", manLink(cmd.Parent()))
 	}
 	return buf.Bytes()
 }

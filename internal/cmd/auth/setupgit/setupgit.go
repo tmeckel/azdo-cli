@@ -57,7 +57,7 @@ func NewCmdSetupGit(ctx util.CmdContext) *cobra.Command {
 func setupGitRun(ctx util.CmdContext, opts *setupGitOptions) (err error) {
 	cfg, err := ctx.Config()
 	if err != nil {
-		return
+		return err
 	}
 	authCfg := cfg.Authentication()
 
@@ -65,7 +65,7 @@ func setupGitRun(ctx util.CmdContext, opts *setupGitOptions) (err error) {
 
 	iostrms, err := ctx.IOStreams()
 	if err != nil {
-		return
+		return err
 	}
 
 	stderr := iostrms.ErrOut
@@ -97,7 +97,7 @@ func setupGitRun(ctx util.CmdContext, opts *setupGitOptions) (err error) {
 
 	gitClient, err := ctx.RepoContext().GitCommand()
 	if err != nil {
-		return
+		return err
 	}
 
 	for _, organizationName := range organizationsToSetup {

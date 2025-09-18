@@ -12,5 +12,5 @@ func ReadFile(filename string, stdin io.ReadCloser) ([]byte, error) {
 		return b, err
 	}
 
-	return os.ReadFile(filename)
+	return os.ReadFile(filename) //nolint:gosec
 }

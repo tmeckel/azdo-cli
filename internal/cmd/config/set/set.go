@@ -35,7 +35,7 @@ func NewCmdConfigSet(ctx util.CmdContext) *cobra.Command {
 		PreRunE: func(cmd *cobra.Command, args []string) error {
 			if cmd.Flags().Changed("remove") {
 				if !cmd.Flags().Changed("organization") {
-					return errors.New("configration values can only be removed for organizations. Please specify the organization via -o")
+					return errors.New("configuration values can only be removed for organizations. Please specify the organization via -o")
 				}
 				if len(args) != 1 {
 					return fmt.Errorf("accepts %d arg(s), received %d", 1, len(args))
@@ -92,7 +92,7 @@ func setRun(ctx util.CmdContext, opts *setOptions) (err error) {
 		err = cfg.Remove([]string{config.Organizations, opts.organizationName, opts.key})
 		if err != nil {
 			if !errors.Is(err, &config.KeyNotFoundError{}) {
-				return fmt.Errorf("failed to remove key %q from organization %q: %w", opts.key, opts.organizationName)
+				return fmt.Errorf("failed to remove key %q from organization %q: %w", opts.key, opts.organizationName, err)
 			}
 			return nil // no need to write configuration because it didn't change
 		}
@@ -120,7 +120,7 @@ func setRun(ctx util.CmdContext, opts *setOptions) (err error) {
 	if err != nil {
 		return fmt.Errorf("failed to write config to disk: %w", err)
 	}
-	return
+	return err
 }
 
 func validateKey(key string) error {
