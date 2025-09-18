@@ -235,16 +235,16 @@ func (r *azdo) RemoteUrl(protocol string) (string, error) {
 
 func (r *azdo) OrganizationUrl() (url string, err error) {
 	url = fmt.Sprintf("https://%s/%s", r.hostname, r.organization)
-	return
+	return url, err
 }
 
 func (r *azdo) ProjectUrl() (url string, err error) {
 	orgUrl, err := r.OrganizationUrl()
 	if err != nil {
-		return
+		return url, err
 	}
 	url = fmt.Sprintf("%s/%s", orgUrl, r.project)
-	return
+	return url, err
 }
 
 func (r *azdo) GitClient(ctx context.Context, connectionFactory ConnectionFactory) (azdogit.Client, error) {
@@ -317,15 +317,15 @@ var rx_azdoHostName = regexp.MustCompile(`^dev\.azure\.com$|\.visualstudio\.com$
 func IsAzDORemoteURL(u *url.URL) (result bool, err error) {
 	if u.Hostname() == "" {
 		err = fmt.Errorf("no hostname detected")
-		return
+		return result, err
 	}
 
 	if !git.IsSupportedProtocol(u) {
 		err = fmt.Errorf("unsupported protocol %q", u.Scheme)
-		return
+		return result, err
 	}
 	result = rx_azdoHostName.Match([]byte(u.Hostname()))
-	return
+	return result, err
 }
 
 // FromURL extracts repository information from a git remote URL.
@@ -428,7 +428,7 @@ func getHostnameFromOrganization(organization string) (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("failed to parse URL %q for organization %q: %w", szURL, organization, err)
 	}
-	return parsedURL.Hostname(), nil
+	return normalizeHostname(parsedURL.Hostname()), nil
 }
 
 func normalizeHostname(h string) string {
