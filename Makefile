@@ -1,21 +1,24 @@
 .DEFAULT_GOAL := help
 
 ifneq (,$(wildcard ./.env))
-    include .env
-    export
+  include .env
+  export
 endif
 
 TIMEOUT ?= 120m
 GOMAXPROCS ?= 5
 TESTARGS ?= ./...
 
-build: ## Build program
+.PHONY: build
+build: ## build program
 	go build cmd/azdo/azdo.go
 
+.PHONY: dist
 dist: ## create new release
 	goreleaser release --clean --skip publish
 
-clean: ## Clean repositorty
+.PHONY: clean
+clean: ## clean repositorty
 	rm -f azdo
 	rm -rf dist
 
