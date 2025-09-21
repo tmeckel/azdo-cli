@@ -14,6 +14,7 @@ Work with Azure DevOps pull requests.
 * [azdo pr merge](./azdo_pr_merge.md)
 * [azdo pr reopen](./azdo_pr_reopen.md)
 * [azdo pr view](./azdo_pr_view.md)
+* [azdo pr vote](./azdo_pr_vote.md)
 
 ### Examples
 

@@ -18,7 +18,7 @@ If required checks have not yet passed, auto-complete will be enabled.
 
 * `--merge-strategy` `string`
 
-	Merge strategy to use: {NoFastForward|Squashed|Rebase|RebaseMerge}
+	Merge strategy to use: {noFastForward|squash|rebase|rebaseMerge}
 
 * `-m`, `--message` `string`
 

@@ -19,10 +19,6 @@ List pull requests in a Azure DevOps repository or project.
 
 	Filter by draft state
 
-* `-f`, `--format` `string`
-
-	Output format: {json}
-
 * `-H`, `--head` `string`
 
 	Filter by head branch

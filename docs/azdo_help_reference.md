@@ -66,6 +66,28 @@ Update configuration with a value for the given key
 -r, --remove                Remove config item for an organization, so that the default value will be in effect again
 ````
 
+## `azdo graph <command>`
+
+Manage Azure DevOps Graph resources (users, groups)
+
+### `azdo graph user <command>`
+
+Manage users in Azure DevOps
+
+#### `azdo graph user list [project] [flags]`
+
+List users and groups in Azure DevOps
+
+```
+-F, --filter string         Filter users by prefix (max 100 results)
+-q, --jq expression         Filter JSON output using a jq expression
+    --json fields           Output JSON with the specified fields
+-L, --limit int             Maximum number of users to return (pagination client-side) (default 20)
+-o, --organization string   Organization name. If not specified, defaults to the default organization
+-t, --template string       Format JSON output using a Go template; see "azdo help formatting"
+-T, --type strings          Subject types filter (comma-separated). If not specified defaults to 'aad'
+````
+
 ## `azdo pr <command> [flags]`
 
 Manage pull requests
@@ -94,9 +116,14 @@ Close a pull request
 -d, --delete-branch    Delete the local and remote branch after close
 ````
 
-### `azdo pr comment [<number> | <branch> | <url>]`
+### `azdo pr comment [<number> | <branch> | <url>] [flags]`
 
 Comment a pull request
+
+```
+-c, --comment string   Comment to add to the pull request. Use '-' to read from stdin.
+-t, --thread int       ID of the thread to reply to.
+````
 
 ### `azdo pr create [flags]`
 
@@ -153,7 +180,6 @@ List pull requests in a repository or a project
 -a, --author string       Filter by author
 -B, --base string         Filter by base branch
 -d, --draft               Filter by draft state
--f, --format string       Output format: {json} (default "table")
 -H, --head string         Filter by head branch
 -q, --jq expression       Filter JSON output using a jq expression
     --json fields         Output JSON with the specified fields
@@ -171,7 +197,7 @@ Merge a pull request
 
 ```
 -d, --delete-source-branch    Delete the source branch after merging
-    --merge-strategy string   Merge strategy to use: {NoFastForward|Squashed|Rebase|RebaseMerge} (default "NoFastForward")
+    --merge-strategy string   Merge strategy to use: {noFastForward|squash|rebase|rebaseMerge} (default "NoFastForward")
 -m, --message string          Message to include when completing the pull request
     --transition-work-items   Transition linked work item statuses upon merging (default true)
 ````
@@ -200,12 +226,22 @@ Show status of relevant pull requests
 View a pull request
 
 ```
--c, --comments          View pull request comments
--C, --commits           View pull request commits
--q, --jq expression     Filter JSON output using a jq expression
-    --json fields       Output JSON with the specified fields
--r, --raw               View pull request raw
--t, --template string   Format JSON output using a Go template; see "azdo help formatting"
+    --comment-sort string   Sort comments by creation time; defaults to 'desc' (newest first): {desc|asc} (default "desc")
+    --comment-type string   Filter comments by type; defaults to 'text': {text|system|all} (default "text")
+-c, --comments              View pull request comments
+-C, --commits               View pull request commits
+    --format string         Output format: {json}
+-q, --jq expression         Filter JSON output using a jq expression
+-r, --raw                   View pull request raw
+-t, --template string       Format JSON output using a Go template; see "azdo help formatting"
+````
+
+### `azdo pr vote [<number> | <branch> | <url>] [flags]`
+
+Vote on a pull request
+
+```
+--vote string   Vote value to set: {approve|approve-with-suggestions|reject|reset|wait-for-author} (default "approve")
 ````
 
 ## `azdo project <command> [flags]`
