@@ -112,10 +112,10 @@ func runCmd(ctx util.CmdContext, opts *editOptions) (err error) {
 		return fmt.Errorf("failed to get repository: %w", err)
 	}
 
-    identityClient, err := ctx.ConnectionFactory().Identity(ctx.Context(), prRepo.Organization())
-    if err != nil {
-        return fmt.Errorf("failed to create Identity client: %w", err)
-    }
+	identityClient, err := ctx.ClientFactory().Identity(ctx.Context(), prRepo.Organization())
+	if err != nil {
+		return fmt.Errorf("failed to create Identity client: %w", err)
+	}
 
 	updatePullRequest := git.GitPullRequest{}
 
@@ -137,7 +137,8 @@ func runCmd(ctx util.CmdContext, opts *editOptions) (err error) {
 
 	// Update base branch if flag is set
 	if opts.base != "" {
-		updatePullRequest.TargetRefName = types.ToPtr("refs/heads/" + opts.base)
+		base := strings.TrimPrefix(opts.base, "refs/heads/")
+		updatePullRequest.TargetRefName = types.ToPtr("refs/heads/" + base)
 	}
 
 	// Handle reviewers
@@ -235,7 +236,7 @@ func readBodyFile(filename string) ([]byte, error) {
 	if filename == "-" {
 		return io.ReadAll(os.Stdin)
 	}
-	return os.ReadFile(filename)
+	return os.ReadFile(filename) //nolint:gosec
 }
 
 func removeReviewer(reviewers []git.IdentityRefWithVote, reviewerToRemove string, required bool) []git.IdentityRefWithVote {
