@@ -14,6 +14,7 @@ import (
 	"github.com/tmeckel/azdo-cli/internal/cmd/pr/reopen"
 	"github.com/tmeckel/azdo-cli/internal/cmd/pr/status"
 	"github.com/tmeckel/azdo-cli/internal/cmd/pr/view"
+	"github.com/tmeckel/azdo-cli/internal/cmd/pr/vote"
 	"github.com/tmeckel/azdo-cli/internal/cmd/util"
 )
 
@@ -50,6 +51,7 @@ func NewCmdPR(ctx util.CmdContext) *cobra.Command {
 		edit.NewCmd(ctx),
 		merge.NewCmd(ctx),
 		reopen.NewCmd(ctx),
+		vote.NewCmd(ctx),
 		view.NewCmd(ctx),
 	)
 
