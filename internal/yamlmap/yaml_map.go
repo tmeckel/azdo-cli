@@ -170,10 +170,7 @@ func (m *Map) SetModified() {
 func (m *Map) SetUnmodified() {
 	i := 0
 	queue := []*yaml.Node{m.Node}
-	for {
-		if i > (len(queue) - 1) {
-			break
-		}
+	for i <= (len(queue) - 1) {
 		q := queue[i]
 		i++
 		if q.Kind != yaml.MappingNode {
@@ -188,10 +185,7 @@ func (m *Map) SetUnmodified() {
 func (m *Map) IsModified() bool {
 	i := 0
 	queue := []*yaml.Node{m.Node}
-	for {
-		if i > (len(queue) - 1) {
-			break
-		}
+	for i <= (len(queue) - 1) {
 		q := queue[i]
 		i++
 		if q.Kind != yaml.MappingNode {
