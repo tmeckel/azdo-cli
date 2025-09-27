@@ -26,7 +26,6 @@ type listOptions struct {
 	author       string
 	reviewer     string
 	draft        *bool
-	format       string
 	exporter     util.Exporter
 }
 
@@ -82,7 +81,6 @@ func NewCmd(ctx util.CmdContext) *cobra.Command {
 	cmd.Flags().StringSliceVarP(&opts.labels, "label", "l", nil, "Filter by label")
 	cmd.Flags().StringVarP(&opts.author, "author", "a", "", "Filter by author")
 	cmd.Flags().StringVarP(&opts.reviewer, "reviewer", "r", "", "Filter by reviewer")
-	util.StringEnumFlag(cmd, &opts.format, "format", "f", "table", []string{"json"}, "Output format")
 	util.NilBoolFlag(cmd, &opts.draft, "draft", "d", "Filter by draft state")
 	util.AddJSONFlags(cmd, &opts.exporter, shared.PullRequestFields)
 
@@ -108,15 +106,10 @@ func runCmd(ctx util.CmdContext, opts *listOptions) (err error) {
 		return util.FlagErrorf("unable to get current repository: %w", err)
 	}
 
-    conn, err := ctx.ConnectionFactory().Connection(repo.Organization())
-    if err != nil {
-        return
-    }
-
-    repoClient, err := ctx.ConnectionFactory().Git(ctx.Context(), repo.Organization())
-    if err != nil {
-        return err
-    }
+	repoClient, err := ctx.ClientFactory().Git(ctx.Context(), repo.Organization())
+	if err != nil {
+		return err
+	}
 
 	gitRepo, err := repo.GitRepository(ctx.Context(), repoClient)
 	if err != nil {
@@ -127,21 +120,27 @@ func runCmd(ctx util.CmdContext, opts *listOptions) (err error) {
 	}
 
 	if opts.baseBranch != "" {
-		searchCriteria.TargetRefName = types.ToPtr(fmt.Sprintf("refs/heads/%s", opts.baseBranch))
+		base := strings.TrimPrefix(opts.baseBranch, "refs/heads/")
+		searchCriteria.TargetRefName = types.ToPtr(fmt.Sprintf("refs/heads/%s", base))
 	}
 	if opts.headBranch != "" {
-		searchCriteria.SourceRefName = types.ToPtr(fmt.Sprintf("refs/heads/%s", opts.headBranch))
+		head := strings.TrimPrefix(opts.headBranch, "refs/heads/")
+		searchCriteria.SourceRefName = types.ToPtr(fmt.Sprintf("refs/heads/%s", head))
 	}
 
+	extensionsClient, err := ctx.ClientFactory().Extensions(ctx.Context(), repo.Organization())
+	if err != nil {
+		return err
+	}
 	if opts.author != "" {
 		if strings.EqualFold(opts.author, "@me") {
-			selfID, err := shared.GetSelfID(ctx.Context(), conn)
+			selfID, err := extensionsClient.GetSelfID(ctx.Context())
 			if err != nil {
 				return err
 			}
 			searchCriteria.CreatorId = &selfID
 		} else {
-			subjectID, err := shared.GetSubjectID(ctx.Context(), conn, opts.author)
+			subjectID, err := extensionsClient.GetSubjectID(ctx.Context(), opts.author)
 			if err != nil {
 				return err
 			}
@@ -150,13 +149,13 @@ func runCmd(ctx util.CmdContext, opts *listOptions) (err error) {
 	}
 	if opts.reviewer != "" {
 		if strings.EqualFold(opts.reviewer, "@me") {
-			selfID, err := shared.GetSelfID(ctx.Context(), conn)
+			selfID, err := extensionsClient.GetSelfID(ctx.Context())
 			if err != nil {
 				return err
 			}
 			searchCriteria.ReviewerId = &selfID
 		} else {
-			subjectID, err := shared.GetSubjectID(ctx.Context(), conn, opts.reviewer)
+			subjectID, err := extensionsClient.GetSubjectID(ctx.Context(), opts.reviewer)
 			if err != nil {
 				return err
 			}
@@ -205,7 +204,7 @@ func runCmd(ctx util.CmdContext, opts *listOptions) (err error) {
 		})
 	}
 
-	filteredPrList, err := types.FilterSlice[git.GitPullRequest](*prList, filters...)
+	filteredPrList, err := types.FilterSlice(*prList, filters...)
 	if err != nil {
 		return err
 	}
@@ -224,9 +223,9 @@ func runCmd(ctx util.CmdContext, opts *listOptions) (err error) {
 		return opts.exporter.Write(iostreams, *prList)
 	}
 
-	tp, err := ctx.Printer(opts.format)
+	tp, err := ctx.Printer("table")
 	if err != nil {
-		return
+		return err
 	}
 
 	tp.AddColumns("ID", "Title", "Branch", "Author", "State", "IsDraft", "MergeStatus")
