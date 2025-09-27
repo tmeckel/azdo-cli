@@ -12,3 +12,8 @@ exampleorg:
     url: https://example.com/EXAMPLEORG
     pat: foobar_org
     git_protocol: https
+
+vsorg:
+    url: https://vsorg.visualstudio.com
+    pat: vsfoobar_org
+    git_protocol: https
