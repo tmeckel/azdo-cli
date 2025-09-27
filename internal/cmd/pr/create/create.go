@@ -2,21 +2,22 @@ package create
 
 import (
 	"context"
+	_ "embed"
 	"fmt"
+	"reflect"
 	"strings"
 
 	"github.com/MakeNowJust/heredoc"
-	"github.com/microsoft/azure-devops-go-api/azuredevops/v7/git"
+	azgit "github.com/microsoft/azure-devops-go-api/azuredevops/v7/git"
 	"github.com/spf13/cobra"
 	"github.com/tmeckel/azdo-cli/internal/cmd/pr/shared"
 	"github.com/tmeckel/azdo-cli/internal/cmd/util"
+	"github.com/tmeckel/azdo-cli/internal/template"
 	"github.com/tmeckel/azdo-cli/internal/text"
 	"github.com/tmeckel/azdo-cli/internal/types"
 )
 
 type createOptions struct {
-	rootDirOverride string
-
 	autofill    bool
 	fillVerbose bool
 	fillFirst   bool
@@ -37,6 +38,9 @@ type createOptions struct {
 
 	dryRun bool
 }
+
+//go:embed create_dry_run.tpl
+var dryRunTpl string
 
 func NewCmd(ctx util.CmdContext) *cobra.Command {
 	opts := &createOptions{}
@@ -211,16 +215,15 @@ func runCmd(ctx util.CmdContext, opts *createOptions) (err error) {
 	if err != nil {
 		return fmt.Errorf("failed to find local remote for repository: %w", err)
 	}
-
-    if opts.baseBranch == "" {
-        if repo.DefaultBranch == nil {
-            return fmt.Errorf("repository does not specify a default branch. Specify the base branch using --base or -B")
-        }
-        opts.baseBranch = normalizeBranch(*repo.DefaultBranch)
-    } else {
-        // Normalize provided base branch to allow inputs like "refs/heads/<name>"
-        opts.baseBranch = normalizeBranch(opts.baseBranch)
-    }
+	if opts.baseBranch == "" {
+		if repo.DefaultBranch == nil {
+			return fmt.Errorf("repository does not specify a default branch. Specify the base branch using --base or -B")
+		}
+		opts.baseBranch = normalizeBranch(*repo.DefaultBranch)
+	} else {
+		// Normalize provided base branch to allow inputs like "refs/heads/<name>"
+		opts.baseBranch = normalizeBranch(opts.baseBranch)
+	}
 
 	if opts.headBranch != "" {
 		opts.headBranch = normalizeBranch(opts.headBranch)
@@ -255,7 +258,7 @@ func runCmd(ctx util.CmdContext, opts *createOptions) (err error) {
 		return fmt.Errorf("head branch '%s' is the same as base branch. Cannot create PR from a branch to itself", opts.headBranch)
 	}
 
-	if !gitCmd.HasLocalBranch(ctx.Context(), opts.headBranch) && !gitCmd.HasRemoteBranch(ctx.Context(), remote.Name, opts.headBranch) {
+	if !gitCmd.HasLocalBranch(ctx.Context(), opts.headBranch) {
 		return fmt.Errorf("head branch '%s' does not exist", opts.headBranch)
 	}
 
@@ -272,17 +275,50 @@ func runCmd(ctx util.CmdContext, opts *createOptions) (err error) {
 		}
 	}
 
+	if opts.autofill || opts.fillFirst || opts.fillVerbose {
+		commits, err := gitCmd.Commits(ctx.Context(), opts.baseBranch, opts.headBranch)
+		if err != nil {
+			return fmt.Errorf("failed to get commits: %w", err)
+		}
+		if len(commits) == 0 {
+			return fmt.Errorf("no commits found on branch. Unable to auto fill")
+		}
+		if opts.fillFirst {
+			if opts.title == "" {
+				opts.title = commits[0].Title
+			}
+			if opts.description == "" {
+				opts.description = commits[0].Body
+			}
+		} else {
+			if opts.title == "" {
+				opts.title = commits[len(commits)-1].Title
+			}
+			if opts.description == "" {
+				var sb strings.Builder
+				for _, c := range commits {
+					if opts.fillVerbose {
+						sb.WriteString(fmt.Sprintf("### %s\n%s\n", c.Title, c.Body))
+					} else {
+						sb.WriteString(fmt.Sprintf("* %s", c.Title))
+					}
+				}
+				opts.description = sb.String()
+			}
+		}
+	}
+
 	// Existing PR check via REST using explicit source/target refs
 	restGitClient, err := ctx.RepoContext().GitClient()
 	if err != nil {
 		return fmt.Errorf("failed to get Git REST client: %w", err)
 	}
-	search := &git.GitPullRequestSearchCriteria{
-		Status:        types.ToPtr(git.PullRequestStatusValues.Active),
+	search := &azgit.GitPullRequestSearchCriteria{
+		Status:        types.ToPtr(azgit.PullRequestStatusValues.Active),
 		SourceRefName: types.ToPtr("refs/heads/" + opts.headBranch),
 		TargetRefName: types.ToPtr("refs/heads/" + opts.baseBranch),
 	}
-	prList, err := restGitClient.GetPullRequests(ctx.Context(), git.GetPullRequestsArgs{
+	prList, err := restGitClient.GetPullRequests(ctx.Context(), azgit.GetPullRequestsArgs{
 		RepositoryId:   types.ToPtr(repo.Id.String()),
 		Project:        types.ToPtr(*repo.Project.Name),
 		SearchCriteria: search,
@@ -296,18 +332,17 @@ func runCmd(ctx util.CmdContext, opts *createOptions) (err error) {
 		return fmt.Errorf("a pull request for branch %q into branch %q already exists:\n%s", opts.headBranch, opts.baseBranch, *existing.Url)
 	}
 
-	// Create pull request using REST API
-	// Build Identity client for resolving reviewers
 	azRepo, err := ctx.RepoContext().Repo()
 	if err != nil {
 		return fmt.Errorf("failed to get repository from context: %w", err)
 	}
-    identityClient, err := ctx.ConnectionFactory().Identity(ctx.Context(), azRepo.Organization())
-    if err != nil {
-        return fmt.Errorf("failed to create Identity client: %w", err)
-    }
 
-	prRequest := git.GitPullRequest{
+	identityClient, err := ctx.ClientFactory().Identity(ctx.Context(), azRepo.Organization())
+	if err != nil {
+		return fmt.Errorf("failed to create Identity client: %w", err)
+	}
+
+	prRequest := azgit.GitPullRequest{
 		Title:         types.ToPtr(opts.title),
 		Description:   types.ToPtr(opts.description),
 		SourceRefName: types.ToPtr(fmt.Sprintf("refs/heads/%s", opts.headBranch)),
@@ -315,15 +350,15 @@ func runCmd(ctx util.CmdContext, opts *createOptions) (err error) {
 		IsDraft:       types.ToPtr(opts.isDraft),
 	}
 
-	allReviewers := append(opts.requiredReviewer, opts.optionalReviewer...)
+	allReviewers := append(opts.requiredReviewer, opts.optionalReviewer...) //nolint:gocritic
 	if len(allReviewers) > 0 {
 		descriptors, err := shared.GetReviewerDescriptors(ctx.Context(), identityClient, allReviewers)
 		if err != nil {
 			return fmt.Errorf("failed to get reviewer descriptors: %w", err)
 		}
-		var reviewersList []git.IdentityRefWithVote
+		var reviewersList []azgit.IdentityRefWithVote
 		for i, r := range opts.requiredReviewer {
-			reviewersList = append(reviewersList, git.IdentityRefWithVote{
+			reviewersList = append(reviewersList, azgit.IdentityRefWithVote{
 				DisplayName: types.ToPtr(r),
 				Descriptor:  types.ToPtr(descriptors[i]),
 				IsRequired:  types.ToPtr(true),
@@ -331,7 +366,7 @@ func runCmd(ctx util.CmdContext, opts *createOptions) (err error) {
 		}
 		offset := len(opts.requiredReviewer)
 		for i, r := range opts.optionalReviewer {
-			reviewersList = append(reviewersList, git.IdentityRefWithVote{
+			reviewersList = append(reviewersList, azgit.IdentityRefWithVote{
 				DisplayName: types.ToPtr(r),
 				Descriptor:  types.ToPtr(descriptors[offset+i]),
 				IsRequired:  types.ToPtr(false),
@@ -340,7 +375,45 @@ func runCmd(ctx util.CmdContext, opts *createOptions) (err error) {
 		prRequest.Reviewers = &reviewersList
 	}
 
-	createdPr, err := restGitClient.CreatePullRequest(ctx.Context(), git.CreatePullRequestArgs{
+	if opts.dryRun {
+		t := template.New(
+			iostreams.Out,
+			iostreams.TerminalWidth(),
+			iostreams.ColorEnabled()).
+			WithTheme(iostreams.TerminalTheme()).
+			WithFuncs(map[string]any{
+				"s": func(v any) string {
+					if v == nil {
+						return ""
+					}
+
+					val := reflect.ValueOf(v)
+					if val.Kind() == reflect.Ptr {
+						if val.IsNil() {
+							return ""
+						}
+						val = val.Elem()
+					}
+
+					if val.Kind() == reflect.String {
+						return val.String()
+					}
+
+					return ""
+				},
+				"notBlank": func(s string) bool {
+					return strings.TrimSpace(s) != ""
+				},
+				"stripprefix": strings.TrimPrefix,
+			})
+		if err := t.Parse(dryRunTpl); err != nil {
+			return fmt.Errorf("failed to parse dry-run template: %w", err)
+		}
+
+		return t.ExecuteData(prRequest)
+	}
+
+	createdPr, err := restGitClient.CreatePullRequest(ctx.Context(), azgit.CreatePullRequestArgs{
 		GitPullRequestToCreate: &prRequest,
 		RepositoryId:           types.ToPtr(repo.Id.String()),
 		Project:                types.ToPtr(*repo.Project.Name),
