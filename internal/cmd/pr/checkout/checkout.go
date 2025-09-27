@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"strconv"
+	"strings"
 
 	"github.com/spf13/cobra"
 	"github.com/tmeckel/azdo-cli/internal/cmd/pr/shared"
@@ -56,7 +57,7 @@ func runCmd(ctx util.CmdContext, opts *checkoutOptions) (err error) {
 		Selector: opts.selectorArg,
 	})
 	if err != nil {
-		return
+		return err
 	}
 
 	if pr == nil {
@@ -88,7 +89,9 @@ func runCmd(ctx util.CmdContext, opts *checkoutOptions) (err error) {
 
 	var cmds [][]string
 
-	remoteBranch := fmt.Sprintf("%s/%s", remote.Name, *pr.SourceRefName)
+	// Use full ref for fetch, but short name for remote-tracking reference paths
+	shortSrc := strings.TrimPrefix(*pr.SourceRefName, "refs/heads/")
+	remoteBranch := fmt.Sprintf("%s/%s", remote.Name, shortSrc)
 
 	refSpec := fmt.Sprintf("+%s", *pr.SourceRefName)
 	if !opts.detach {
