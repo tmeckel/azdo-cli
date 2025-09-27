@@ -70,7 +70,7 @@ func (c *authConfig) GetToken(organizationName string) (token string, err error)
 			token, err = c.GetTokenFromKeyring(organizationName)
 		}
 	}
-	return
+	return token, err
 }
 
 // TokenFromEnvOrConfig retrieves an authentication token from environment variables or the config
@@ -83,7 +83,7 @@ func (c *authConfig) GetTokenFromEnvOrConfig(organizationName string) (token str
 		return token, nil
 	}
 	token, err = c.cfg.Get([]string{Organizations, organizationName, "pat"})
-	return
+	return token, err
 }
 
 // TokenFromKeyring will retrieve the auth token for the given organizationName,
@@ -93,7 +93,7 @@ func (c *authConfig) GetTokenFromKeyring(organizationName string) (token string,
 
 	token, err = keyring.Get(keyringServiceName(organizationName), "")
 	if err != nil {
-		return
+		return token, err
 	}
 	if runtime.GOOS == "windows" {
 		// https://gist.github.com/bradleypeabody/185b1d7ed6c0c2ab6cec?permalink_comment_id=4318385#gistcomment-4318385
@@ -104,7 +104,7 @@ func (c *authConfig) GetTokenFromKeyring(organizationName string) (token string,
 		}
 		token = string(utf8bytes)
 	}
-	return
+	return token, err
 }
 
 // GetUrl will retrieve the url for the Azure DevOps organization
@@ -120,7 +120,7 @@ func (c *authConfig) GetGitProtocol(organizationName string) (string, error) {
 	key := "git_protocol"
 	val, err := c.cfg.Get([]string{Organizations, organizationName, key})
 	if err != nil {
-		return defaultFor(key), nil
+		return defaultFor(key), nil //nolint:nilerr
 	}
 	return val, nil
 }
@@ -128,7 +128,6 @@ func (c *authConfig) GetGitProtocol(organizationName string) (string, error) {
 // GetDefaultOrganization will return the default organization for Azure DevOps
 // If no default organization is set, the empty string will be returned
 func (c *authConfig) GetDefaultOrganization() (organizationName string, err error) {
-	organizationName = strings.ToLower(organizationName)
 	if o, ok := os.LookupEnv(azdoOrganization); !ok {
 		if organizations := c.GetOrganizations(); len(organizations) == 1 {
 			organizationName = organizations[0]
@@ -137,7 +136,7 @@ func (c *authConfig) GetDefaultOrganization() (organizationName string, err erro
 			organizationName, err = c.cfg.Get([]string{key})
 			if err != nil {
 				if !errors.Is(err, &KeyNotFoundError{}) {
-					return
+					return organizationName, err
 				}
 			}
 		}
@@ -148,6 +147,7 @@ func (c *authConfig) GetDefaultOrganization() (organizationName string, err erro
 	if organizationName == "" {
 		return "", fmt.Errorf("no default organization defined")
 	}
+	organizationName = strings.ToLower(organizationName)
 	return
 }
 
@@ -157,7 +157,7 @@ func (c *authConfig) SetDefaultOrganization(organizationName string) (err error)
 	key := "default_organization"
 	if organizationName == "" {
 		err = c.cfg.Remove([]string{key})
-		return
+		return err
 	}
 	organizationName = strings.ToLower(organizationName)
 	for _, v := range c.GetOrganizations() {
@@ -166,11 +166,11 @@ func (c *authConfig) SetDefaultOrganization(organizationName string) (err error)
 		}
 	}
 	err = fmt.Errorf("organization not found %s", organizationName)
-	return
+	return err
 
 found:
 	c.cfg.Set([]string{key}, organizationName)
-	return
+	return err
 }
 
 func (c *authConfig) GetOrganizations() []string {
@@ -223,7 +223,7 @@ func (c *authConfig) Logout(organizationName string) (err error) {
 	organizationName = strings.ToLower(organizationName)
 	err = c.cfg.Remove([]string{Organizations, organizationName})
 	if err != nil {
-		return
+		return err
 	}
 	_ = keyring.Delete(keyringServiceName(organizationName), "")
 	return c.cfg.Write()
