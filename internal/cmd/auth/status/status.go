@@ -48,7 +48,7 @@ func fetchOrganizationStates(ctx util.CmdContext, organizationsToCheck []string)
 
 	go func(channel chan<- organizationStatus) error {
 		for _, organizationName := range organizationsToCheck {
-			client, err := ctx.ConnectionFactory().Security(ctx.Context(), organizationName)
+			client, err := ctx.ClientFactory().Security(ctx.Context(), organizationName)
 			if err != nil {
 				return err
 			}
