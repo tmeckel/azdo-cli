@@ -2,6 +2,7 @@ package close
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/microsoft/azure-devops-go-api/azuredevops/v7/git"
 	"github.com/spf13/cobra"
@@ -46,7 +47,7 @@ func runCmd(ctx util.CmdContext, opts *closeOptions) (err error) {
 		Selector: opts.selectorArg,
 	})
 	if err != nil {
-		return
+		return err
 	}
 
 	if pr == nil {
@@ -123,7 +124,7 @@ func runCmd(ctx util.CmdContext, opts *closeOptions) (err error) {
 			}
 
 			var branchToSwitchTo string
-			if currentBranch == *pr.SourceRefName {
+			if currentBranch == strings.TrimPrefix(*pr.SourceRefName, "refs/heads/") {
 				if repo.DefaultBranch == nil || len(*repo.DefaultBranch) == 0 {
 					return fmt.Errorf("repository %s does not have a default branch", *repo.Name)
 				}
@@ -143,12 +144,37 @@ func runCmd(ctx util.CmdContext, opts *closeOptions) (err error) {
 		}
 
 		if pr.ForkSource == nil {
-			_, err := gitClient.UpdateRefs(ctx.Context(), git.UpdateRefsArgs{
+			// Fetch current object ID of the source ref to provide a correct oldObjectId
+			refs, err := gitClient.GetRefs(ctx.Context(), git.GetRefsArgs{
+				RepositoryId: types.ToPtr(repo.Id.String()),
+				Project:      types.ToPtr(prRepo.Project()),
+				Filter:       pr.SourceRefName,
+			})
+			if err != nil {
+				return fmt.Errorf("failed to get current ref for deletion: %w", err)
+			}
+
+			var oldObjectId string
+			if refs != nil {
+				for _, r := range refs.Value {
+					if r.Name != nil && *r.Name == *pr.SourceRefName {
+						if r.ObjectId != nil {
+							oldObjectId = *r.ObjectId
+							break
+						}
+					}
+				}
+			}
+			if len(oldObjectId) == 0 {
+				return fmt.Errorf("failed to resolve current object ID for %s", *pr.SourceRefName)
+			}
+
+			_, err = gitClient.UpdateRefs(ctx.Context(), git.UpdateRefsArgs{
 				RepositoryId: types.ToPtr(repo.Id.String()),
 				RefUpdates: &[]git.GitRefUpdate{
 					{
 						Name:        pr.SourceRefName,
-						OldObjectId: types.ToPtr("0000000000000000000000000000000000000000"),
+						OldObjectId: types.ToPtr(oldObjectId),
 						NewObjectId: types.ToPtr("0000000000000000000000000000000000000000"),
 					},
 				},
