@@ -190,6 +190,20 @@ func (m *MockCmdContext) EXPECT() *MockCmdContextMockRecorder {
 	return m.recorder
 }
 
+// ClientFactory mocks base method.
+func (m *MockCmdContext) ClientFactory() azdo.ClientFactory {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ClientFactory")
+	ret0, _ := ret[0].(azdo.ClientFactory)
+	return ret0
+}
+
+// ClientFactory indicates an expected call of ClientFactory.
+func (mr *MockCmdContextMockRecorder) ClientFactory() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ClientFactory", reflect.TypeOf((*MockCmdContext)(nil).ClientFactory))
+}
+
 // Config mocks base method.
 func (m *MockCmdContext) Config() (config.Config, error) {
 	m.ctrl.T.Helper()
