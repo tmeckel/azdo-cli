@@ -9,6 +9,7 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/tmeckel/azdo-cli/internal/cmd/auth"
 	"github.com/tmeckel/azdo-cli/internal/cmd/config"
+	"github.com/tmeckel/azdo-cli/internal/cmd/graph"
 	"github.com/tmeckel/azdo-cli/internal/cmd/pr"
 	"github.com/tmeckel/azdo-cli/internal/cmd/project"
 	"github.com/tmeckel/azdo-cli/internal/cmd/repo"
@@ -80,6 +81,7 @@ func NewCmdRoot(ctx util.CmdContext, version, buildDate string) (*cobra.Command,
 	cmd.AddCommand(project.NewCmdProject(ctx))
 	cmd.AddCommand(repo.NewCmdRepo(ctx))
 	cmd.AddCommand(pr.NewCmdPR(ctx))
+	cmd.AddCommand(graph.NewCmdGraph(ctx))
 
 	// Help topics
 	var referenceCmd *cobra.Command
