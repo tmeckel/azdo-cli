@@ -92,7 +92,7 @@ func runList(ctx util.CmdContext, opts *listOptions) (err error) {
 		return err
 	}
 
-	repoClient, err := ctx.ConnectionFactory().Git(ctx.Context(), organizationName)
+	repoClient, err := ctx.ClientFactory().Git(ctx.Context(), organizationName)
 	if err != nil {
 		return err
 	}
