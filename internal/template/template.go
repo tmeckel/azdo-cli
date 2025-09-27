@@ -76,7 +76,7 @@ func (t *Template) Parse(tmpl string) error {
 				markdown.WithWrap(t.width))
 		},
 		"pluck": pluckFunc,
-		"tablerender": func() (string, error) {
+		"tablerender": func() error {
 			// After rendering a table, prepare a new table printer incase user wants to output
 			// another table.
 			defer func() {
@@ -130,7 +130,7 @@ func (t *Template) ExecuteData(v any) error {
 // tablerender function at the end.
 // If a template did not use the table functionality this is a noop.
 func (t *Template) Flush() error {
-	if _, err := tableRenderFunc(t.tp); err != nil {
+	if err := tableRenderFunc(t.tp); err != nil {
 		return err
 	}
 	return nil
@@ -206,15 +206,15 @@ func tableRowFunc(tp tableprinter.TablePrinter, fields ...any) (string, error) {
 	return "", nil
 }
 
-func tableRenderFunc(tp tableprinter.TablePrinter) (string, error) {
+func tableRenderFunc(tp tableprinter.TablePrinter) error {
 	if tp == nil {
-		return "", fmt.Errorf("failed to render table: no table printer")
+		return fmt.Errorf("failed to render table: no table printer")
 	}
 	err := tp.Render()
 	if err != nil {
-		return "", fmt.Errorf("failed to render table: %w", err)
+		return fmt.Errorf("failed to render table: %w", err)
 	}
-	return "", nil
+	return nil
 }
 
 func jsonScalarToString(input any) (string, error) {
