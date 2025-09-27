@@ -51,7 +51,7 @@ func (c *cfg) Keys(keys []string) (values []string, err error) {
 	zap.L().Sugar().Debugf("Keys: %+v", keys)
 
 	values, err = c.cfg.Keys(keys)
-	return
+	return values, err
 }
 
 func (c *cfg) Get(keys []string) (string, error) {
