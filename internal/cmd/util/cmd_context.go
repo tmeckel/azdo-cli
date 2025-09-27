@@ -3,15 +3,10 @@ package util
 import (
 	"context"
 	"fmt"
+	"net/url"
 	"os"
-	"strings"
 
-	"github.com/microsoft/azure-devops-go-api/azuredevops/v7"
-	"github.com/microsoft/azure-devops-go-api/azuredevops/v7/core"
 	azdogit "github.com/microsoft/azure-devops-go-api/azuredevops/v7/git"
-	"github.com/microsoft/azure-devops-go-api/azuredevops/v7/graph"
-	"github.com/microsoft/azure-devops-go-api/azuredevops/v7/identity"
-	"github.com/microsoft/azure-devops-go-api/azuredevops/v7/security"
 	"github.com/tmeckel/azdo-cli/internal/azdo"
 	"github.com/tmeckel/azdo-cli/internal/config"
 	"github.com/tmeckel/azdo-cli/internal/git"
@@ -19,6 +14,7 @@ import (
 	"github.com/tmeckel/azdo-cli/internal/printer"
 	"github.com/tmeckel/azdo-cli/internal/prompter"
 	"github.com/tmeckel/azdo-cli/internal/util"
+	"go.uber.org/zap"
 )
 
 type RepoContext interface {
@@ -36,6 +32,7 @@ type CmdContext interface {
 	util.ContextAware
 	RepoContext() RepoContext
 	ConnectionFactory() azdo.ConnectionFactory
+	ClientFactory() azdo.ClientFactory
 	Prompter() (prompter.Prompter, error)
 	Config() (config.Config, error)
 	IOStreams() (*iostreams.IOStreams, error)
@@ -47,28 +44,28 @@ type cmdContext struct {
 	prompter     prompter.Prompter
 	ctx          context.Context
 	cfg          config.Config
-	auth         Authenticator
+	auth         azdo.Authenticator
 	repoOverride func() (azdo.Repository, error)
 }
 
 func NewCmdContext() (ctx CmdContext, err error) {
 	cfg, err := config.NewConfig()
 	if err != nil {
-		return
+		return ctx, err
 	}
 	auth, err := NewPatAuthenticator(cfg)
 	if err != nil {
-		return
+		return ctx, err
 	}
 
 	iostrms, err := newIOStreams(cfg)
 	if err != nil {
-		return
+		return ctx, err
 	}
 
 	p, err := newPrompter(cfg, iostrms)
 	if err != nil {
-		return
+		return ctx, err
 	}
 
 	c := &cmdContext{
@@ -79,17 +76,17 @@ func NewCmdContext() (ctx CmdContext, err error) {
 		auth:      auth,
 	}
 	ctx = c
-	return
+	return ctx, err
 }
 
 func (c *cmdContext) Prompter() (p prompter.Prompter, err error) {
 	p = c.prompter
-	return
+	return p, err
 }
 
 func (c *cmdContext) Context() (ctx context.Context) {
 	ctx = c.ctx
-	return
+	return ctx
 }
 
 func (c *cmdContext) RepoContext() RepoContext {
@@ -97,47 +94,24 @@ func (c *cmdContext) RepoContext() RepoContext {
 }
 
 func (c *cmdContext) ConnectionFactory() azdo.ConnectionFactory {
-	return c
+	fac, err := azdo.NewConnectionFactory(c.cfg, c.auth)
+	if err != nil {
+		panic(err)
+	}
+	return fac
 }
 
-func (c *cmdContext) Git(ctx context.Context, org string) (azdogit.Client, error) {
-	conn, err := c.Connection(org)
+func (c *cmdContext) ClientFactory() azdo.ClientFactory {
+	fac, err := azdo.NewClientFactory(c.ConnectionFactory())
 	if err != nil {
-		return nil, err
+		panic(err)
 	}
-	return azdogit.NewClient(ctx, conn)
+	return fac
 }
 
-func (c *cmdContext) Identity(ctx context.Context, org string) (identity.Client, error) {
-	conn, err := c.Connection(org)
-	if err != nil {
-		return nil, err
-	}
-	return identity.NewClient(ctx, conn)
-}
-
-func (c *cmdContext) Graph(ctx context.Context, org string) (graph.Client, error) {
-	conn, err := c.Connection(org)
-	if err != nil {
-		return nil, err
-	}
-	return graph.NewClient(ctx, conn)
-}
-
-func (c *cmdContext) Core(ctx context.Context, org string) (core.Client, error) {
-	conn, err := c.Connection(org)
-	if err != nil {
-		return nil, err
-	}
-	return core.NewClient(ctx, conn)
-}
-
-func (c *cmdContext) Security(ctx context.Context, org string) (security.Client, error) {
-	conn, err := c.Connection(org)
-	if err != nil {
-		return nil, err
-	}
-	return security.NewClient(ctx, conn), nil
+func (c *cmdContext) Config() (cfg config.Config, err error) {
+	cfg = c.cfg
+	return cfg, err
 }
 
 func (c *cmdContext) GitClient() (azdogit.Client, error) {
@@ -145,11 +119,11 @@ func (c *cmdContext) GitClient() (azdogit.Client, error) {
 	if err != nil {
 		return nil, err
 	}
-	conn, err := c.Connection(repo.Organization())
+	clientFactory, err := azdo.NewClientFactory(c.ConnectionFactory())
 	if err != nil {
 		return nil, err
 	}
-	gitClient, err := azdogit.NewClient(c.Context(), conn)
+	gitClient, err := clientFactory.Git(c.Context(), repo.Organization())
 	if err != nil {
 		return nil, fmt.Errorf("failed to create new Git client: %w", err)
 	}
@@ -168,30 +142,6 @@ func (c *cmdContext) GitRepository() (*azdogit.GitRepository, error) {
 	return repo.GitRepository(c.Context(), gitClient)
 }
 
-func (c *cmdContext) Config() (cfg config.Config, err error) {
-	cfg = c.cfg
-	return
-}
-
-func (c *cmdContext) Connection(organization string) (client *azuredevops.Connection, err error) {
-	organization = strings.ToLower(organization)
-	organizationURL, err := c.cfg.Get([]string{config.Organizations, organization, "url"})
-	if err != nil {
-		return
-	}
-
-	authHrd, err := c.auth.GetAuthorizationHeader(organization)
-	if err != nil {
-		return
-	}
-	client = &azuredevops.Connection{
-		AuthorizationString:     authHrd,
-		BaseUrl:                 strings.ToLower(strings.TrimRight(organizationURL, "/")),
-		SuppressFedAuthRedirect: true,
-	}
-	return
-}
-
 func (c *cmdContext) IOStreams() (*iostreams.IOStreams, error) {
 	return c.ioStreams, nil
 }
@@ -205,43 +155,66 @@ func (c *cmdContext) Printer(t string) (p printer.Printer, err error) {
 	default:
 		return nil, printer.NewUnsupportedPrinterError(t)
 	}
-	return
+	return p, err
 }
 
 func (c *cmdContext) Remotes() (remotes azdo.RemoteSet, err error) {
 	client, err := c.GitCommand()
 	if err != nil {
-		return
+		return remotes, err
 	}
 	remoteSet, err := client.Remotes(c.ctx)
 	if err != nil {
-		return
+		return remotes, err
 	}
 	remotes = azdo.TranslateRemotes(remoteSet, azdo.NewIdentityTranslator())
-	return
+	return remotes, err
 }
 
 func (c *cmdContext) Remote(repo *azdogit.GitRepository) (remote *azdo.Remote, err error) {
 	remotes, err := c.Remotes()
 	if err != nil {
-		return
+		return remote, err
 	}
-	url := *repo.RemoteUrl
-	sshUrl := *repo.SshUrl
 
-	for _, r := range remotes {
-		if (r.FetchURL.String() == url || r.FetchURL.String() == sshUrl) ||
-			(r.PushURL.String() == url || r.PushURL.String() == sshUrl) {
-			remote = r
-			return
+	if len(remotes) == 0 {
+		err = fmt.Errorf("no git remotes found for repository %q", *repo.Name)
+		return remote, err
+	}
+
+	urlComp := util.NewURLComparer()
+
+	var url, sshUrl *url.URL
+
+	if repo.RemoteUrl != nil {
+		url, err = url.Parse(*repo.RemoteUrl)
+		if err != nil {
+			err = fmt.Errorf("failed to parse remote URL %q: %w", *repo.RemoteUrl, err)
+			return remote, err
 		}
 	}
-	return
+	if repo.SshUrl != nil {
+		url, err = url.Parse(*repo.SshUrl)
+		if err != nil {
+			err = fmt.Errorf("failed to parse SSH URL %q: %w", *repo.SshUrl, err)
+			return remote, err
+		}
+	}
+	for _, r := range remotes {
+		zap.L().Sugar().Debugf("Checking remote %+v for match with URL %q or %q", r, url, sshUrl)
+		if (urlComp.EqualURLs(r.FetchURL, url) || urlComp.EqualURLs(r.FetchURL, sshUrl)) ||
+			(urlComp.EqualURLs(r.PushURL, url) || urlComp.EqualURLs(r.PushURL, sshUrl)) {
+			remote = r
+			return remote, err
+		}
+	}
+	err = fmt.Errorf("no remote found for repository %q", *repo.Name)
+	return remote, err
 }
 
 func (c *cmdContext) GitCommand() (client git.GitCommand, err error) {
 	client, err = git.NewGitCommand(c.ioStreams)
-	return
+	return client, err
 }
 
 func (c *cmdContext) WithRepo(override func() (azdo.Repository, error)) RepoContext {
@@ -259,10 +232,10 @@ func (c *cmdContext) Repo() (result azdo.Repository, err error) {
 	}
 	defaultRemote, err := remotes.DefaultRemote()
 	if err != nil {
-		return
+		return result, err
 	}
 	result = defaultRemote.Repository()
-	return
+	return result, err
 }
 
 func newIOStreams(cfg config.Config) (*iostreams.IOStreams, error) {
@@ -290,10 +263,10 @@ func newIOStreams(cfg config.Config) (*iostreams.IOStreams, error) {
 func newPrompter(cfg config.Config, io *iostreams.IOStreams) (p prompter.Prompter, err error) {
 	editor, err := config.DetermineEditor(cfg)
 	if err != nil {
-		return
+		return p, err
 	}
 	p = prompter.New(editor, io.In, io.Out, io.ErrOut)
-	return
+	return p, err
 }
 
 func newTablePrinter(ios *iostreams.IOStreams) (printer.TablePrinter, error) {
