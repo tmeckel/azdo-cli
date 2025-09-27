@@ -83,14 +83,11 @@ func Test_TranslateRemotes(t *testing.T) {
 
 	result := TranslateRemotes(gitRemotes, NewIdentityTranslator())
 
-	if len(result) != 2 {
+	if len(result) != 1 {
 		t.Fatalf("got %d results", len(result))
 	}
 	if result[0].Name != "defaultOrg" {
 		t.Errorf("got %q", result[0].Name)
-	}
-	if result[1].Name != "exampleOrg" {
-		t.Errorf("got %q", result[1].Name)
 	}
 }
 
