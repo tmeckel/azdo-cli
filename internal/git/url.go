@@ -50,19 +50,19 @@ func ParseURL(rawURL string) (u *url.URL, err error) {
 
 	u, err = url.Parse(rawURL)
 	if err != nil {
-		return
+		return u, err
 	}
 
-	if u.Scheme == "git+ssh" {
+	if strings.EqualFold(u.Scheme, "git+ssh") {
 		u.Scheme = "ssh"
 	}
 
-	if u.Scheme == "git+https" {
+	if strings.EqualFold(u.Scheme, "git+https") {
 		u.Scheme = "https"
 	}
 
-	if u.Scheme != "ssh" {
-		return
+	if !strings.EqualFold(u.Scheme, "ssh") {
+		return u, err
 	}
 
 	if strings.HasPrefix(u.Path, "//") {
@@ -73,5 +73,5 @@ func ParseURL(rawURL string) (u *url.URL, err error) {
 		u.Host = u.Host[0:idx]
 	}
 
-	return
+	return u, err
 }
