@@ -11,16 +11,243 @@ package mocks
 
 import (
 	context "context"
+	io "io"
+	http "net/http"
+	url "net/url"
 	reflect "reflect"
 
+	uuid "github.com/google/uuid"
 	azuredevops "github.com/microsoft/azure-devops-go-api/azuredevops/v7"
 	core "github.com/microsoft/azure-devops-go-api/azuredevops/v7/core"
 	git "github.com/microsoft/azure-devops-go-api/azuredevops/v7/git"
 	graph "github.com/microsoft/azure-devops-go-api/azuredevops/v7/graph"
 	identity "github.com/microsoft/azure-devops-go-api/azuredevops/v7/identity"
 	security "github.com/microsoft/azure-devops-go-api/azuredevops/v7/security"
+	azdo "github.com/tmeckel/azdo-cli/internal/azdo"
+	extensions "github.com/tmeckel/azdo-cli/internal/azdo/extensions"
 	gomock "go.uber.org/mock/gomock"
 )
+
+// MockClient is a mock of Client interface.
+type MockClient struct {
+	ctrl     *gomock.Controller
+	recorder *MockClientMockRecorder
+	isgomock struct{}
+}
+
+// MockClientMockRecorder is the mock recorder for MockClient.
+type MockClientMockRecorder struct {
+	mock *MockClient
+}
+
+// NewMockClient creates a new mock instance.
+func NewMockClient(ctrl *gomock.Controller) *MockClient {
+	mock := &MockClient{ctrl: ctrl}
+	mock.recorder = &MockClientMockRecorder{mock}
+	return mock
+}
+
+// EXPECT returns an object that allows the caller to indicate expected use.
+func (m *MockClient) EXPECT() *MockClientMockRecorder {
+	return m.recorder
+}
+
+// CreateRequestMessage mocks base method.
+func (m *MockClient) CreateRequestMessage(ctx context.Context, httpMethod, arg2, apiVersion string, body io.Reader, mediaType, acceptMediaType string, additionalHeaders map[string]string) (*http.Request, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "CreateRequestMessage", ctx, httpMethod, arg2, apiVersion, body, mediaType, acceptMediaType, additionalHeaders)
+	ret0, _ := ret[0].(*http.Request)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// CreateRequestMessage indicates an expected call of CreateRequestMessage.
+func (mr *MockClientMockRecorder) CreateRequestMessage(ctx, httpMethod, arg2, apiVersion, body, mediaType, acceptMediaType, additionalHeaders any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateRequestMessage", reflect.TypeOf((*MockClient)(nil).CreateRequestMessage), ctx, httpMethod, arg2, apiVersion, body, mediaType, acceptMediaType, additionalHeaders)
+}
+
+// GenerateUrl mocks base method.
+func (m *MockClient) GenerateUrl(apiResourceLocation *azuredevops.ApiResourceLocation, routeValues map[string]string, queryParameters url.Values) string {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GenerateUrl", apiResourceLocation, routeValues, queryParameters)
+	ret0, _ := ret[0].(string)
+	return ret0
+}
+
+// GenerateUrl indicates an expected call of GenerateUrl.
+func (mr *MockClientMockRecorder) GenerateUrl(apiResourceLocation, routeValues, queryParameters any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GenerateUrl", reflect.TypeOf((*MockClient)(nil).GenerateUrl), apiResourceLocation, routeValues, queryParameters)
+}
+
+// GetResourceAreas mocks base method.
+func (m *MockClient) GetResourceAreas(ctx context.Context) (*[]azuredevops.ResourceAreaInfo, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetResourceAreas", ctx)
+	ret0, _ := ret[0].(*[]azuredevops.ResourceAreaInfo)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetResourceAreas indicates an expected call of GetResourceAreas.
+func (mr *MockClientMockRecorder) GetResourceAreas(ctx any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetResourceAreas", reflect.TypeOf((*MockClient)(nil).GetResourceAreas), ctx)
+}
+
+// Send mocks base method.
+func (m *MockClient) Send(ctx context.Context, httpMethod string, locationId uuid.UUID, apiVersion string, routeValues map[string]string, queryParameters url.Values, body io.Reader, mediaType, acceptMediaType string, additionalHeaders map[string]string) (*http.Response, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Send", ctx, httpMethod, locationId, apiVersion, routeValues, queryParameters, body, mediaType, acceptMediaType, additionalHeaders)
+	ret0, _ := ret[0].(*http.Response)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// Send indicates an expected call of Send.
+func (mr *MockClientMockRecorder) Send(ctx, httpMethod, locationId, apiVersion, routeValues, queryParameters, body, mediaType, acceptMediaType, additionalHeaders any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Send", reflect.TypeOf((*MockClient)(nil).Send), ctx, httpMethod, locationId, apiVersion, routeValues, queryParameters, body, mediaType, acceptMediaType, additionalHeaders)
+}
+
+// SendRequest mocks base method.
+func (m *MockClient) SendRequest(request *http.Request) (*http.Response, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "SendRequest", request)
+	ret0, _ := ret[0].(*http.Response)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// SendRequest indicates an expected call of SendRequest.
+func (mr *MockClientMockRecorder) SendRequest(request any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SendRequest", reflect.TypeOf((*MockClient)(nil).SendRequest), request)
+}
+
+// UnmarshalBody mocks base method.
+func (m *MockClient) UnmarshalBody(response *http.Response, v any) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "UnmarshalBody", response, v)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// UnmarshalBody indicates an expected call of UnmarshalBody.
+func (mr *MockClientMockRecorder) UnmarshalBody(response, v any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UnmarshalBody", reflect.TypeOf((*MockClient)(nil).UnmarshalBody), response, v)
+}
+
+// UnmarshalCollectionBody mocks base method.
+func (m *MockClient) UnmarshalCollectionBody(response *http.Response, v any) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "UnmarshalCollectionBody", response, v)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// UnmarshalCollectionBody indicates an expected call of UnmarshalCollectionBody.
+func (mr *MockClientMockRecorder) UnmarshalCollectionBody(response, v any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UnmarshalCollectionBody", reflect.TypeOf((*MockClient)(nil).UnmarshalCollectionBody), response, v)
+}
+
+// UnmarshalCollectionJson mocks base method.
+func (m *MockClient) UnmarshalCollectionJson(jsonValue []byte, v any) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "UnmarshalCollectionJson", jsonValue, v)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// UnmarshalCollectionJson indicates an expected call of UnmarshalCollectionJson.
+func (mr *MockClientMockRecorder) UnmarshalCollectionJson(jsonValue, v any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UnmarshalCollectionJson", reflect.TypeOf((*MockClient)(nil).UnmarshalCollectionJson), jsonValue, v)
+}
+
+// UnwrapError mocks base method.
+func (m *MockClient) UnwrapError(response *http.Response) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "UnwrapError", response)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// UnwrapError indicates an expected call of UnwrapError.
+func (mr *MockClientMockRecorder) UnwrapError(response any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UnwrapError", reflect.TypeOf((*MockClient)(nil).UnwrapError), response)
+}
+
+// MockConnection is a mock of Connection interface.
+type MockConnection struct {
+	ctrl     *gomock.Controller
+	recorder *MockConnectionMockRecorder
+	isgomock struct{}
+}
+
+// MockConnectionMockRecorder is the mock recorder for MockConnection.
+type MockConnectionMockRecorder struct {
+	mock *MockConnection
+}
+
+// NewMockConnection creates a new mock instance.
+func NewMockConnection(ctrl *gomock.Controller) *MockConnection {
+	mock := &MockConnection{ctrl: ctrl}
+	mock.recorder = &MockConnectionMockRecorder{mock}
+	return mock
+}
+
+// EXPECT returns an object that allows the caller to indicate expected use.
+func (m *MockConnection) EXPECT() *MockConnectionMockRecorder {
+	return m.recorder
+}
+
+// GetClientByResourceAreaId mocks base method.
+func (m *MockConnection) GetClientByResourceAreaId(ctx context.Context, resourceAreaID uuid.UUID) (azdo.Client, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetClientByResourceAreaId", ctx, resourceAreaID)
+	ret0, _ := ret[0].(azdo.Client)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetClientByResourceAreaId indicates an expected call of GetClientByResourceAreaId.
+func (mr *MockConnectionMockRecorder) GetClientByResourceAreaId(ctx, resourceAreaID any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetClientByResourceAreaId", reflect.TypeOf((*MockConnection)(nil).GetClientByResourceAreaId), ctx, resourceAreaID)
+}
+
+// GetClientByUrl mocks base method.
+func (m *MockConnection) GetClientByUrl(baseUrl string) azdo.Client {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetClientByUrl", baseUrl)
+	ret0, _ := ret[0].(azdo.Client)
+	return ret0
+}
+
+// GetClientByUrl indicates an expected call of GetClientByUrl.
+func (mr *MockConnectionMockRecorder) GetClientByUrl(baseUrl any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetClientByUrl", reflect.TypeOf((*MockConnection)(nil).GetClientByUrl), baseUrl)
+}
+
+// Organization mocks base method.
+func (m *MockConnection) Organization() string {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Organization")
+	ret0, _ := ret[0].(string)
+	return ret0
+}
+
+// Organization indicates an expected call of Organization.
+func (mr *MockConnectionMockRecorder) Organization() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Organization", reflect.TypeOf((*MockConnection)(nil).Organization))
+}
 
 // MockConnectionFactory is a mock of ConnectionFactory interface.
 type MockConnectionFactory struct {
@@ -47,10 +274,10 @@ func (m *MockConnectionFactory) EXPECT() *MockConnectionFactoryMockRecorder {
 }
 
 // Connection mocks base method.
-func (m *MockConnectionFactory) Connection(organization string) (*azuredevops.Connection, error) {
+func (m *MockConnectionFactory) Connection(organization string) (azdo.Connection, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Connection", organization)
-	ret0, _ := ret[0].(*azuredevops.Connection)
+	ret0, _ := ret[0].(azdo.Connection)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -61,22 +288,32 @@ func (mr *MockConnectionFactoryMockRecorder) Connection(organization any) *gomoc
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Connection", reflect.TypeOf((*MockConnectionFactory)(nil).Connection), organization)
 }
 
-// Context mocks base method.
-func (m *MockConnectionFactory) Context() context.Context {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Context")
-	ret0, _ := ret[0].(context.Context)
-	return ret0
+// MockClientFactory is a mock of ClientFactory interface.
+type MockClientFactory struct {
+	ctrl     *gomock.Controller
+	recorder *MockClientFactoryMockRecorder
+	isgomock struct{}
 }
 
-// Context indicates an expected call of Context.
-func (mr *MockConnectionFactoryMockRecorder) Context() *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Context", reflect.TypeOf((*MockConnectionFactory)(nil).Context))
+// MockClientFactoryMockRecorder is the mock recorder for MockClientFactory.
+type MockClientFactoryMockRecorder struct {
+	mock *MockClientFactory
+}
+
+// NewMockClientFactory creates a new mock instance.
+func NewMockClientFactory(ctrl *gomock.Controller) *MockClientFactory {
+	mock := &MockClientFactory{ctrl: ctrl}
+	mock.recorder = &MockClientFactoryMockRecorder{mock}
+	return mock
+}
+
+// EXPECT returns an object that allows the caller to indicate expected use.
+func (m *MockClientFactory) EXPECT() *MockClientFactoryMockRecorder {
+	return m.recorder
 }
 
 // Core mocks base method.
-func (m *MockConnectionFactory) Core(ctx context.Context, organization string) (core.Client, error) {
+func (m *MockClientFactory) Core(ctx context.Context, organization string) (core.Client, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Core", ctx, organization)
 	ret0, _ := ret[0].(core.Client)
@@ -85,13 +322,28 @@ func (m *MockConnectionFactory) Core(ctx context.Context, organization string) (
 }
 
 // Core indicates an expected call of Core.
-func (mr *MockConnectionFactoryMockRecorder) Core(ctx, organization any) *gomock.Call {
+func (mr *MockClientFactoryMockRecorder) Core(ctx, organization any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Core", reflect.TypeOf((*MockConnectionFactory)(nil).Core), ctx, organization)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Core", reflect.TypeOf((*MockClientFactory)(nil).Core), ctx, organization)
+}
+
+// Extensions mocks base method.
+func (m *MockClientFactory) Extensions(ctx context.Context, organization string) (extensions.Client, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Extensions", ctx, organization)
+	ret0, _ := ret[0].(extensions.Client)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// Extensions indicates an expected call of Extensions.
+func (mr *MockClientFactoryMockRecorder) Extensions(ctx, organization any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Extensions", reflect.TypeOf((*MockClientFactory)(nil).Extensions), ctx, organization)
 }
 
 // Git mocks base method.
-func (m *MockConnectionFactory) Git(ctx context.Context, organization string) (git.Client, error) {
+func (m *MockClientFactory) Git(ctx context.Context, organization string) (git.Client, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Git", ctx, organization)
 	ret0, _ := ret[0].(git.Client)
@@ -100,13 +352,13 @@ func (m *MockConnectionFactory) Git(ctx context.Context, organization string) (g
 }
 
 // Git indicates an expected call of Git.
-func (mr *MockConnectionFactoryMockRecorder) Git(ctx, organization any) *gomock.Call {
+func (mr *MockClientFactoryMockRecorder) Git(ctx, organization any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Git", reflect.TypeOf((*MockConnectionFactory)(nil).Git), ctx, organization)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Git", reflect.TypeOf((*MockClientFactory)(nil).Git), ctx, organization)
 }
 
 // Graph mocks base method.
-func (m *MockConnectionFactory) Graph(ctx context.Context, organization string) (graph.Client, error) {
+func (m *MockClientFactory) Graph(ctx context.Context, organization string) (graph.Client, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Graph", ctx, organization)
 	ret0, _ := ret[0].(graph.Client)
@@ -115,13 +367,13 @@ func (m *MockConnectionFactory) Graph(ctx context.Context, organization string) 
 }
 
 // Graph indicates an expected call of Graph.
-func (mr *MockConnectionFactoryMockRecorder) Graph(ctx, organization any) *gomock.Call {
+func (mr *MockClientFactoryMockRecorder) Graph(ctx, organization any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Graph", reflect.TypeOf((*MockConnectionFactory)(nil).Graph), ctx, organization)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Graph", reflect.TypeOf((*MockClientFactory)(nil).Graph), ctx, organization)
 }
 
 // Identity mocks base method.
-func (m *MockConnectionFactory) Identity(ctx context.Context, organization string) (identity.Client, error) {
+func (m *MockClientFactory) Identity(ctx context.Context, organization string) (identity.Client, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Identity", ctx, organization)
 	ret0, _ := ret[0].(identity.Client)
@@ -130,13 +382,13 @@ func (m *MockConnectionFactory) Identity(ctx context.Context, organization strin
 }
 
 // Identity indicates an expected call of Identity.
-func (mr *MockConnectionFactoryMockRecorder) Identity(ctx, organization any) *gomock.Call {
+func (mr *MockClientFactoryMockRecorder) Identity(ctx, organization any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Identity", reflect.TypeOf((*MockConnectionFactory)(nil).Identity), ctx, organization)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Identity", reflect.TypeOf((*MockClientFactory)(nil).Identity), ctx, organization)
 }
 
 // Security mocks base method.
-func (m *MockConnectionFactory) Security(ctx context.Context, organization string) (security.Client, error) {
+func (m *MockClientFactory) Security(ctx context.Context, organization string) (security.Client, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Security", ctx, organization)
 	ret0, _ := ret[0].(security.Client)
@@ -145,7 +397,7 @@ func (m *MockConnectionFactory) Security(ctx context.Context, organization strin
 }
 
 // Security indicates an expected call of Security.
-func (mr *MockConnectionFactoryMockRecorder) Security(ctx, organization any) *gomock.Call {
+func (mr *MockClientFactoryMockRecorder) Security(ctx, organization any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Security", reflect.TypeOf((*MockConnectionFactory)(nil).Security), ctx, organization)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Security", reflect.TypeOf((*MockClientFactory)(nil).Security), ctx, organization)
 }
