@@ -81,7 +81,8 @@ func runList(ctx util.CmdContext, opts *listOptions) (err error) {
 	if organizationName == "" {
 		return util.FlagErrorf("no organization specified")
 	}
-	orgClient, err := ctx.ConnectionFactory().Core(ctx.Context(), organizationName)
+
+	orgClient, err := ctx.ClientFactory().Core(ctx.Context(), organizationName)
 	if err != nil {
 		return err
 	}
