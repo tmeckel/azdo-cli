@@ -3,9 +3,11 @@ package util
 import (
 	"errors"
 	"fmt"
+	"net/http"
 	"os/exec"
 
 	"github.com/AlecAivazis/survey/v2/terminal"
+	"github.com/microsoft/azure-devops-go-api/azuredevops/v7"
 )
 
 // FlagErrorf returns a new FlagError that wraps an error produced by
@@ -32,10 +34,10 @@ func (fe *FlagError) Unwrap() error {
 	return fe.err
 }
 
-// SilentError is an error that triggers exit code 1 without any error messaging
+// ErrSilent is an error that triggers exit code 1 without any error messaging
 var ErrSilent = errors.New("SilentError")
 
-// CancelError signals user-initiated cancellation
+// ErrCancel signals user-initiated cancellation
 var ErrCancel = errors.New("CancelError")
 
 func IsUserCancellation(err error) bool {
@@ -63,6 +65,17 @@ func (e NoResultsError) Error() string {
 	return e.message
 }
 
+// Is allows errors.Is to match any NoResultsError regardless of message content.
+func (e NoResultsError) Is(target error) bool {
+	if _, ok := target.(NoResultsError); ok {
+		return true
+	}
+	if _, ok := target.(*NoResultsError); ok {
+		return true
+	}
+	return false
+}
+
 func NewNoResultsError(message string) NoResultsError {
 	return NoResultsError{message: message}
 }
@@ -85,5 +98,32 @@ func NewExternalCommandExitError(err *exec.ExitError) ExternalCommandExitError {
 	}
 }
 
-// NotImplemented is an error that indicates a feature is not implemented
+// ErrNotImplemented is an error that indicates a feature is not implemented
 var ErrNotImplemented = errors.New("NotImplementedError")
+
+// IsNotFoundError checks if the given error is an Azure DevOps API "Not Found" (HTTP 404) error.
+func IsNotFoundError(err error) bool {
+	if err == nil {
+		return false
+	}
+
+	// Traverse the error chain to find a WrappedError
+	for {
+		var wrappedErr *azuredevops.WrappedError
+		if errors.As(err, &wrappedErr) {
+			if wrappedErr.StatusCode != nil && *wrappedErr.StatusCode == http.StatusNotFound {
+				return true
+			}
+			// If WrappedError has an InnerError, continue traversing
+			if wrappedErr.InnerError != nil {
+				err = wrappedErr.InnerError
+				continue
+			}
+		}
+
+		// If the error is not a WrappedError or has no InnerError, stop traversing
+		break
+	}
+
+	return false
+}
