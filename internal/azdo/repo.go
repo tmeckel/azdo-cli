@@ -14,9 +14,9 @@ import (
 )
 
 var (
-	orgNameRE  = regexp.MustCompile(`^(?P<Org>[\w-_.\s]+)$`)
-	projNameRE = regexp.MustCompile(`^((?P<Org>[\w-_.\s]+)\/)?(?P<Prj>[\w-_.\s]+)$`)
-	repoNameRE = regexp.MustCompile(`^((?P<Org>[\w-_.\s]+)\/)?(?P<Prj>[\w-_.\s]+)\/(?P<Repo>[\w-_.\s]+)$`)
+	orgNameRE  = regexp.MustCompile(`^(?P<Org>[a-zA-Z0-9][a-zA-Z0-9-]*[a-zA-Z0-9])`)
+	projNameRE = regexp.MustCompile(`^((?P<Org>[a-zA-Z0-9][a-zA-Z0-9-]*[a-zA-Z0-9])\/)?(?P<Prj>[a-zA-Z0-9_ -]+)`)
+	repoNameRE = regexp.MustCompile(`^((?P<Org>[a-zA-Z0-9][a-zA-Z0-9-]*[a-zA-Z0-9])\/)?(?P<Prj>[a-zA-Z0-9_ -]+)\/((?P<Repo>[a-zA-Z0-9_ -]+))$`)
 )
 
 type OrganizationName interface {
@@ -36,8 +36,13 @@ func ParseOrgnizationName(n string) (OrganizationName, error) {
 		return nil, fmt.Errorf("not a valid repository name, got %q", n)
 	}
 
+	org := m[orgNameRE.SubexpIndex("Org")]
+	if len(org) > 50 {
+		return nil, fmt.Errorf("organization name %q exceeds maximum length of 50 characters", org)
+	}
+
 	return &orgName{
-		org: m[orgNameRE.SubexpIndex("Org")],
+		org: org,
 	}, nil
 }
 
@@ -70,7 +75,7 @@ func ParseProjectName(n string) (ProjectName, error) {
 	var org, proj string
 
 	for _, g := range []string{"Org", "Prj"} {
-		gi := repoNameRE.SubexpIndex(g)
+		gi := projNameRE.SubexpIndex(g)
 		if gi < 0 || gi > len(m) {
 			continue
 		}
@@ -81,6 +86,17 @@ func ParseProjectName(n string) (ProjectName, error) {
 			proj = m[gi]
 		}
 	}
+
+	if strings.HasPrefix(proj, "_") || strings.HasPrefix(proj, ".") {
+		return nil, fmt.Errorf("project name %q cannot start with '_' or '.'", proj)
+	}
+	if strings.HasSuffix(proj, ".") {
+		return nil, fmt.Errorf("project name %q cannot end with '.'", proj)
+	}
+	if len(proj) > 64 {
+		return nil, fmt.Errorf("project name %q exceeds maximum length of 64 characters", proj)
+	}
+
 	return &projectName{
 		orgName: orgName{
 			org: org,
@@ -139,6 +155,17 @@ func ParseRepositoryName(n string) (RepositoryName, error) {
 			repo = m[gi]
 		}
 	}
+
+	if strings.HasPrefix(repo, "_") || strings.HasPrefix(repo, ".") {
+		return nil, fmt.Errorf("repository name %q cannot start with '_' or '.'", repo)
+	}
+	if strings.HasSuffix(repo, ".") {
+		return nil, fmt.Errorf("repository name %q cannot end with '.'", repo)
+	}
+	if len(repo) > 64 {
+		return nil, fmt.Errorf("repository name %q exceeds maximum length of 64 characters", repo)
+	}
+
 	return &repositoryName{
 		projectName: projectName{
 			orgName: orgName{
@@ -189,6 +216,7 @@ type azdo struct {
 	project      string
 	name         string
 	hostname     string
+	azRepository *azdogit.GitRepository
 }
 
 func (r *azdo) Hostname() string {
@@ -248,15 +276,18 @@ func (r *azdo) ProjectUrl() (url string, err error) {
 }
 
 func (r *azdo) GitClient(ctx context.Context, connectionFactory ConnectionFactory) (azdogit.Client, error) {
-	conn, err := connectionFactory.Connection(r.Organization())
+	clientFactory, err := NewClientFactory(connectionFactory)
 	if err != nil {
 		return nil, err
 	}
-
-	return azdogit.NewClient(ctx, conn)
+	return clientFactory.Git(ctx, r.Organization())
 }
 
 func (r *azdo) GitRepository(ctx context.Context, repoClient azdogit.Client) (*azdogit.GitRepository, error) {
+	if r.azRepository != nil {
+		return r.azRepository, nil
+	}
+
 	repoList, err := repoClient.GetRepositories(ctx, azdogit.GetRepositoriesArgs{
 		Project:       types.ToPtr(r.Project()),
 		IncludeHidden: types.ToPtr(true),
@@ -270,6 +301,7 @@ func (r *azdo) GitRepository(ctx context.Context, repoClient azdogit.Client) (*a
 
 	for _, repo := range *repoList {
 		if strings.EqualFold(*repo.Name, r.Name()) {
+			r.azRepository = &repo
 			return &repo, nil
 		}
 	}
@@ -312,7 +344,7 @@ func RepositoryFromName(name string) (Repository, error) {
 	return parseWithOrganization(name)
 }
 
-var rx_azdoHostName = regexp.MustCompile(`^dev\.azure\.com$|\.visualstudio\.com$`)
+var rx_azdoHostName = regexp.MustCompile(`^((ssh\.)?dev\.azure|[^.]+\.visualstudio)\.com$`)
 
 func IsAzDORemoteURL(u *url.URL) (result bool, err error) {
 	if u.Hostname() == "" {
@@ -340,9 +372,7 @@ func RepositoryFromURL(u *url.URL) (Repository, error) {
 	}
 
 	parts := strings.SplitN(strings.Trim(u.Path, "/"), "/", 5)
-	if len(parts) < 3 || len(parts) > 4 {
-		return nil, fmt.Errorf("invalid path %q", u.Path)
-	}
+	orgInHost := strings.HasSuffix(strings.ToLower(u.Hostname()), ".visualstudio.com")
 
 	for _, part := range parts {
 		if len(strings.TrimSpace(part)) == 0 {
@@ -352,27 +382,51 @@ func RepositoryFromURL(u *url.URL) (Repository, error) {
 
 	hasGitIndicator := strings.Contains(u.Path, "/_git")
 	projectNameIdx := 2
-	if u.Scheme == "http" || u.Scheme == "https" {
+	switch u.Scheme {
+	case "http", "https":
 		if !hasGitIndicator {
 			return nil, fmt.Errorf("invalid path %q expecting /_git", u.Path)
 		}
-		if len(parts) < 4 {
+		minParts := 4
+		if orgInHost {
+			minParts = 3
+		}
+		if len(parts) < minParts {
 			return nil, fmt.Errorf("invalid path %q", u.Path)
 		}
-		projectNameIdx = 3
-	} else if u.Scheme == "ssh" {
+		if orgInHost {
+			projectNameIdx = 2
+		} else {
+			projectNameIdx = 3
+		}
+		if len(parts) > 4 {
+			return nil, fmt.Errorf("invalid path %q", u.Path)
+		}
+	case "ssh":
 		if hasGitIndicator {
 			return nil, fmt.Errorf("invalid path %q expecting no /_git", u.Path)
 		}
-		if !regexp.MustCompile("v[0-9]+").Match([]byte(parts[0])) {
-			return nil, fmt.Errorf("invalid ssh url, expecting protocol version, not %q", parts[0])
+		if !regexp.MustCompile("v[3-9]+").Match([]byte(parts[0])) {
+			return nil, fmt.Errorf("invalid ssh url, expecting protocol version at least v3, got %q", parts[0])
 		}
 		parts = parts[1:]
-	} else {
+		if len(parts) > 4 {
+			return nil, fmt.Errorf("invalid path %q", u.Path)
+		}
+	default:
 		return nil, fmt.Errorf("unsupported scheme %q", u.Scheme)
 	}
 
-	organization := strings.ToLower(parts[0])
+	var organization string
+	var project string
+	if orgInHost {
+		organization = strings.ToLower(strings.SplitN(u.Hostname(), ".", 2)[0])
+		project = parts[0]
+	} else {
+		organization = strings.ToLower(parts[0])
+		project = parts[1]
+	}
+
 	hostname, err := getHostnameFromOrganization(organization)
 	if err != nil {
 		return nil, err
@@ -382,7 +436,7 @@ func RepositoryFromURL(u *url.URL) (Repository, error) {
 		return nil, fmt.Errorf("hostname %q of URL does not match hostname %q of organization %q", u.Hostname(), hostname, parts[0])
 	}
 
-	return NewRepositoryWithOrganization(organization, parts[1], strings.TrimSuffix(parts[projectNameIdx], ".git"))
+	return NewRepositoryWithOrganization(organization, project, strings.TrimSuffix(parts[projectNameIdx], ".git"))
 }
 
 // Helper functions.
