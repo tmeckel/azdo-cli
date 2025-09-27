@@ -104,7 +104,7 @@ type client struct {
 func NewGitCommand(io *iostreams.IOStreams) (c GitCommand, err error) {
 	azdoPath, err := os.Executable()
 	if err != nil {
-		return
+		return c, err
 	}
 	c = &client{
 		AzDoPath: azdoPath,
@@ -112,7 +112,7 @@ func NewGitCommand(io *iostreams.IOStreams) (c GitCommand, err error) {
 		Stdin:    io.In,
 		Stdout:   io.Out,
 	}
-	return
+	return c, err
 }
 
 func (c *client) GetAzDoPath() string {
@@ -187,7 +187,7 @@ func (c *client) GetAuthConfig(ctx context.Context) (authConfig []string, err er
 	}
 	credHelper := fmt.Sprintf("!%q auth git-credential", c.AzDoPath)
 	authConfig = append(authConfig, "credential.helper", credHelper)
-	return
+	return authConfig, err
 }
 
 // AuthenticatedCommand is a wrapper around Command that included configuration to use azdo
@@ -355,17 +355,17 @@ func (c *client) SetConfig(ctx context.Context, configItems ...string) (err erro
 			args := append([]string{"config"}, configItems[n], configItems[n+1])
 			cmd, err = c.Command(ctx, args...)
 			if err != nil {
-				return
+				return err
 			}
 			err = cmd.Run()
 			if err != nil {
 				err = fmt.Errorf("failed to set config item %s to value %s: %w", configItems[n], configItems[n+1], err)
-				return
+				return err
 			}
 			n += 2
 		}
 	}
-	return
+	return err
 }
 
 func (c *client) GetConfig(ctx context.Context, name string) (string, error) {
@@ -487,11 +487,11 @@ func (c *client) ReadBranchConfig(ctx context.Context, branch string) (cfg Branc
 	args := []string{"config", "--get-regexp", fmt.Sprintf("^%s(remote|merge)$", prefix)}
 	cmd, err := c.Command(ctx, args...)
 	if err != nil {
-		return
+		return cfg
 	}
 	out, err := cmd.Output()
 	if err != nil {
-		return
+		return cfg
 	}
 	for _, line := range outputLines(out) {
 		parts := strings.SplitN(line, " ", 2)
@@ -514,7 +514,7 @@ func (c *client) ReadBranchConfig(ctx context.Context, branch string) (cfg Branc
 			cfg.MergeRef = parts[1]
 		}
 	}
-	return
+	return cfg
 }
 
 func (c *client) DeleteLocalTag(ctx context.Context, tag string) error {
@@ -690,7 +690,7 @@ func (c *client) AddRemote(ctx context.Context, name, urlStr string, trackingBra
 		return nil, err
 	}
 	var urlParsed *url.URL
-	if strings.HasPrefix(urlStr, "https") {
+	if strings.HasPrefix(urlStr, "http") {
 		urlParsed, err = url.Parse(urlStr)
 		if err != nil {
 			return nil, fmt.Errorf("failed to parse URL %q: %w", urlStr, err)
@@ -819,7 +819,7 @@ func parseCloneArgs(extraArgs []string) (args []string, target string) {
 			target, args = args[0], args[1:]
 		}
 	}
-	return
+	return args, target
 }
 
 func parseRemotes(remotesStr []string) RemoteSet {
@@ -840,6 +840,12 @@ func parseRemotes(remotesStr []string) RemoteSet {
 
 		var rem *Remote
 		if len(remotes) > 0 {
+			/**
+			 * because we are parsing the output of `git remote -v` which groups remotes together
+			 * we can optimize the search by first checking the last remote we added
+			 * and seeing if it matches the current remote name
+			 * before searching through the entire list of remotes
+			 **/
 			rem = remotes[len(remotes)-1]
 			if name != rem.Name {
 				rem = nil
