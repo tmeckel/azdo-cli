@@ -23,5 +23,7 @@ go.work
 # Goreleaser output
 dist/
 bin/
-azdo
-azdo.exe
+./azdo
+./azdo.exe
+
+**/*.local.*
