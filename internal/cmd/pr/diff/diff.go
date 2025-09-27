@@ -9,7 +9,6 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/tmeckel/azdo-cli/internal/cmd/pr/shared"
 	"github.com/tmeckel/azdo-cli/internal/cmd/util"
-	"github.com/tmeckel/azdo-cli/internal/iostreams"
 	"github.com/tmeckel/azdo-cli/internal/types"
 )
 
@@ -108,39 +107,46 @@ func runCmd(ctx util.CmdContext, opts *diffOptions) (err error) {
 		return fmt.Errorf("failed to get pull request diff: %w", err)
 	}
 
-	// Process and display the diff
+	// Process and display the diff, handling both GitItem and map[string]interface{} types
 	if opts.nameOnly {
 		for _, change := range *diffs.ChangeEntries {
 			if gitItem, ok := change.Item.(*git.GitItem); ok && gitItem.Path != nil {
 				fmt.Fprintln(iostreams.Out, *gitItem.Path)
+				continue
+			}
+			if m, ok := change.Item.(map[string]any); ok {
+				if p, okp := m["path"].(string); okp {
+					fmt.Fprintln(iostreams.Out, p)
+				}
 			}
 		}
 	} else {
-		// Default diff output (list of changed files and change types)
-		displayChanges(iostreams, diffs, opts.color)
-	}
-
-	return nil
-}
-
-func displayChanges(iostreams *iostreams.IOStreams, diffs *git.GitPullRequestIterationChanges, color string) {
-	cs := iostreams.ColorScheme()
-	useColor := iostreams.ColorEnabled() // Default to iostreams setting
-
-	switch strings.ToLower(color) {
-	case "always":
-		useColor = true
-	case "never":
-		useColor = false
-	case "auto":
-		// use iostreams default
-	}
-
-	for _, change := range *diffs.ChangeEntries {
-		if gitItem, ok := change.Item.(*git.GitItem); ok && gitItem.Path != nil {
-			changeType := string(*change.ChangeType)
-			path := *gitItem.Path
-
+		cs := iostreams.ColorScheme()
+		useColor := iostreams.ColorEnabled()
+		switch strings.ToLower(opts.color) {
+		case "always":
+			useColor = true
+		case "never":
+			useColor = false
+		case "auto":
+			// use default
+		}
+		for _, change := range *diffs.ChangeEntries {
+			changeType := ""
+			if change.ChangeType != nil {
+				changeType = string(*change.ChangeType)
+			}
+			var path string
+			if gi, ok := change.Item.(*git.GitItem); ok && gi.Path != nil {
+				path = *gi.Path
+			} else if m, ok := change.Item.(map[string]any); ok {
+				if p, okp := m["path"].(string); okp {
+					path = p
+				}
+			}
+			if path == "" {
+				continue
+			}
 			if useColor {
 				switch changeType {
 				case "add":
@@ -157,4 +163,5 @@ func displayChanges(iostreams *iostreams.IOStreams, diffs *git.GitPullRequestIte
 			}
 		}
 	}
+	return nil
 }
