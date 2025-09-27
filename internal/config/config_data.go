@@ -283,7 +283,7 @@ func DataDir() string {
 }
 
 func readFile(filename string) ([]byte, error) {
-	f, err := os.Open(filename)
+	f, err := os.Open(filename) //nolint:gosec
 	if err != nil {
 		return nil, err
 	}
@@ -296,12 +296,12 @@ func readFile(filename string) ([]byte, error) {
 }
 
 func writeFile(filename string, data []byte) (writeErr error) {
-	if writeErr = os.MkdirAll(filepath.Dir(filename), 0o771); writeErr != nil {
-		return
+	if writeErr = os.MkdirAll(filepath.Dir(filename), 0o771); writeErr != nil { //nolint:gosec
+		return writeErr
 	}
 	var file *os.File
-	if file, writeErr = os.OpenFile(filename, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0o600); writeErr != nil {
-		return
+	if file, writeErr = os.OpenFile(filename, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0o600); writeErr != nil { //nolint:gosec
+		return writeErr
 	}
 	defer func() {
 		if err := file.Close(); writeErr == nil && err != nil {
@@ -309,7 +309,7 @@ func writeFile(filename string, data []byte) (writeErr error) {
 		}
 	}()
 	_, writeErr = file.Write(data)
-	return
+	return writeErr
 }
 
 var defaultGeneralEntries = `
