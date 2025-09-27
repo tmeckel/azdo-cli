@@ -34,7 +34,7 @@ func NewCmd(ctx util.CmdContext) *cobra.Command {
 
 			If required checks have not yet passed, auto-complete will be enabled.
 		`, "`"),
-		Args: util.ExactArgs(1, "cannot merge pull request: number, url, or branch required"),
+		Args: cobra.MaximumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if len(args) > 0 {
 				opts.selectorArg = args[0]
@@ -45,7 +45,7 @@ func NewCmd(ctx util.CmdContext) *cobra.Command {
 
 	cmd.Flags().StringVarP(&opts.completionMessage, "message", "m", "", "Message to include when completing the pull request")
 	cmd.Flags().BoolVarP(&opts.deleteSourceBranch, "delete-source-branch", "d", false, "Delete the source branch after merging")
-	util.StringEnumFlag(cmd, &opts.mergeStrategy, "merge-strategy", "", "NoFastForward", []string{"NoFastForward", "Squashed", "Rebase", "RebaseMerge"}, "Merge strategy to use")
+	util.StringEnumFlag(cmd, &opts.mergeStrategy, "merge-strategy", "", "NoFastForward", []string{"noFastForward", "squash", "rebase", "rebaseMerge"}, "Merge strategy to use")
 	cmd.Flags().BoolVar(&opts.transitionWorkItemStatuses, "transition-work-items", true, "Transition linked work item statuses upon merging")
 
 	return cmd
@@ -73,7 +73,7 @@ func runCmd(ctx util.CmdContext, opts *mergeOptions) (err error) {
 	}
 
 	if pr == nil {
-		return fmt.Errorf("pull request not found")
+		return util.NewNoResultsError("pull request not found")
 	}
 
 	gitClient, err := prRepo.GitClient(ctx.Context(), ctx.ConnectionFactory())
@@ -89,13 +89,13 @@ func runCmd(ctx util.CmdContext, opts *mergeOptions) (err error) {
 	// Determine merge strategy
 	var mergeStrategy git.GitPullRequestMergeStrategy
 	switch opts.mergeStrategy {
-	case "NoFastForward":
+	case "noFastForward":
 		mergeStrategy = git.GitPullRequestMergeStrategyValues.NoFastForward
-	case "Squashed":
+	case "squash":
 		mergeStrategy = git.GitPullRequestMergeStrategyValues.Squash
-	case "Rebase":
+	case "rebase":
 		mergeStrategy = git.GitPullRequestMergeStrategyValues.Rebase
-	case "RebaseMerge":
+	case "rebaseMerge":
 		mergeStrategy = git.GitPullRequestMergeStrategyValues.RebaseMerge
 	default:
 		// This should not happen due to StringEnumFlag, but as a fallback
