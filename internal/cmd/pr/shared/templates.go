@@ -54,65 +54,95 @@ func (tm *templateManager) GetTemplate(ctx context.Context, repo azdo.Repository
 		return nil, fmt.Errorf("failed to get repository: %w", err)
 	}
 
-	var pathsToCheck []git.GitItemDescriptor
-
-	// Add branch-specific template paths if a branch is specified
-	if branch != "" {
-		normalizedBranch := strings.ReplaceAll(branch, "/", "_")
-		for _, path := range []string{
-			".azuredevops/pull_request_template/branches/",
-			".vsts/pull_request_template/branches/",
-			"docs/pull_request_template/branches/",
-			"pull_request_template/branches/",
-		} {
-			path = path + normalizedBranch + ".md"
-			pathsToCheck = append(pathsToCheck, git.GitItemDescriptor{
-				Path:        &path,
-				Version:     &branch,
-				VersionType: &git.GitVersionTypeValues.Branch,
-			})
-		}
+	if gitRepo.DefaultBranch == nil {
+		return nil, fmt.Errorf("repository %s does not have a default branch", repo.FullName())
 	}
+	defaultBranch := normalizeBranch(*gitRepo.DefaultBranch)
 
-	for _, path := range []string{
-		".azuredevops/pull_request_template.md",
-		"PULL_REQUEST_TEMPLATE.md",
-		"docs/PULL_REQUEST_TEMPLATE.md",
-		".github/PULL_REQUEST_TEMPLATE.md",
-	} {
-		pathsToCheck = append(pathsToCheck, git.GitItemDescriptor{
-			Path: &path,
-		})
-	}
+	pathsToCheck := getTemplatePathsInOrder(branch)
 
-	items, err := tm.gitClient.GetItemsBatch(ctx, git.GetItemsBatchArgs{
-		RepositoryId: types.ToPtr(gitRepo.Id.String()),
-		RequestData: &git.GitItemRequestData{
-			ItemDescriptors: &pathsToCheck,
-		},
-	})
-	if err != nil {
-		return nil, fmt.Errorf("failed to get pull request template files: %w", err)
-	}
-
-	if len((*items)[0]) > 0 {
-		item := (*items)[0][0]
-		blob, err := tm.gitClient.GetBlobContent(ctx, git.GetBlobContentArgs{
-			RepositoryId: types.ToPtr(gitRepo.Id.String()),
-			Sha1:         item.CommitId,
-		})
+	for _, templatePath := range pathsToCheck {
+		content, err := fetchTemplateContent(ctx, tm.gitClient, repo, templatePath, defaultBranch)
 		if err != nil {
-			return nil, fmt.Errorf("unable to download file contents %q: %w", *item.Path, err)
+			return nil, err
 		}
-		defer blob.Close()
-		b, err := io.ReadAll(blob)
-		if err != nil {
-			return nil, fmt.Errorf("unable to read content of file %q: %w", *item.Path, err)
+		if content != nil {
+			return &template{
+				path: templatePath,
+				body: content,
+			}, nil
 		}
-		return &template{
-			path: *item.Path,
-			body: b,
-		}, nil
 	}
+
 	return nil, nil
+}
+
+func getTemplatePathsInOrder(targetBranch string) []string {
+	var paths []string
+	baseFolders := []string{
+		".azuredevops/",
+		".vsts/",
+		"docs/",
+		"", // Root folder
+	}
+
+	// Branch-specific templates
+	if targetBranch != "" {
+		normalizedBranch := normalizeBranch(targetBranch)
+		for _, folder := range baseFolders {
+			paths = append(paths, folder+"pull_request_template/branches/"+normalizedBranch+".md")
+			paths = append(paths, folder+"pull_request_template/branches/"+normalizedBranch+".txt")
+		}
+	}
+
+	// Default templates
+	for _, folder := range baseFolders {
+		paths = append(paths, folder+"pull_request_template.md")
+		paths = append(paths, folder+"pull_request_template.txt")
+	}
+
+	return paths
+}
+
+func fetchTemplateContent(ctx context.Context, gitClient git.Client, repo azdo.Repository, templatePath string, defaultBranch string) ([]byte, error) {
+	// Use GetItemContent to directly get the file content
+	azRepo, err := repo.GitRepository(ctx, gitClient)
+	if err != nil {
+		return nil, err
+	}
+	args := git.GetItemContentArgs{
+		RepositoryId: types.ToPtr(azRepo.Id.String()),
+		Project:      types.ToPtr(repo.Project()),
+		Path:         types.ToPtr(templatePath),
+		VersionDescriptor: &git.GitVersionDescriptor{
+			Version:     types.ToPtr(defaultBranch),
+			VersionType: types.ToPtr(git.GitVersionTypeValues.Branch),
+		},
+	}
+
+	contentStream, err := gitClient.GetItemContent(ctx, args)
+	if err != nil {
+		// Check if it's a 404 Not Found error
+		if util.IsNotFoundError(err) { // Assuming util.IsNotFoundError exists or needs to be created
+			return nil, nil // Not found, not an error for our search logic
+		}
+		return nil, fmt.Errorf("failed to get content for template %q from default branch %q: %w", templatePath, defaultBranch, err)
+	}
+	defer contentStream.Close()
+
+	content, err := io.ReadAll(contentStream)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read content for template %q: %w", templatePath, err)
+	}
+
+	if len(content) == 0 {
+		return nil, nil // Treat empty file as not found for template purposes
+	}
+
+	return content, nil
+}
+
+// normalizeBranch removes "refs/heads/" prefix if present
+func normalizeBranch(b string) string {
+	return strings.TrimPrefix(b, "refs/heads/")
 }
