@@ -44,7 +44,7 @@ func parseSelector(selector string) (org string, proj string, repo string, prid 
 	m := pullRE.FindStringSubmatch(selector)
 	if m == nil {
 		err = fmt.Errorf("not a valid pull request selector: %q", selector)
-		return
+		return org, proj, repo, prid, err
 	}
 	for _, g := range []string{"Org", "Prj", "Repo", "PrId"} {
 		gi := pullRE.SubexpIndex(g)
@@ -62,12 +62,12 @@ func parseSelector(selector string) (org string, proj string, repo string, prid 
 			id, e := strconv.Atoi(m[gi])
 			if e != nil {
 				err = fmt.Errorf("PR ID %q is not a number %w", m[gi], e)
-				return
+				return org, proj, repo, prid, err
 			}
 			prid = id
 		}
 	}
-	return
+	return org, proj, repo, prid, err
 }
 
 func NewFinder(ctx util.CmdContext) (f PRFinder, err error) {
@@ -146,7 +146,7 @@ func (f *finder) Find(opts FindOptions) (*git.GitPullRequest, azdo.Repository, e
 			return nil, nil, fmt.Errorf("failed to get PR list from git repo: %w", err)
 		}
 		if prList == nil || len(*prList) == 0 {
-			return nil, nil, nil
+			return nil, nil, util.NewNoResultsError("pull request not found")
 		}
 		pr = &(*prList)[0]
 	} else {
@@ -158,10 +158,13 @@ func (f *finder) Find(opts FindOptions) (*git.GitPullRequest, azdo.Repository, e
 			return nil, nil, fmt.Errorf("failed to get PR by ID: %w", err)
 		}
 		pr = _pr
+		if pr == nil {
+			return nil, nil, util.NewNoResultsError("pull request not found")
+		}
 		if opts.BaseBranch != "" {
 			sourceBranch := fmt.Sprintf("refs/heads/%s", opts.BaseBranch)
 			if !strings.EqualFold(*pr.SourceRefName, sourceBranch) {
-				return nil, nil, fmt.Errorf("pull request %q does not have base branch %q", opts.Selector, opts.BaseBranch)
+				return nil, nil, util.NewNoResultsError(fmt.Sprintf("pull request %q does not have base branch %q", opts.Selector, opts.BaseBranch))
 			}
 		}
 	}
@@ -169,7 +172,7 @@ func (f *finder) Find(opts FindOptions) (*git.GitPullRequest, azdo.Repository, e
 	if len(opts.States) > 0 && !slices.ContainsFunc(opts.States, func(v string) bool {
 		return strings.EqualFold(string(*pr.Status), v)
 	}) {
-		return nil, nil, fmt.Errorf("pull request %q is not in any of the specified states %v", opts.Selector, opts.States)
+		return nil, nil, util.NewNoResultsError(fmt.Sprintf("pull request %q is not in any of the specified states %v", opts.Selector, opts.States))
 	}
 	return pr, repo, nil
 }
