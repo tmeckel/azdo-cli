@@ -250,7 +250,7 @@ func (e *jsonExporter) Write(ios *iostreams.IOStreams, data any) error {
 }
 
 func (e *jsonExporter) exportData(v reflect.Value) any {
-	switch v.Kind() {
+	switch v.Kind() { //nolint:exhaustive
 	case reflect.Ptr, reflect.Interface:
 		if !v.IsNil() {
 			return e.exportData(v.Elem())
@@ -268,7 +268,7 @@ func (e *jsonExporter) exportData(v reflect.Value) any {
 		for iter.Next() {
 			if len(e.fields) > 0 {
 				kv := iter.Key()
-				switch iter.Key().Kind() {
+				switch iter.Key().Kind() { //nolint:exhaustive
 				case reflect.Interface:
 					fallthrough
 				case reflect.Pointer:
@@ -296,6 +296,9 @@ func (e *jsonExporter) exportData(v reflect.Value) any {
 			ve := v.Interface().(exportable)
 			return ve.ExportData(e.fields)
 		} else {
+			if len(e.fields) == 0 {
+				return v.Interface()
+			}
 			return structExportData(v, e.fields, e.strict)
 		}
 	}
@@ -353,10 +356,41 @@ func structExportData(v reflect.Value, fields []string, strict bool) map[string]
 		}
 	} else {
 		for i := range v.NumField() {
+			field := v.Type().Field(i)
 			sf := v.FieldByIndex([]int{i})
-			if sf.IsValid() && sf.CanInterface() {
-				data[v.Type().Field(i).Name] = sf.Interface()
+
+			if !sf.IsValid() || !sf.CanInterface() {
+				continue
 			}
+
+			jsonTag := field.Tag.Get("json")
+			if jsonTag == "-" {
+				continue
+			}
+
+			parts := strings.Split(jsonTag, ",")
+			jsonName := parts[0]
+
+			hasOmitempty := false
+			if len(parts) > 1 {
+				for _, flag := range parts[1:] {
+					if flag == "omitempty" {
+						hasOmitempty = true
+						break
+					}
+				}
+			}
+
+			if hasOmitempty && sf.IsZero() {
+				continue
+			}
+
+			fieldName := field.Name
+			if jsonName != "" {
+				fieldName = jsonName
+			}
+
+			data[fieldName] = sf.Interface()
 		}
 	}
 	return data
