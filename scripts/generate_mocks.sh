@@ -38,4 +38,24 @@ mockgen -source internal/git/client.go \
   -mock_names Client=MockGitCmdClient \
   -package=mocks -destination internal/mocks/git_command_mock.go
 
+echo "Generating Config mock..."
+mockgen -source internal/config/config.go \
+  -mock_names Client=MockConfig \
+  -package=mocks -destination internal/mocks/config_mock.go
+
+echo "Generating Alias Config mock..."
+mockgen -source internal/config/alias_config.go \
+  -mock_names Client=MockConfigAlias \
+  -package=mocks -destination internal/mocks/config_alias.go
+
+echo "Generating Auth Config mock..."
+mockgen -source internal/config/auth_config.go \
+  -mock_names Client=MockAuthConfig \
+  -package=mocks -destination internal/mocks/auth_config.go
+
+echo "Generating Printer mock..."
+mockgen -source internal/printer/printer.go \
+  -mock_names Client=MockPrinter \
+  -package=mocks -destination internal/mocks/printer.go
+
 echo "Done."
