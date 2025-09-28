@@ -89,8 +89,7 @@ func runCreate(ctx util.CmdContext, opts *createOptions) error {
 	}
 
 	createOpts := &git.GitRepositoryCreateOptions{
-		Name:    &name,
-		Project: &core.TeamProjectReference{Name: &project},
+		Name: &name,
 	}
 
 	// handle fork parent parsing if provided
