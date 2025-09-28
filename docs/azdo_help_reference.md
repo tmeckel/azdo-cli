@@ -277,11 +277,12 @@ Clone a repository locally
 Create a new repository in a project
 
 ```
-    --format string     Output format: {json} (default "table")
--q, --jq expression     Filter JSON output using a jq expression
-    --json fields       Output JSON with the specified fields
-    --parent string     [PROJECT/]REPO to fork from (same organization)
--t, --template string   Format JSON output using a Go template; see "azdo help formatting"
+    --format string          Output format: {json} (default "table")
+-q, --jq expression          Filter JSON output using a jq expression
+    --json fields            Output JSON with the specified fields
+    --parent string          [PROJECT/]REPO to fork from (same organization)
+    --source-branch string   Only fork the specified branch (defaults to all branches)
+-t, --template string        Format JSON output using a Go template; see "azdo help formatting"
 ````
 
 ### `azdo repo list [organization/]<project> [flags]`
