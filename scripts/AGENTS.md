@@ -11,14 +11,14 @@ This document provides detailed instructions on how to **interpret, use, and upd
 In this session, the script was updated to:
 - Remove previous hard‑coded file list.
 - Add a **new, fixed file list** covering *all changed or new files under* the repository root.
-- Group commits logically in the following order:
+- Group commits logically in the following strict order:
 
-  1. **Command implementations**
-  2. **Mocks**
-  3. **Test implementations**
-  4. **Core libraries/utilities**
-  5. **Config/Git/Templates**
-  6. **Documentation** (always last)
+  1. **Build Scripts:** Scripts that affect the build or development process (e.g., `scripts/generate_mocks.sh`).
+  2. **Mocks:** Generated mock files (`internal/mocks/`).
+  3. **Core libraries/utilities:** Foundational code (`internal/azdo/`, `internal/config/`, etc.).
+  4. **CLI Command Implementations:** The `*.go` files for the commands themselves (`internal/cmd/...`).
+  5. **Tests:** The `*_test.go` files for the commands.
+  6. **Documentation:** Markdown files, etc. (`docs/`).
 
 - Provide verbose commit messages:
   - Must follow Conventional Commits format: `type(scope): description`
@@ -47,11 +47,23 @@ When an update is needed, follow these exact steps to avoid ambiguity:
      * `test` — tests added or improved.
      * `chore` — maintenance work or data updates.
    - Set `scope` to directory or module name (e.g., `azdo`, `pr/create`).
-   - Be *verbose*: one line covering the specific change, rationale, and impact.
+   - Be *verbose*: Commit messages **must** be multi-line, with a concise subject line and a detailed body explaining the *what*, *why*, and *impact* of the change.
+
+     **Good Example:**
+     ```
+     feat(repo): ✨ add --source-branch flag to create command
+
+     This commit enhances the `repo create` command by adding a new `--source-branch` flag. This allows users to specify a single branch to include when creating a fork, instead of the default behavior of copying all branches. This change also adds documentation to the code explaining the difference between the ParentRepository body parameter and the SourceRef query parameter in the underlying Azure DevOps REST API, clarifying the purpose of each.
+     ```
+
+     **Bad Example:**
+     ```
+     feat(repo): add source branch flag
+     ```
    - Append matching emoji (✨, 🐛, ♻️, ✅, 📦, etc.).
 
 5. **Group Logically**:
-   - Maintain grouping from mocks → command implementations → test implementations → core libraries/utilities → config/git/templates → documentation.
+   - Maintain the strict grouping order defined above: Build Scripts → Mocks → Core → Commands → Tests → Docs.
    - Order matters for commit clarity and history readability.
 
 6. **Preserve Script Helpers**:
