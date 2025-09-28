@@ -22,6 +22,10 @@ azdo repo create [ORGANIZATION/]<PROJECT>/<NAME> [flags]
 
 	[PROJECT/]REPO to fork from (same organization)
 
+* `--source-branch` `string`
+
+	Only fork the specified branch (defaults to all branches)
+
 * `-t`, `--template` `string`
 
 	Format JSON output using a Go template; see &#34;azdo help formatting&#34;
