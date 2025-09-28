@@ -2,6 +2,7 @@
 Work with Azure DevOps Git repositories.
 ### Available commands
 * [azdo repo clone](./azdo_repo_clone.md)
+* [azdo repo create](./azdo_repo_create.md)
 * [azdo repo list](./azdo_repo_list.md)
 * [azdo repo restore](./azdo_repo_restore.md)
 * [azdo repo set-default](./azdo_repo_set-default.md)
