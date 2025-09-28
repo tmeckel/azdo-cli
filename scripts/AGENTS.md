@@ -10,12 +10,16 @@ This document provides detailed instructions on how to **interpret, use, and upd
 ### Current Session Context
 In this session, the script was updated to:
 - Remove previous hard‑coded file list.
-- Add a **new, fixed file list** covering *all changed or new files under* `internal/`.
-- Group commits logically:
-  1. **Core libraries/utilities** — foundational code changes and new components.
-  2. **CLI commands** — user‑facing command implementations.
-  3. **Config/Git/Templates** — supporting modules.
-  4. **Tests and mocks** — validation and mock updates.
+- Add a **new, fixed file list** covering *all changed or new files under* the repository root.
+- Group commits logically in the following order:
+
+  1. **Command implementations**
+  2. **Mocks**
+  3. **Test implementations**
+  4. **Core libraries/utilities**
+  5. **Config/Git/Templates**
+  6. **Documentation** (always last)
+
 - Provide verbose commit messages:
   - Must follow Conventional Commits format: `type(scope): description`
   - Include a relevant emoji matching commit type.
@@ -25,7 +29,7 @@ In this session, the script was updated to:
 When an update is needed, follow these exact steps to avoid ambiguity:
 
 1. **Identify Changes**:
-   - Run `git status --porcelain internal/` to list *all* modified or untracked files under `internal/`.
+   - Run `git status --porcelain` to list *all* modified or untracked files in the repository.
    - Ensure you capture every relevant file path.
 
 2. **Remove Old Entries**:
@@ -47,7 +51,7 @@ When an update is needed, follow these exact steps to avoid ambiguity:
    - Append matching emoji (✨, 🐛, ♻️, ✅, 📦, etc.).
 
 5. **Group Logically**:
-   - Maintain grouping from core → CLI commands → config/git/templates → tests/mocks.
+   - Maintain grouping from mocks → command implementations → test implementations → core libraries/utilities → config/git/templates → documentation.
    - Order matters for commit clarity and history readability.
 
 6. **Preserve Script Helpers**:
