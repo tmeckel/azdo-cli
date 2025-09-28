@@ -272,6 +272,18 @@ Clone a repository locally
 -u, --upstream-remote-name string   Upstream remote name when cloning a fork (default "upstream")
 ````
 
+### `azdo repo create [ORGANIZATION/]<PROJECT>/<NAME> [flags]`
+
+Create a new repository in a project
+
+```
+    --format string     Output format: {json} (default "table")
+-q, --jq expression     Filter JSON output using a jq expression
+    --json fields       Output JSON with the specified fields
+    --parent string     [PROJECT/]REPO to fork from (same organization)
+-t, --template string   Format JSON output using a Go template; see "azdo help formatting"
+````
+
 ### `azdo repo list [organization/]<project> [flags]`
 
 List repositories of a project inside an organization
