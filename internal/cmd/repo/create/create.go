@@ -12,10 +12,11 @@ import (
 )
 
 type createOptions struct {
-	repo       string
-	parentRepo string
-	format     string
-	exporter   util.Exporter
+	repo         string
+	parentRepo   string
+	sourceBranch string
+	format       string
+	exporter     util.Exporter
 }
 
 func NewCmd(ctx util.CmdContext) *cobra.Command {
@@ -43,6 +44,7 @@ func NewCmd(ctx util.CmdContext) *cobra.Command {
 	}
 
 	cmd.Flags().StringVar(&opts.parentRepo, "parent", "", "[PROJECT/]REPO to fork from (same organization)")
+	cmd.Flags().StringVar(&opts.sourceBranch, "source-branch", "", "Only fork the specified branch (defaults to all branches)")
 	util.StringEnumFlag(cmd, &opts.format, "format", "", "table", []string{"json"}, "Output format")
 
 	util.AddJSONFlags(cmd, &opts.exporter, []string{"Id", "Name", "WebUrl"})
@@ -92,6 +94,16 @@ func runCreate(ctx util.CmdContext, opts *createOptions) error {
 		Name: &name,
 	}
 
+	gitClient, err := ctx.ClientFactory().Git(ctx.Context(), organization)
+	if err != nil {
+		return err
+	}
+
+	createRepoArgs := git.CreateRepositoryArgs{
+		GitRepositoryToCreate: createOpts,
+		Project:               &project,
+	}
+
 	// handle fork parent parsing if provided
 	if opts.parentRepo != "" {
 		parts := strings.Split(opts.parentRepo, "/")
@@ -116,23 +128,47 @@ func runCreate(ctx util.CmdContext, opts *createOptions) error {
 		default:
 			return util.FlagErrorf("invalid parent value %q", opts.parentRepo)
 		}
-		createOpts.ParentRepository = &git.GitRepositoryRef{
-			Name: &parentRepo,
-			Project: &core.TeamProjectReference{
-				Name: &parentProject,
-			},
+		coreClient, err := ctx.ClientFactory().Core(ctx.Context(), organization)
+		if err != nil {
+			return err
 		}
+
+		parentProjectDetails, err := coreClient.GetProject(ctx.Context(), core.GetProjectArgs{
+			ProjectId: &parentProject,
+		})
+		if err != nil {
+			return err
+		}
+
+		parentRepoDetails, err := gitClient.GetRepository(ctx.Context(), git.GetRepositoryArgs{
+			RepositoryId: &parentRepo,
+			Project:      &parentProject,
+		})
+		if err != nil {
+			return err
+		}
+
+		// The Azure DevOps API uses two different properties to create a fork:
+		// 1. ParentRepository: A complex object in the request body that identifies the repository to be forked.
+		//    This is the mandatory and fundamental way to specify that the new repository should be a fork.
+		// 2. SourceRef: An optional query parameter in the URL (e.g., ?sourceRef=refs/heads/main) that specifies
+		//    which refs (branches or tags) to include in the newly created fork. If omitted, all refs are copied.
+		createOpts.ParentRepository = &git.GitRepositoryRef{
+			Id: parentRepoDetails.Id,
+			Project: &core.TeamProjectReference{
+				Id: parentProjectDetails.Id,
+			},
+			Name: &parentRepo,
+		}
+		if opts.sourceBranch != "" {
+			sourceRef := "refs/heads/" + strings.TrimPrefix(opts.sourceBranch, "refs/heads/")
+			createRepoArgs.SourceRef = &sourceRef
+		}
+	} else if opts.sourceBranch != "" {
+		return util.FlagErrorf("--source-branch can only be used with --parent")
 	}
 
-	gitClient, err := ctx.ClientFactory().Git(ctx.Context(), organization)
-	if err != nil {
-		return err
-	}
-
-	res, err := gitClient.CreateRepository(ctx.Context(), git.CreateRepositoryArgs{
-		GitRepositoryToCreate: createOpts,
-		Project:               &project,
-	})
+	res, err := gitClient.CreateRepository(ctx.Context(), createRepoArgs)
 	if err != nil {
 		return err
 	}
