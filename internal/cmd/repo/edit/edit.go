@@ -6,7 +6,6 @@ import (
 	"strings"
 
 	"github.com/MakeNowJust/heredoc"
-	"github.com/google/uuid"
 	"github.com/microsoft/azure-devops-go-api/azuredevops/v7/git"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
@@ -136,7 +135,7 @@ func runEdit(ctx util.CmdContext, opts *editOptions) error {
 	}
 
 	args := git.UpdateRepositoryArgs{
-		RepositoryId:      (*uuid.UUID)(repo.Id),
+		RepositoryId:      repo.Id,
 		Project:           types.ToPtr(project),
 		NewRepositoryInfo: &git.GitRepository{},
 	}
