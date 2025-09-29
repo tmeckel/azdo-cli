@@ -25,15 +25,15 @@ func NewCmd(ctx util.CmdContext) *cobra.Command {
 		Short: "Create a new repository in a project",
 		Use:   "create [ORGANIZATION/]<PROJECT>/<NAME>",
 		Example: heredoc.Doc(`
-            # create a repository in specified project (org from default config)
-            azdo repo create myproject/myrepo
+				# create a repository in specified project (org from default config)
+				azdo repo create myproject/myrepo
 
-            # create a repository in specified org/project
-            azdo repo create myorg/myproject/myrepo
+				# create a repository in specified org/project
+				azdo repo create myorg/myproject/myrepo
 
-            # create a fork of an existing repo in another project
-            azdo repo create myproject/myfork --parent otherproject/otherrepo
-        `),
+				# create a fork of an existing repo in another project
+				azdo repo create myproject/myfork --parent otherproject/otherrepo
+		`),
 		Args: util.ExactArgs(1, "cannot create: project/repo name required"),
 		RunE: func(c *cobra.Command, args []string) error {
 			// parse positional [ORG/]PROJECT/NAME
