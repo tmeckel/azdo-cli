@@ -292,6 +292,20 @@ Delete a Git repository in a team project
 -y, --yes   Do not prompt for confirmation
 ````
 
+### `azdo repo edit [organization/]project/repository [flags]`
+
+Edit or update an existing Git repository in a team project
+
+```
+    --default-branch string   Set the default branch for the repository
+    --disable                 Disable the repository
+    --enable                  Enable the repository
+-q, --jq expression           Filter JSON output using a jq expression
+    --json fields             Output JSON with the specified fields
+    --name string             Rename the repository
+-t, --template string         Format JSON output using a Go template; see "azdo help formatting"
+````
+
 ### `azdo repo list [organization/]<project> [flags]`
 
 List repositories of a project inside an organization
