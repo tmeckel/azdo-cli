@@ -6,10 +6,6 @@ azdo repo create [ORGANIZATION/]<PROJECT>/<NAME> [flags]
 ### Options
 
 
-* `--format` `string`
-
-	Output format: {json}
-
 * `-q`, `--jq` `expression`
 
 	Filter JSON output using a jq expression

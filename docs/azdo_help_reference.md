@@ -277,7 +277,6 @@ Clone a repository locally
 Create a new repository in a project
 
 ```
-    --format string          Output format: {json} (default "table")
 -q, --jq expression          Filter JSON output using a jq expression
     --json fields            Output JSON with the specified fields
     --parent string          [PROJECT/]REPO to fork from (same organization)
