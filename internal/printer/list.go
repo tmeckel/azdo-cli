@@ -93,14 +93,14 @@ func (lp *listPrinter) Render() error {
 			if termInfo.IsColorEnabled() {
 				key = colorScheme.Bold(key)
 			}
-            // pad base key string to maxKeyWidth accounting for non-ANSI width (after colon)
-            padCount := maxKeyWidth - text.DisplayWidth(key)
-            if padCount < 0 {
-                padCount = 0
-            }
-            pad := strings.Repeat(" ", padCount)
-            // move colon immediately after key, then pad before value
-            _, err := fmt.Fprintf(lp.out, "%s:%s%s\n", key, pad, val)
+			// pad base key string to maxKeyWidth accounting for non-ANSI width (after colon)
+			padCount := maxKeyWidth - text.DisplayWidth(key)
+			if padCount < 0 {
+				padCount = 0
+			}
+			pad := strings.Repeat(" ", padCount)
+			// move colon immediately after key, then pad before value
+			_, err := fmt.Fprintf(lp.out, "%s:%s%s\n", key, pad, val)
 			if err != nil {
 				return err
 			}
