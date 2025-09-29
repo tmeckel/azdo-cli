@@ -161,6 +161,7 @@ func TestRunCreate_Fork(t *testing.T) {
 		})
 	}
 }
+
 func TestRunCreate_APIInvocationAndOutput(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
@@ -208,8 +209,7 @@ func TestRunCreate_APIInvocationAndOutput(t *testing.T) {
 	).Times(1)
 
 	opts := &createOptions{
-		repo:   "proj1/repo1",
-		format: "json",
+		repo: "proj1/repo1",
 	}
 
 	err := runCreate(mCmdCtx, opts)
@@ -234,8 +234,7 @@ func TestRunCreate_NoDefaultOrganizationConfigured(t *testing.T) {
 	mConfig.EXPECT().Authentication().Return(mAuth).AnyTimes()
 
 	opts := &createOptions{
-		repo:   "proj1/repo1",
-		format: "table",
+		repo: "proj1/repo1",
 	}
 	t.Run("EmptyDefaultOrganization", func(t *testing.T) {
 		mAuth := mocks.NewMockAuthConfig(ctrl)
