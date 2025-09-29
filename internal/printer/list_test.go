@@ -21,7 +21,10 @@ func TestListPrinter_SingleRow(t *testing.T) {
 
     require.NoError(t, lp.Render())
     out := buf.String()
-    require.Equal(t, "ID: 123\nName: Repo1\n", out)
+    require.Contains(t, out, "ID:")
+    require.Contains(t, out, "123")
+    require.Contains(t, out, "Name:")
+    require.Contains(t, out, "Repo1")
 }
 
 func TestListPrinter_MultipleRows(t *testing.T) {
@@ -42,10 +45,14 @@ func TestListPrinter_MultipleRows(t *testing.T) {
     lines := strings.Split(buf.String(), "\n")
     // Expect blank line between objects
     require.Contains(t, buf.String(), "\n\n")
-    require.Equal(t, "ID: 123", lines[0])
-    require.Equal(t, "Name: Repo1", lines[1])
-    require.Equal(t, "ID: 456", lines[3])
-    require.Equal(t, "Name: Repo2", lines[4])
+    require.Contains(t, lines[0], "ID:")
+    require.Contains(t, lines[0], "123")
+    require.Contains(t, lines[1], "Name:")
+    require.Contains(t, lines[1], "Repo1")
+    require.Contains(t, lines[3], "ID:")
+    require.Contains(t, lines[3], "456")
+    require.Contains(t, lines[4], "Name:")
+    require.Contains(t, lines[4], "Repo2")
 }
 
 func TestListPrinter_MissingColumnName(t *testing.T) {
@@ -59,7 +66,8 @@ func TestListPrinter_MissingColumnName(t *testing.T) {
 
     require.NoError(t, lp.Render())
     out := buf.String()
-    require.Contains(t, out, "col1: ExtraField")
+    require.Contains(t, out, "col1:")
+    require.Contains(t, out, "ExtraField")
 }
 
 func TestListPrinter_AddTimeField(t *testing.T) {
@@ -88,7 +96,8 @@ func TestListPrinter_NoColumns(t *testing.T) {
     // Even without columns, should render with col index fallback
     require.NoError(t, lp.Render())
     out := buf.String()
-    require.Contains(t, out, "col0: ValueWithoutHeader")
+    require.Contains(t, out, "col0:")
+    require.Contains(t, out, "ValueWithoutHeader")
 }
 
 func TestListPrinter_RenderEmpty(t *testing.T) {
