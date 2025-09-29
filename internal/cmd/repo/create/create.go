@@ -15,7 +15,6 @@ type createOptions struct {
 	repo         string
 	parentRepo   string
 	sourceBranch string
-	format       string
 	exporter     util.Exporter
 }
 
@@ -45,9 +44,8 @@ func NewCmd(ctx util.CmdContext) *cobra.Command {
 
 	cmd.Flags().StringVar(&opts.parentRepo, "parent", "", "[PROJECT/]REPO to fork from (same organization)")
 	cmd.Flags().StringVar(&opts.sourceBranch, "source-branch", "", "Only fork the specified branch (defaults to all branches)")
-	util.StringEnumFlag(cmd, &opts.format, "format", "", "table", []string{"json"}, "Output format")
 
-	util.AddJSONFlags(cmd, &opts.exporter, []string{"Id", "Name", "WebUrl"})
+	util.AddJSONFlags(cmd, &opts.exporter, []string{"ID", "Name", "WebUrl", "SSHUrl"})
 
 	return cmd
 }
@@ -173,15 +171,36 @@ func runCreate(ctx util.CmdContext, opts *createOptions) error {
 		return err
 	}
 
-	tp, err := ctx.Printer(opts.format)
+	tp, err := ctx.Printer("list")
 	if err != nil {
 		return err
 	}
 
 	ios.StopProgressIndicator()
 
+	if opts.exporter != nil {
+		iostreams, err := ctx.IOStreams()
+		if err != nil {
+			return err
+		}
+		jd := struct {
+			ID      string
+			Name    string
+			Project string
+			SshUrl  *string `json:"SshUrl,omitempty"`
+			WebUrl  *string `json:"WebUrl,omitempty"`
+		}{
+			ID:      res.Id.String(),
+			Name:    *res.Name,
+			Project: project,
+			SshUrl:  res.SshUrl,
+			WebUrl:  res.WebUrl,
+		}
+		return opts.exporter.Write(iostreams, jd)
+	}
+
 	// Always use printer for output; it will handle table or JSON based on opts.format
-	tp.AddColumns("ID", "Name", "Project", "SSHUrl", "HTTPUrl")
+	tp.AddColumns("ID", "Name", "Project", "SshUrl", "WebUrl")
 	tp.AddField(res.Id.String())
 	tp.AddField(*res.Name)
 	tp.AddField(project)
