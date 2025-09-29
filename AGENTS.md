@@ -140,3 +140,28 @@ For a complete guidance on how to implement tests refer to [TESTING.md](./TESTIN
 - Populate table output with `tp.AddColumns(...)`, `tp.AddField(...)`, and `tp.EndRow()`; json formatting will use the same `tp.Render()` call.
 - Treat `ios.Out` from `IOStreams` as an `io.Writer`, not a callable function: write directly with `fmt.Fprintln(ios.Out, ...)` or delegate to the printer’s `Render` method.
 - Always call `tp.Render()` at the end of output preparation to emit results, whether in JSON or table format.
+
+## Code Generation Best Practices
+
+To ensure high-quality, production-ready code and prevent common errors, adhere to the following guidelines when generating or modifying Go code:
+
+### Explicit Import Management
+
+- **Mandate:** When generating or modifying Go code, **always explicitly list and verify all required import statements**. Before writing the file, perform a dry run or a mental check to ensure all types, functions, and packages used in the new/modified code are correctly imported.
+
+- **Detail:** Ensure imports for standard library packages (e.g., `fmt`, `strings`, `context`), third-party libraries (e.g., `github.com/spf13/cobra`, `github.com/MakeNowJust/heredoc`), and internal project modules (e.g., `github.com/tmeckel/azdo-cli/internal/cmd/util`, `github.com/tmeckel/azdo-cli/internal/azdo`) are present. If unsure, err on the side of including common imports for the context.
+
+### Idiomatic Go Code & Error Handling
+
+- **Context & IOStreams:** When interacting with `util.CmdContext`, always retrieve `IOStreams` and `Prompter` into local variables to handle potential errors immediately.
+    ```go
+    // GOOD:
+    // iostreams, err := ctx.IOStreams()
+    // if err != nil { return err }
+    // p, err := ctx.Prompter()
+    // if err != nil { return err }
+
+    // BAD:
+    // if !ctx.IOStreams().CanPrompt() { ... }
+    ```
+-   **User Cancellation:** For operations that can be cancelled by the user (e.g., confirmation prompts), prefer returning `util.ErrCancel` over `util.SilentExit` to clearly distinguish user-initiated cancellations from other silent exits.
