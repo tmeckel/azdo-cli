@@ -284,6 +284,14 @@ Create a new repository in a project
 -t, --template string        Format JSON output using a Go template; see "azdo help formatting"
 ````
 
+### `azdo repo delete [organization/]project/repository [flags]`
+
+Delete a Git repository in a team project
+
+```
+-y, --yes   Do not prompt for confirmation
+````
+
 ### `azdo repo list [organization/]<project> [flags]`
 
 List repositories of a project inside an organization
