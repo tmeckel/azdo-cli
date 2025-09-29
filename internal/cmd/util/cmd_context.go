@@ -152,6 +152,8 @@ func (c *cmdContext) Printer(t string) (p printer.Printer, err error) {
 		p, err = newTablePrinter(c.ioStreams)
 	case "json":
 		p, err = printer.NewJSONPrinter(c.ioStreams.Out)
+	case "list":
+		p, err = printer.NewListPrinter(c.ioStreams.Out)
 	default:
 		return nil, printer.NewUnsupportedPrinterError(t)
 	}
