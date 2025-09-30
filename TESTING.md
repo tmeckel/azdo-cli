@@ -14,6 +14,7 @@ This repo uses standard Go testing with testify and gomock to ensure commands be
   - `testify` (`assert`, `require`) for clear, expressive assertions
   - `gomock` for mocks and expectations
 - Mocks live under `internal/mocks/` and are generated via `mockgen`.
+- The Mock library is `go.uber.org/mock/gomock` and must be imported in all test files which uses mocks
 
 ## Where tests live
 - Tests are colocated with code (`*_test.go`).
