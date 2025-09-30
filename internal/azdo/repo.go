@@ -66,7 +66,11 @@ type projectName struct {
 
 var _ ProjectName = &projectName{}
 
-func ParseProjectName(n string) (ProjectName, error) {
+func ProjectFromName(n string) (ProjectName, error) {
+	return parseProjectName(n)
+}
+
+func parseProjectName(n string) (ProjectName, error) {
 	m := projNameRE.FindStringSubmatch(n)
 	if m == nil {
 		return nil, fmt.Errorf("not a valid repository name, expected the \"[ORGANIZATION/]PROJECT\" format, got %q", n)
@@ -121,6 +125,56 @@ func (n *projectName) FullName() string {
 	return n.proj
 }
 
+// ProjectFromURL parses an Azure DevOps project URL and returns a ProjectName.
+// Supports both https://dev.azure.com/{organization}/{project} and
+// https://{organization}.visualstudio.com/{project} formats.
+func ProjectFromURL(u *url.URL) (ProjectName, error) {
+	if isOk, err := IsAzDORemoteURL(u); err != nil || !isOk {
+		if err != nil {
+			return nil, err
+		}
+		if !isOk {
+			return nil, fmt.Errorf("url %s is not a valid AzDO remote URL", u.String())
+		}
+	}
+
+	parts := strings.Split(strings.Trim(u.Path, "/"), "/")
+	orgInHost := strings.HasSuffix(strings.ToLower(u.Hostname()), ".visualstudio.com")
+
+	for _, part := range parts {
+		if len(strings.TrimSpace(part)) == 0 {
+			return nil, fmt.Errorf("invalid path %q", u.Path)
+		}
+	}
+
+	var organization string
+	var project string
+	if orgInHost {
+		if len(parts) < 1 {
+			return nil, fmt.Errorf("invalid path %q", u.Path)
+		}
+		organization = strings.ToLower(strings.SplitN(u.Hostname(), ".", 2)[0])
+		project = parts[0]
+	} else {
+		if len(parts) < 2 {
+			return nil, fmt.Errorf("invalid path %q", u.Path)
+		}
+		organization = strings.ToLower(parts[0])
+		project = parts[1]
+	}
+
+	hostname, err := getHostnameFromOrganization(organization)
+	if err != nil {
+		return nil, err
+	}
+
+	if !strings.EqualFold(hostname, u.Hostname()) {
+		return nil, fmt.Errorf("hostname %q of URL does not match configured hostname %q of organization %q", u.Hostname(), hostname, organization)
+	}
+
+	return ProjectFromName(organization + "/" + project)
+}
+
 type RepositoryName interface {
 	ProjectName
 	Name() string
@@ -133,7 +187,7 @@ type repositoryName struct {
 
 var _ RepositoryName = &repositoryName{}
 
-func ParseRepositoryName(n string) (RepositoryName, error) {
+func parseRepositoryName(n string) (RepositoryName, error) {
 	m := repoNameRE.FindStringSubmatch(n)
 	if m == nil {
 		return nil, fmt.Errorf("not a valid repository name, expected the \"[ORGANIZATION/]PROJECT/REPO\" format, got %q", n)
@@ -433,7 +487,7 @@ func RepositoryFromURL(u *url.URL) (Repository, error) {
 	}
 
 	if !strings.EqualFold(hostname, strings.TrimPrefix(u.Hostname(), "ssh.")) {
-		return nil, fmt.Errorf("hostname %q of URL does not match hostname %q of organization %q", u.Hostname(), hostname, parts[0])
+		return nil, fmt.Errorf("hostname %q of URL does not match configured hostname %q of organization %q", u.Hostname(), hostname, parts[0])
 	}
 
 	return NewRepositoryWithOrganization(organization, project, strings.TrimSuffix(parts[projectNameIdx], ".git"))
@@ -449,7 +503,7 @@ func parseWithOrganization(s string) (Repository, error) {
 		return RepositoryFromURL(u)
 	}
 
-	n, err := ParseRepositoryName(s)
+	n, err := parseRepositoryName(s)
 	if err != nil {
 		return nil, err
 	}
