@@ -70,4 +70,9 @@ mockgen -source internal/printer/printer.go \
   -mock_names Client=MockPrinter \
   -package=mocks -destination internal/mocks/printer.go
 
+echo "Generating Prompter mock..."
+mockgen -source internal/prompter/prompter.go \
+  -package=mocks -destination internal/mocks/prompter_mock.go \
+  -mock_names Prompter=MockPrompter
+
 echo "Done."
