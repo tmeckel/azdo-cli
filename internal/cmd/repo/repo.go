@@ -27,9 +27,12 @@ func NewCmdRepo(ctx util.CmdContext) *cobra.Command {
 		Annotations: map[string]string{
 			"help:arguments": heredoc.Doc(`
 				A repository can be supplied as an argument in any of the following formats:
-				- "{organization}/{repo}"
-				- by URL, e.g. "https://dev.azure.com/{organization}/{repo}"
+				- "[{organization}/]{project}/{repo}"
+				- by URL, e.g. "https://dev.azure.com/{organization}/{project}/{repo}"
 			`),
+		},
+		Aliases: []string{
+			"r",
 		},
 		GroupID: "core",
 	}
