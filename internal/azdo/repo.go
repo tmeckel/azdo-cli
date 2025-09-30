@@ -101,6 +101,18 @@ func parseProjectName(n string) (ProjectName, error) {
 		return nil, fmt.Errorf("project name %q exceeds maximum length of 64 characters", proj)
 	}
 
+	if org == "" {
+		cfg, err := config.NewConfig()
+		if err != nil {
+			return nil, fmt.Errorf("failed to create config instance: %w", err)
+		}
+		o, err := cfg.Authentication().GetDefaultOrganization()
+		if err != nil {
+			return nil, fmt.Errorf("failed to get default organization: %w", err)
+		}
+		org = o
+	}
+
 	return &projectName{
 		orgName: orgName{
 			org: org,
