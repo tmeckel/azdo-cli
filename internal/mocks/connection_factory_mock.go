@@ -22,6 +22,7 @@ import (
 	git "github.com/microsoft/azure-devops-go-api/azuredevops/v7/git"
 	graph "github.com/microsoft/azure-devops-go-api/azuredevops/v7/graph"
 	identity "github.com/microsoft/azure-devops-go-api/azuredevops/v7/identity"
+	operations "github.com/microsoft/azure-devops-go-api/azuredevops/v7/operations"
 	security "github.com/microsoft/azure-devops-go-api/azuredevops/v7/security"
 	azdo "github.com/tmeckel/azdo-cli/internal/azdo"
 	extensions "github.com/tmeckel/azdo-cli/internal/azdo/extensions"
@@ -385,6 +386,21 @@ func (m *MockClientFactory) Identity(ctx context.Context, organization string) (
 func (mr *MockClientFactoryMockRecorder) Identity(ctx, organization any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Identity", reflect.TypeOf((*MockClientFactory)(nil).Identity), ctx, organization)
+}
+
+// Operations mocks base method.
+func (m *MockClientFactory) Operations(ctx context.Context, organization string) (operations.Client, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Operations", ctx, organization)
+	ret0, _ := ret[0].(operations.Client)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// Operations indicates an expected call of Operations.
+func (mr *MockClientFactoryMockRecorder) Operations(ctx, organization any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Operations", reflect.TypeOf((*MockClientFactory)(nil).Operations), ctx, organization)
 }
 
 // Security mocks base method.
