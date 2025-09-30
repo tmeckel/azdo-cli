@@ -1,0 +1,45 @@
+## azdo project delete
+Delete a project
+```
+azdo project delete [ORGANIZATION/]PROJECT [flags]
+```
+### Options
+
+
+* `-q`, `--jq` `expression`
+
+	Filter JSON output using a jq expression
+
+* `--json` `fields`
+
+	Output JSON with the specified fields
+
+* `--max-wait` `int`
+
+	Maximum wait time in seconds
+
+* `--no-wait`
+
+	Do not wait for the project deletion to complete
+
+* `-t`, `--template` `string`
+
+	Format JSON output using a Go template; see &#34;azdo help formatting&#34;
+
+* `-y`, `--yes`
+
+	Skip confirmation prompt
+
+
+### Examples
+
+```bash
+# delete a project in the default organization
+azdo project delete myproject
+
+# delete a project in a specific organization
+azdo project delete myorg/myproject```
+
+### See also
+
+* [azdo project](./azdo_project.md)

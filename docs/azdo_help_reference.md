@@ -264,6 +264,19 @@ Create a new Azure DevOps Project
     --visibility string       Project visibility (private or public) (default "private")
 ````
 
+### `azdo project delete [ORGANIZATION/]PROJECT [flags]`
+
+Delete a project
+
+```
+-q, --jq expression     Filter JSON output using a jq expression
+    --json fields       Output JSON with the specified fields
+    --max-wait int      Maximum wait time in seconds (default 3600)
+    --no-wait           Do not wait for the project deletion to complete
+-t, --template string   Format JSON output using a Go template; see "azdo help formatting"
+-y, --yes               Skip confirmation prompt
+````
+
 ### `azdo project list [organization] [flags]`
 
 List the projects for an organization
