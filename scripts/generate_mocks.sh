@@ -29,6 +29,12 @@ mockgen \
   -mock_names Client=MockCoreClient \
   github.com/microsoft/azure-devops-go-api/azuredevops/v7/core Client
 
+echo "Generating Azure DevOps Operations client mock..."
+mockgen \
+  -package=mocks -destination internal/mocks/operations_client_mock.go \
+  -mock_names Client=MockOperationsClient \
+  github.com/microsoft/azure-devops-go-api/azuredevops/v7/operations Client
+
 echo "Generating Azure DevOps Identity client mock..."
 mockgen \
   -package=mocks -destination internal/mocks/identity_client_mock.go \
