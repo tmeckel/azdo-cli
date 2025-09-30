@@ -2,6 +2,7 @@
 Work with Azure DevOps Projects.
 ### Available commands
 * [azdo project create](./azdo_project_create.md)
+* [azdo project delete](./azdo_project_delete.md)
 * [azdo project list](./azdo_project_list.md)
 
 ### Examples
