@@ -1,14 +1,20 @@
 ## azdo project
 Work with Azure DevOps Projects.
 ### Available commands
+* [azdo project create](./azdo_project_create.md)
 * [azdo project list](./azdo_project_list.md)
 
 ### Examples
 
 ```bash
-$ azdo project create -o <organization> <project>
+# Creatign a new project in the default organization
+$ azdo project create <project>
+
+# Listing existing project in the default organization
 $ azdo project list
-$ azdo project delete -o <organization> <project>
+
+# Delete a project in an organization
+$ azdo project delete myorg/myproject
 ```
 
 ### See also
