@@ -38,6 +38,9 @@ func NewCmdRepoClone(ctx util.CmdContext) *cobra.Command {
 			If the repository name does not specify an organization, the configured default orgnaization is used
 			or the value from the AZDO_ORGANIZATION environment variable.
 		`, "`"),
+		Aliases: []string{
+			"c",
+		},
 		RunE: func(cmd *cobra.Command, args []string) error {
 			opts.repository = args[0]
 			opts.gitArgs = args[1:]

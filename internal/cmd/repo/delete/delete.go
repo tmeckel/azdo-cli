@@ -30,6 +30,9 @@ func NewCmd(ctx util.CmdContext) *cobra.Command {
 			azdo repo delete myorg/myproject/myrepo
 			`),
 		Args: util.ExactArgs(1, "cannot delete: repository argument required"),
+		Aliases: []string{
+			"d",
+		},
 		RunE: func(c *cobra.Command, args []string) error {
 			opts.repository = args[0]
 			return runDelete(ctx, opts)

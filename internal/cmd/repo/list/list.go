@@ -34,8 +34,11 @@ func NewCmdRepoList(ctx util.CmdContext) *cobra.Command {
 			# list the repositories of a project using specified organization
 			azdo repo list myorg/myproject
 		`),
-		Args:    util.ExactArgs(1, "cannot list: project name required"),
-		Aliases: []string{"ls"},
+		Args: util.ExactArgs(1, "cannot list: project name required"),
+		Aliases: []string{
+			"ls",
+			"l",
+		},
 		RunE: func(c *cobra.Command, args []string) error {
 			if opts.limit < 1 {
 				return util.FlagErrorf("invalid limit: %v", opts.limit)

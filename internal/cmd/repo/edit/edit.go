@@ -60,6 +60,10 @@ func NewCmd(ctx util.CmdContext) *cobra.Command {
         azdo repo edit myproject/myrepo --default-branch main
     `),
 		Args: util.ExactArgs(1, "cannot edit: repository argument required"),
+		Aliases: []string{
+			"e",
+			"update",
+		},
 		PreRunE: func(cmd *cobra.Command, args []string) error {
 			flagSet := false
 			flagNames := []string{
