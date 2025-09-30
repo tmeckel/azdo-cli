@@ -8,6 +8,7 @@ import (
 	"github.com/microsoft/azure-devops-go-api/azuredevops/v7/git"
 	"github.com/microsoft/azure-devops-go-api/azuredevops/v7/graph"
 	"github.com/microsoft/azure-devops-go-api/azuredevops/v7/identity"
+	"github.com/microsoft/azure-devops-go-api/azuredevops/v7/operations"
 	"github.com/microsoft/azure-devops-go-api/azuredevops/v7/security"
 	"github.com/tmeckel/azdo-cli/internal/azdo/extensions"
 	"github.com/tmeckel/azdo-cli/internal/config"
@@ -80,6 +81,14 @@ func (c *clientFactory) Core(ctx context.Context, org string) (core.Client, erro
 		return nil, err
 	}
 	return core.NewClient(ctx, conn.(*connectionAdapter).conn)
+}
+
+func (c *clientFactory) Operations(ctx context.Context, org string) (operations.Client, error) {
+	conn, err := c.factory.Connection(org)
+	if err != nil {
+		return nil, err
+	}
+	return operations.NewClient(ctx, conn.(*connectionAdapter).conn), nil
 }
 
 func (c *clientFactory) Security(ctx context.Context, org string) (security.Client, error) {
