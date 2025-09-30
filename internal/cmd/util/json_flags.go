@@ -347,6 +347,24 @@ func structExportData(v reflect.Value, fields []string, strict bool) map[string]
 			}
 			sf := sfi.field
 			if sf.IsValid() && sf.CanInterface() {
+				field := v.Type().Field(sfi.idx)
+				jsonTag := field.Tag.Get("json")
+				parts := strings.Split(jsonTag, ",")
+
+				hasOmitempty := false
+				if len(parts) > 1 {
+					for _, flag := range parts[1:] {
+						if flag == "omitempty" {
+							hasOmitempty = true
+							break
+						}
+					}
+				}
+
+				if hasOmitempty && sf.IsZero() {
+					continue
+				}
+
 				fName := f
 				if strict {
 					fName = v.Type().Field(sfi.idx).Name
