@@ -12,6 +12,7 @@ import (
 	azdogit "github.com/microsoft/azure-devops-go-api/azuredevops/v7/git"
 	"github.com/microsoft/azure-devops-go-api/azuredevops/v7/graph"
 	"github.com/microsoft/azure-devops-go-api/azuredevops/v7/identity"
+	"github.com/microsoft/azure-devops-go-api/azuredevops/v7/operations"
 	"github.com/microsoft/azure-devops-go-api/azuredevops/v7/security"
 	"github.com/tmeckel/azdo-cli/internal/azdo/extensions"
 )
@@ -46,6 +47,7 @@ type ClientFactory interface {
 	Identity(ctx context.Context, organization string) (identity.Client, error)
 	Graph(ctx context.Context, organization string) (graph.Client, error)
 	Core(ctx context.Context, organization string) (core.Client, error)
+	Operations(ctx context.Context, organization string) (operations.Client, error)
 	Security(ctx context.Context, organization string) (security.Client, error)
 	Extensions(ctx context.Context, organization string) (extensions.Client, error)
 }
