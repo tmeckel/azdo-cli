@@ -32,8 +32,11 @@ func NewCmdProjectList(ctx util.CmdContext) *cobra.Command {
 			# list the projects for an Azure DevOps organization including closed projects
 			azdo project list --organization myorg --closed
 		`),
-		Args:    cobra.MaximumNArgs(1),
-		Aliases: []string{"ls"},
+		Args: cobra.MaximumNArgs(1),
+		Aliases: []string{
+			"ls",
+			"l",
+		},
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if len(args) > 0 {
 				opts.organizationName = args[0]
