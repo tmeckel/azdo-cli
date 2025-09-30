@@ -248,6 +248,22 @@ Vote on a pull request
 
 Work with Azure DevOps Projects.
 
+### `azdo project create [ORGANIZATION/]PROJECT [flags]`
+
+Create a new Azure DevOps Project
+
+```
+-d, --description string      Description for the new project
+-q, --jq expression           Filter JSON output using a jq expression
+    --json fields             Output JSON with the specified fields
+    --max-wait int            Maximum wait time in seconds (default 3600)
+    --no-wait                 Do not wait for the project to be created
+-p, --process string          Process to use (e.g., Scrum, Agile, CMMI) (default "Agile")
+-s, --source-control string   Source control type (git or tfvc) (default "git")
+-t, --template string         Format JSON output using a Go template; see "azdo help formatting"
+    --visibility string       Project visibility (private or public) (default "private")
+````
+
 ### `azdo project list [organization] [flags]`
 
 List the projects for an organization
