@@ -3,6 +3,7 @@ package project
 import (
 	"github.com/MakeNowJust/heredoc"
 	"github.com/spf13/cobra"
+	"github.com/tmeckel/azdo-cli/internal/cmd/project/create"
 	"github.com/tmeckel/azdo-cli/internal/cmd/project/list"
 	"github.com/tmeckel/azdo-cli/internal/cmd/util"
 )
@@ -12,13 +13,22 @@ func NewCmdProject(ctx util.CmdContext) *cobra.Command {
 		Use:   "project <command> [flags]",
 		Short: "Work with Azure DevOps Projects.",
 		Example: heredoc.Doc(`
-			$ azdo project create -o <organization> <project>
+			# Creatign a new project in the default organization
+			$ azdo project create <project>
+
+			# Listing existing project in the default organization
 			$ azdo project list
-			$ azdo project delete -o <organization> <project>
+
+			# Delete a project in an organization
+			$ azdo project delete myorg/myproject
 		`),
+		Aliases: []string{
+			"p",
+		},
 		GroupID: "core",
 	}
 
 	cmd.AddCommand(list.NewCmdProjectList(ctx))
+	cmd.AddCommand(create.NewCmd(ctx))
 	return cmd
 }
