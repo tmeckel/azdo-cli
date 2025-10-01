@@ -287,6 +287,16 @@ List the projects for an organization
     --state string    Project state filter: {deleting|new|wellFormed|createPending|all|unchanged|deleted}
 ````
 
+### `azdo project show [ORGANIZATION/]PROJECT [flags]`
+
+Show details of an Azure DevOps Project
+
+```
+-q, --jq expression     Filter JSON output using a jq expression
+    --json fields       Output JSON with the specified fields
+-t, --template string   Format JSON output using a Go template; see "azdo help formatting"
+````
+
 ## `azdo repo <command>`
 
 Manage repositories
