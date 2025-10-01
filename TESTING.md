@@ -83,7 +83,8 @@ This process ensures that all mocks are kept up-to-date and that the generation 
 - Use table‑driven tests where it adds clarity (e.g., sets of negative cases).
 
 ### Tips for reliable tests
-- Use `iostreams.Test()` to capture stdout/stderr.
+- Use `io, _, out, errOut := iostreams.Test()` to capture I/O streams. Assert against the string content of the `out` and `errOut` buffers (e.g., `assert.Equal(t, "expected", out.String())`).
+- **Ensure Test Data Type Accuracy:** When creating test data structs (e.g., a fake `core.TeamProject`), ensure all field types exactly match the real API struct definitions from the `vendor/` directory. Mismatches (e.g., `core.Time` vs. `azuredevops.Time`) will cause compilation errors.
 - Prefer `require` for preconditions and `assert` for value checks.
 - Keep the number of expectations minimal; over‑specifying call sequences increases brittleness.
 - Assert error text that the UX guarantees (don’t overfit on punctuation or variable content).
@@ -150,7 +151,7 @@ From recent issues encountered in `internal/cmd/repo/create/create_test.go`, the
 - Verified argument types against actual definitions before setting up mocks.
 
 **Conclusions to Prevent Future Mistakes:**
-- **Review code under test before mocking** to know exactly which calls need expectations.
+- **Review code under test before mocking** to know exactly which calls need expectations. Do not assume a function will fail early; if it proceeds, subsequent calls will need to be expected by your mocks, otherwise `gomock` will report an 'unexpected call' error.
 - **Always use generated mocks** for interfaces unless replacements fully match signatures.
 - **Match method signatures exactly**, minding pointer/value distinctions.
 - **Return appropriate values** to avoid runtime exceptions.
