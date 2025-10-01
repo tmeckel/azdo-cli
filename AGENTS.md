@@ -57,25 +57,33 @@ For a complete guidance on how to implement tests refer to [TESTING.md](./TESTIN
 - **Options Handling:** Use an unexported `opts` struct to bind CLI flags. Keep parsing and validation in `RunE` minimal, delegating logic to a separate `runX` function.
 - **CmdContext Usage:** Always use the injected `util.CmdContext` to retrieve `IOStreams`, configuration (`ctx.Config()`), connection (`ctx.ConnectionFactory()`), and typed API clients via `ctx.ClientFactory()`.
 - **Vendored API:** Access Azure DevOps endpoints via the vendored `azuredevops/v7` client packages instead of raw HTTP calls. Build the appropriate `Args` structs and call the client method (e.g., `git.Client.CreateRepository`).
+    - **CRITICAL: Verify Data Types:** Before using API response data, always inspect the struct definitions in the `vendor/github.com/microsoft/azure-devops-go-api/azuredevops/v7/` directory. Mismatched types (e.g., `int64` vs `uint64`) between the API struct and your command's structs will cause compilation errors.
 - **Output:** Use `ctx.Printer(format)` and repository’s standard `printer` helpers to format output in table or JSON, following patterns from existing commands.
 - **Testing:** Create mocks for the relevant client interface methods under `internal/mocks` and write hermetic, table-driven tests alongside the command.
-- **Output Formats (Table & JSON):**
-  - **JSON Support:**
-    - Use `util.AddJSONFlags(cmd, &exporter, []string{<fields>})` in `NewCmd` to register `--json`, `--jq`, and `--template` options.
-    - Maintain an `util.Exporter` field in the command’s `opts` struct to capture JSON export configuration.
-    - Pass the relevant response object to `exporter.Export()` when non-nil.
-    - Declare valid JSON fields based on the struct’s exported properties. Help annotations are added automatically by `AddJSONFlags`.
-  - **Table/Plain Output:**
-    - Default to human-friendly plain console output for single-object results.
-    - Use `ctx.Printer(format)` with `tp.AddColumns`/`tp.AddField` for tabular format when `--format table` is set or for multiple rows.
-    - Keep column names consistent (e.g., "ID", "Name", "WebUrl").
-  - **Format Flag:**
-    - Always include a `--format` flag via `util.StringEnumFlag` with supported formats (at least `json` and `table`).
-    - Output decision order:
-      1. If `exporter != nil` → JSON output.
-      2. Else if table explicitly requested or multiple rows → table output.
-      3. Else → plain text summary.
-  - **Documentation:**
+
+### Implementing Commands with JSON and Table/Plain Output
+
+- **JSON and Table/Plain output are handled via separate code paths.**
+- Use `util.AddJSONFlags(cmd, &opts.exporter, ...)` in `NewCmd` to register JSON-related flags (`--json`, `--jq`, `--template`). This populates the `opts.exporter` field when a user specifies one of those flags.
+
+- **JSON Output Logic:**
+  - In the command's `run...` function, check if `opts.exporter != nil`.
+  - If true, this indicates the user wants JSON output.
+  - Create and populate a struct (either named or anonymous) with the data to be exported. This struct should have `json:"..."` tags.
+  - Call `opts.exporter.Write(ios, result)` to serialize the struct and print it.
+
+- **Table/Plain Output Logic:**
+  - This is the default path, executed when `opts.exporter == nil`.
+  - **For creating horizontal tables:**
+    1. Get a printer: `tp, err := ctx.Printer("list")`.
+    2. Define all column headers: `tp.AddColumns("Header1", "Header2", ...)`.
+    3. Finalize the header row: `tp.EndRow()`.
+    4. For each data row, add cell values in order: `tp.AddField(value1)`, `tp.AddField(value2)`, etc.
+    5. Finalize the data row: `tp.EndRow()`.
+    6. Render the table: `tp.Render()`.
+    - **CRITICAL:** `AddField` populates a cell in a horizontal row corresponding to a column defined by `AddColumns`. It is **not** for creating vertical key-value lists (e.g., `Label: Value`). Do not pass a label to `AddField`.
+  - **For simple text output** (e.g., a success message), `fmt.Fprintf(ios.Out, "...")` is acceptable.
+- **Documentation:**
     - Add CLI help examples for using `--json` and `--format table`.
     - Run `make docs` to regenerate markdown so output options appear in generated documentation.
 
@@ -126,20 +134,20 @@ For a complete guidance on how to implement tests refer to [TESTING.md](./TESTIN
 - **Code Scope:** When you create, change or fix tests you only work on tests. You don't change any other code. When required prompt the user to deviate from that instruction.
 - **Context7:** Always use context7 when I need code generation, setup or configuration steps, or library/API documentation. This means you should automatically use the Context7 MCP tools to resolve library id and get library docs without me having to explicitly ask.
 
-### Implementing Commands with JSON and Table Output
+### Implementing Commands with JSON and Table/Plain Output
 
-- Do **NOT** call a nonexistent `Exporter.Export` method; in this codebase `util.Exporter` does not implement such a function. JSON and table output are unified through the `ctx.Printer` abstraction.
-- For consistent output handling, define a `--format` flag using `util.StringEnumFlag` with `table` default and `json` as an option.
-- Initialize a printer in `RunE` via:
-  ```go
-  tp, err := ctx.Printer(opts.format)
-  if err != nil {
-      return err
-  }
-  ```
-- Populate table output with `tp.AddColumns(...)`, `tp.AddField(...)`, and `tp.EndRow()`; json formatting will use the same `tp.Render()` call.
-- Treat `ios.Out` from `IOStreams` as an `io.Writer`, not a callable function: write directly with `fmt.Fprintln(ios.Out, ...)` or delegate to the printer’s `Render` method.
-- Always call `tp.Render()` at the end of output preparation to emit results, whether in JSON or table format.
+- **JSON and Table/Plain output are handled via separate code paths.**
+- Use `util.AddJSONFlags(cmd, &opts.exporter, ...)` in `NewCmd` to register JSON-related flags (`--json`, `--jq`, `--template`). This populates the `opts.exporter` field when a user specifies one of those flags.
+
+- **JSON Output Logic:**
+  - In the command's `run...` function, check if `opts.exporter != nil`.
+  - If true, this indicates the user wants JSON output.
+  - Create and populate a struct (either named or anonymous) with the data to be exported. This struct should have `json:"..."` tags. If there are optional fields in the struct use a pointer type and add `omitempty` to the JSON tag.
+  - Call `opts.exporter.Write(ios, result)` to serialize the struct and print it.
+
+- **Table/Plain Output Logic:**
+  - This is the default path, executed when `opts.exporter == nil`.
+  - For tabular data, get a printer with `tp, err := ctx.Printer("list")`. Use `tp.AddColumns()`, `tp.AddField()`, and `tp.EndRow()` to build the table, then call `tp.Render()`.
 
 ## Code Generation Best Practices
 
@@ -163,5 +171,14 @@ To ensure high-quality, production-ready code and prevent common errors, adhere 
 
     // BAD:
     // if !ctx.IOStreams().CanPrompt() { ... }
+    ```
+- **Safely Dereference Pointers:** The Azure DevOps API often returns pointers for fields that can be null. To prevent `nil pointer dereference` panics, use the generic helper `types.GetValue[T](ptr *T, defaultVal T) T`. This is the preferred way to safely access the value of a pointer.
+
+    ```go
+    // BAD: This will panic if project.Description is nil
+    // description := *project.Description
+
+    // GOOD: This safely returns the description or an empty string
+    description := types.GetValue(project.Description, "")
     ```
 -   **User Cancellation:** For operations that can be cancelled by the user (e.g., confirmation prompts), prefer returning `util.ErrCancel` over `util.SilentExit` to clearly distinguish user-initiated cancellations from other silent exits.
