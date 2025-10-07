@@ -13,6 +13,7 @@ import (
 	"github.com/tmeckel/azdo-cli/internal/cmd/pr"
 	"github.com/tmeckel/azdo-cli/internal/cmd/project"
 	"github.com/tmeckel/azdo-cli/internal/cmd/repo"
+	"github.com/tmeckel/azdo-cli/internal/cmd/security"
 	"github.com/tmeckel/azdo-cli/internal/cmd/util"
 	versionCmd "github.com/tmeckel/azdo-cli/internal/cmd/version"
 	"github.com/tmeckel/azdo-cli/internal/validation"
@@ -75,6 +76,11 @@ func NewCmdRoot(ctx util.CmdContext, version, buildDate string) (*cobra.Command,
 		Title: "Core commands",
 	})
 
+	cmd.AddGroup(&cobra.Group{
+		ID:    "security",
+		Title: "Security commands",
+	})
+
 	cmd.AddCommand(versionCmd.NewCmdVersion(ctx, version, buildDate))
 	cmd.AddCommand(auth.NewCmdAuth(ctx))
 	cmd.AddCommand(config.NewCmdConfig(ctx))
@@ -82,6 +88,7 @@ func NewCmdRoot(ctx util.CmdContext, version, buildDate string) (*cobra.Command,
 	cmd.AddCommand(repo.NewCmdRepo(ctx))
 	cmd.AddCommand(pr.NewCmdPR(ctx))
 	cmd.AddCommand(graph.NewCmdGraph(ctx))
+	cmd.AddCommand(security.NewCmd(ctx))
 
 	// Help topics
 	var referenceCmd *cobra.Command
