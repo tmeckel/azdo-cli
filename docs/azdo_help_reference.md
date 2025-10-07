@@ -369,6 +369,26 @@ Configure default repository for this directory
 -v, --view    view the current default repository
 ````
 
+## `azdo security <command> [flags]`
+
+Work with Azure DevOps security.
+
+### `azdo security group`
+
+Manage security groups
+
+#### `azdo security group list [ORGANIZATION[/PROJECT]] [flags]`
+
+List security groups
+
+```
+-f, --filter string           Case-insensitive regex to filter groups by name (e.g. 'dev.*team'). Invalid patterns will result in an error
+-q, --jq expression           Filter JSON output using a jq expression
+    --json fields             Output JSON with the specified fields
+    --subject-types strings   List of subject types to include (comma-separated). Values must not be empty or contain only whitespace.
+-t, --template string         Format JSON output using a Go template; see "azdo help formatting"
+````
+
 
 ### See also
 

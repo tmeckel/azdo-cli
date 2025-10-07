@@ -7,6 +7,9 @@ Work seamlessly with Azure DevOps from the command line.
 * [azdo project](./azdo_project.md)
 * [azdo repo](./azdo_repo.md)
 
+### Security commands
+* [azdo security](./azdo_security.md)
+
 ### Alias commands
 * [azdo co](./azdo_co.md)
 
