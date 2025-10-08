@@ -8,7 +8,6 @@ import (
 	"go.uber.org/zap"
 
 	"github.com/MakeNowJust/heredoc"
-	"github.com/google/uuid"
 	"github.com/microsoft/azure-devops-go-api/azuredevops/v7/core"
 	"github.com/microsoft/azure-devops-go-api/azuredevops/v7/graph"
 	"github.com/spf13/cobra"
@@ -151,14 +150,8 @@ func runCommand(ctx util.CmdContext, o *opts) error {
 		}
 		zap.L().Sugar().Debugf("Fetched project: %s", types.GetValue(project.Name, ""))
 
-		// Get project descriptor
-		projectUUID, err := uuid.Parse(project.Id.String())
-		if err != nil {
-			return fmt.Errorf("invalid project ID: %w", err)
-		}
-
 		descriptor, err := graphClient.GetDescriptor(ctx.Context(), graph.GetDescriptorArgs{
-			StorageKey: &projectUUID,
+			StorageKey: project.Id,
 		})
 		if err != nil {
 			return fmt.Errorf("failed to get project descriptor: %w", err)
@@ -234,7 +227,7 @@ func runCommand(ctx util.CmdContext, o *opts) error {
 		return err
 	}
 
-	tp.AddColumns("ID", "Name", "Description", "Principal Name")
+	tp.AddColumns("ID", "DisplayName", "Description", "Principal Name")
 	tp.EndRow()
 	for _, g := range allGroups {
 		tp.AddField(types.GetValue(g.Descriptor, ""))
