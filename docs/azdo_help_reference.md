@@ -377,6 +377,21 @@ Work with Azure DevOps security.
 
 Manage security groups
 
+#### `azdo security group create [ORGANIZATION|ORGANIZATION/PROJECT] [flags]`
+
+Create a security group
+
+```
+    --description string   Description of the new security group.
+    --email string         Create a security group using an existing AAD group's email address.
+    --groups strings       A comma-separated list of group descriptors to add the new group to.
+-q, --jq expression        Filter JSON output using a jq expression
+    --json fields          Output JSON with the specified fields
+    --name string          Name of the new security group.
+    --origin-id string     Create a security group using an existing AAD group's origin ID.
+-t, --template string      Format JSON output using a Go template; see "azdo help formatting"
+````
+
 #### `azdo security group list [ORGANIZATION[/PROJECT]] [flags]`
 
 List security groups
