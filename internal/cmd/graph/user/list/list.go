@@ -166,12 +166,8 @@ func runCmd(ctx util.CmdContext, opts *usersListOptions) error {
 	}
 
 	// Build subject types
-	var subj *[]string
-	if len(opts.subjectTypes) > 0 {
-		s := opts.subjectTypes
-		subj = &s
-	} else {
-		subj = &[]string{"aad"}
+	if len(opts.subjectTypes) == 0 {
+		opts.subjectTypes = []string{"aad"}
 	}
 
 	// Pagination loop using continuation token header
@@ -203,7 +199,7 @@ func runCmd(ctx util.CmdContext, opts *usersListOptions) error {
 		cont = nil
 		for len(users) < opts.top {
 			res, err := client.ListUsers(ctx.Context(), graph.ListUsersArgs{
-				SubjectTypes:      subj,
+				SubjectTypes:      &opts.subjectTypes,
 				ContinuationToken: cont,
 				ScopeDescriptor:   types.ToPtr(scopeDescriptor),
 			})
