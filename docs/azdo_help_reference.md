@@ -392,6 +392,15 @@ Create a security group
 -t, --template string      Format JSON output using a Go template; see "azdo help formatting"
 ````
 
+#### `azdo security group delete [ORGANIZATION/GROUP | ORGANIZATION/PROJECT/GROUP] [flags]`
+
+Delete an Azure DevOps security group
+
+```
+    --descriptor string   Descriptor of the group to delete (required if multiple groups match)
+-y, --yes                 Do not prompt for confirmation
+````
+
 #### `azdo security group list [ORGANIZATION[/PROJECT]] [flags]`
 
 List security groups
