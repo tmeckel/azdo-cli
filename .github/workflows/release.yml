@@ -12,7 +12,7 @@ permissions:
 
 env:
   LINT_VERSION: ${{ vars.golangci_version || '1.55.2' }}
-  GO_VERSION: ${{ vars.golang_version || '1.23' }}
+  GO_VERSION: ${{ vars.golang_version || '1.24' }}
 
 jobs:
   goreleaser:
