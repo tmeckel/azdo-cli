@@ -56,7 +56,10 @@ func NewCmdLogin(ctx util.CmdContext) *cobra.Command {
 		$ azdo auth login --organizationUrl https://dev.azure.com/myorg
 	`),
 		PreRun: func(cmd *cobra.Command, args []string) {
-			cmd.InheritedFlags().Lookup("org").Hidden = true
+			orgFlag := cmd.InheritedFlags().Lookup("org")
+			if orgFlag != nil {
+				orgFlag.Hidden = true
+			}
 		},
 		RunE: func(cmd *cobra.Command, args []string) error {
 			iostreams, err := ctx.IOStreams()
