@@ -58,7 +58,7 @@ For a complete guidance on how to implement tests refer to [TESTING.md](./TESTIN
 - **CmdContext Usage:** Always use the injected `util.CmdContext` to retrieve `IOStreams`, configuration (`ctx.Config()`), connection (`ctx.ConnectionFactory()`), and typed API clients via `ctx.ClientFactory()`.
 - **Vendored API:** Access Azure DevOps endpoints via the vendored `azuredevops/v7` client packages instead of raw HTTP calls. Build the appropriate `Args` structs and call the client method (e.g., `git.Client.CreateRepository`).
     - **CRITICAL: Verify Data Types:** Before using API response data, always inspect the struct definitions in the `vendor/github.com/microsoft/azure-devops-go-api/azuredevops/v7/` directory. Mismatched types (e.g., `int64` vs `uint64`) between the API struct and your command's structs will cause compilation errors.
-- **Output:** Use `ctx.Printer(format)` and repository’s standard `printer` helpers to format output in table or JSON, following patterns from existing commands.
+- **Output:** Use `ctx.Printer(format)` and repository’s standard `printer` helpers to format output in table or JSON, following patterns from existing commands. For commands that make API calls, always wrap the logic with `ios.StartProgressIndicator()` and `defer ios.StopProgressIndicator()` to provide feedback to the user. When not outputting JSON, provide a clean, human-readable table using the `ctx.Printer("list")` helper for list-like output. Choose the most relevant columns to display. Always call `ios.StopProgressIndicator()` **before** creating any output on the command line.
 - **Testing:** Create mocks for the relevant client interface methods under `internal/mocks` and write hermetic, table-driven tests alongside the command.
 
 ### Implementing Commands with JSON and Table/Plain Output
@@ -101,6 +101,32 @@ For a complete guidance on how to implement tests refer to [TESTING.md](./TESTIN
     - **Any other segment count** → return a flag/argument error.
   - If organization is omitted and no default is configured, return an error stating that no organization was specified or configured.
   - Follow patterns established in existing commands (e.g., `internal/cmd/repo/list/list.go`) for parsing and validation.
+
+- **Pagination for List Operations:**
+  - When using any Azure DevOps SDK `List*` method that supports continuation tokens, loop until the `ContinuationToken` in the response is nil or empty.
+  - Append results across all pages before applying filters or selections.
+  - Break the loop only after exhausting all pages, or if the command supports `--max-items [int>0]` and the user specified a value stop after the max value
+
+- **Confirmation for Destructive Operations:**
+  - Destructive commands must prompt the user for confirmation unless a `--yes` flag is provided.
+  - On cancellation, return `util.ErrCancel`.
+
+- **Nil Handling for API Fields:**
+  - Explicitly check for nil pointer fields returned from API calls before use.
+  - Use `types.GetValue` for safe dereferencing or return an error if the value is required and missing.
+
+- **Debug Logging:**
+  - Use `zap.L().Debug` to log critical decision points (e.g., parsing format detected, scope descriptor resolutions, API call stages).
+
+- **Aliases:**
+  - For common destructive commands, provide short command aliases such as `d`, `del`, `rm` to improve ergonomics.
+  - For list commands, provide aliases such as `l`, `ls`
+  - For commands that create objects provide aliases like `c`, `cr`
+
+- **Working with Scope Descriptors:**
+  - For project-scoped operations, you must first fetch the project object using the `core.Client`.
+  - Then, you must use the `graph.Client`'s `GetDescriptor` method with the project's `StorageKey` (ID) to get the correct scope descriptor.
+  - The `graph.Client`'s `GetDescriptor` can be used to get the storage descriptor for various objects like projects, users, groups etc.
 
 ### Wiring Commands into the CLI Hierarchy
 
