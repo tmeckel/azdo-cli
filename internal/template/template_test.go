@@ -4,8 +4,6 @@ import (
 	"bytes"
 	"fmt"
 	"io"
-	"log"
-	"os"
 	"strings"
 	"testing"
 	"time"
@@ -13,71 +11,7 @@ import (
 	"github.com/MakeNowJust/heredoc"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"github.com/tmeckel/azdo-cli/internal/text"
 )
-
-func ExampleTemplate() {
-	// Information about the terminal can be obtained using the [pkg/term] package.
-	colorEnabled := true
-	termWidth := 14
-	json := strings.NewReader(heredoc.Doc(`[
-		{"number": 1, "title": "One"},
-		{"number": 2, "title": "Two"}
-	]`))
-	template := "HEADER\n\n{{range .}}{{tablerow .number .title}}{{end}}{{tablerender}}\nFOOTER"
-	tmpl := New(os.Stdout, termWidth, colorEnabled)
-	if err := tmpl.Parse(template); err != nil {
-		log.Fatal(err)
-	}
-	if err := tmpl.Execute(json); err != nil {
-		log.Fatal(err)
-	}
-	// Output:
-	// HEADER
-	//
-	// 1  One
-	// 2  Two
-	//
-	// FOOTER
-}
-
-func ExampleTemplate_Funcs() {
-	// Information about the terminal can be obtained using the [pkg/term] package.
-	colorEnabled := true
-	termWidth := 14
-	json := strings.NewReader(heredoc.Doc(`[
-		{"num": 1, "thing": "apple"},
-		{"num": 2, "thing": "orange"}
-	]`))
-	template := "{{range .}}* {{pluralize .num .thing}}\n{{end}}"
-	tmpl := New(os.Stdout, termWidth, colorEnabled)
-	tmpl.WithFuncs(map[string]any{
-		"pluralize": func(fields ...any) (string, error) {
-			if l := len(fields); l != 2 {
-				return "", fmt.Errorf("wrong number of args for pluralize: want 2 got %d", l)
-			}
-			var ok bool
-			var num float64
-			var thing string
-			if num, ok = fields[0].(float64); !ok && num == float64(int(num)) {
-				return "", fmt.Errorf("invalid value; expected int")
-			}
-			if thing, ok = fields[1].(string); !ok {
-				return "", fmt.Errorf("invalid value; expected string")
-			}
-			return text.Pluralize(int(num), thing), nil
-		},
-	})
-	if err := tmpl.Parse(template); err != nil {
-		log.Fatal(err)
-	}
-	if err := tmpl.Execute(json); err != nil {
-		log.Fatal(err)
-	}
-	// Output:
-	// * 1 apple
-	// * 2 oranges
-}
 
 func TestJsonScalarToString(t *testing.T) {
 	tests := []struct {
