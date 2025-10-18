@@ -766,8 +766,8 @@ func TestPullRequest_Error_ExistingPROpen(t *testing.T) {
 
 // (moved below) TestPullRequest_CreatesWithReviewers_RequiredAndOptional implemented later
 
-func TestPullRequest_Error_ReviewerDescriptorsMissing(t *testing.T) {
-	// Negative: reviewers specified but descriptors cannot be resolved; expect error from GetReviewerDescriptors.
+func TestPullRequest_Error_ReviewerIdentityNotFound(t *testing.T) {
+	// Negative: a specified reviewer cannot be resolved.
 	ctrl := gomock.NewController(t)
 	t.Cleanup(ctrl.Finish)
 
@@ -808,27 +808,22 @@ func TestPullRequest_Error_ReviewerDescriptorsMissing(t *testing.T) {
 	empty := []azdogit.GitPullRequest{}
 	mRestGit.EXPECT().GetPullRequests(gomock.Any(), gomock.Any()).Return(&empty, nil)
 
-	// Identity: return only one identity for two reviewer handles
+	// Identity: reviewer cannot be resolved.
 	mRepoCtx.EXPECT().Repo().Return(mAzRepo, nil)
 	mAzRepo.EXPECT().Organization().Return("org")
 	mClientFactory.EXPECT().Identity(gomock.Any(), "org").Return(mIdentity, nil)
-	mIdentity.EXPECT().ReadIdentities(gomock.Any(), gomock.Any()).DoAndReturn(
-		func(_ context.Context, args aidentity.ReadIdentitiesArgs) (*[]aidentity.Identity, error) {
-			desc := "vssgp.Uy0xLTkt...one"
-			id := uuid.New()
-			out := []aidentity.Identity{{Descriptor: &desc, Id: &id}}
-			return &out, nil
-		},
-	)
 
-	opts := &createOptions{title: "T", description: "D", requiredReviewer: []string{"a@example.org"}, optionalReviewer: []string{"b@example.org"}}
+	// Expect a call for the reviewer and return an empty result.
+	mIdentity.EXPECT().ReadIdentities(gomock.Any(), gomock.Any()).Return(&[]aidentity.Identity{}, nil)
+
+	opts := &createOptions{title: "T", description: "D", optionalReviewer: []string{"b@example.org"}}
 	err := runCmd(mCmdCtx, opts)
 	require.Error(t, err)
-	assert.Contains(t, err.Error(), "failed to get reviewer descriptors")
+	assert.Contains(t, err.Error(), "no identity found for reviewer 'b@example.org'")
 }
 
 func TestPullRequest_CreatesWithReviewers_RequiredAndOptional(t *testing.T) {
-	// Under test: required and optional reviewers specified; descriptors resolved and set correctly.
+	// Under test: required and optional reviewers specified; identities resolved and set correctly.
 	ctrl := gomock.NewController(t)
 	t.Cleanup(ctrl.Finish)
 
@@ -869,18 +864,25 @@ func TestPullRequest_CreatesWithReviewers_RequiredAndOptional(t *testing.T) {
 	empty := []azdogit.GitPullRequest{}
 	mRestGit.EXPECT().GetPullRequests(gomock.Any(), gomock.Any()).Return(&empty, nil)
 
-	// Identity: return descriptors for required and optional
+	// Identity: return identities for required and optional
 	mRepoCtx.EXPECT().Repo().Return(mAzRepo, nil)
 	mAzRepo.EXPECT().Organization().Return("org")
 	mClientFactory.EXPECT().Identity(gomock.Any(), "org").Return(mIdentity, nil)
-	mIdentity.EXPECT().ReadIdentities(gomock.Any(), gomock.Any()).DoAndReturn(
-		func(_ context.Context, args aidentity.ReadIdentitiesArgs) (*[]aidentity.Identity, error) {
-			d1, d2 := "vssgp.Uy0xLTkt...alice", "vssgp.Uy0xLTkt...bob"
-			id1, id2 := uuid.New(), uuid.New()
-			out := []aidentity.Identity{{Descriptor: &d1, Id: &id1}, {Descriptor: &d2, Id: &id2}}
-			return &out, nil
-		},
-	)
+
+	aliceID := uuid.New()
+	bobID := uuid.New()
+
+	// Mock for alice
+	mIdentity.EXPECT().ReadIdentities(gomock.Any(), gomock.Cond(func(x interface{}) bool {
+		args, ok := x.(aidentity.ReadIdentitiesArgs)
+		return ok && args.FilterValue != nil && *args.FilterValue == "alice@example.org"
+	})).Return(&[]aidentity.Identity{{Id: &aliceID}}, nil)
+
+	// Mock for bob
+	mIdentity.EXPECT().ReadIdentities(gomock.Any(), gomock.Cond(func(x interface{}) bool {
+		args, ok := x.(aidentity.ReadIdentitiesArgs)
+		return ok && args.FilterValue != nil && *args.FilterValue == "bob@example.org"
+	})).Return(&[]aidentity.Identity{{Id: &bobID}}, nil)
 
 	// Create PR expects reviewers with required/optional flags
 	mRestGit.EXPECT().CreatePullRequest(gomock.Any(), gomock.Any()).DoAndReturn(
@@ -889,8 +891,21 @@ func TestPullRequest_CreatesWithReviewers_RequiredAndOptional(t *testing.T) {
 			require.NotNil(t, pr.Reviewers)
 			rs := *pr.Reviewers
 			require.Len(t, rs, 2)
-			assert.True(t, *rs[0].IsRequired)
-			assert.False(t, *rs[1].IsRequired)
+
+			foundAlice, foundBob := false, false
+			for _, r := range rs {
+				if r.Id != nil && *r.Id == aliceID.String() {
+					assert.True(t, *r.IsRequired, "Alice should be a required reviewer")
+					foundAlice = true
+				}
+				if r.Id != nil && *r.Id == bobID.String() {
+					assert.False(t, *r.IsRequired, "Bob should be an optional reviewer")
+					foundBob = true
+				}
+			}
+			assert.True(t, foundAlice, "Alice (required) not found in reviewers")
+			assert.True(t, foundBob, "Bob (optional) not found in reviewers")
+
 			id := 130
 			url := "https://example.org/pr/130"
 			return &azdogit.GitPullRequest{PullRequestId: &id, Url: &url}, nil
