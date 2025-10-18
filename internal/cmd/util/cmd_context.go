@@ -13,6 +13,7 @@ import (
 	"github.com/tmeckel/azdo-cli/internal/iostreams"
 	"github.com/tmeckel/azdo-cli/internal/printer"
 	"github.com/tmeckel/azdo-cli/internal/prompter"
+	"github.com/tmeckel/azdo-cli/internal/types"
 	"github.com/tmeckel/azdo-cli/internal/util"
 	"go.uber.org/zap"
 )
@@ -186,26 +187,29 @@ func (c *cmdContext) Remote(repo *azdogit.GitRepository) (remote *azdo.Remote, e
 
 	urlComp := util.NewURLComparer()
 
-	var url, sshUrl *url.URL
+	var httpUrl, sshUrl *url.URL
 
 	if repo.RemoteUrl != nil {
-		url, err = url.Parse(*repo.RemoteUrl)
+		httpUrl, err = url.Parse(*repo.RemoteUrl)
 		if err != nil {
 			err = fmt.Errorf("failed to parse remote URL %q: %w", *repo.RemoteUrl, err)
 			return remote, err
 		}
 	}
 	if repo.SshUrl != nil {
-		url, err = url.Parse(*repo.SshUrl)
+		sshUrl, err = git.ParseURL(*repo.SshUrl)
 		if err != nil {
 			err = fmt.Errorf("failed to parse SSH URL %q: %w", *repo.SshUrl, err)
 			return remote, err
 		}
 	}
+
+	zap.L().Sugar().Debugf("Finding remote for repository %q; remoteUrl: %q; sshUrl: %q", *repo.Name, types.GetValue(repo.RemoteUrl, ""), types.GetValue(repo.SshUrl, ""))
+
 	for _, r := range remotes {
-		zap.L().Sugar().Debugf("Checking remote %+v for match with URL %q or %q", r, url, sshUrl)
-		if (urlComp.EqualURLs(r.FetchURL, url) || urlComp.EqualURLs(r.FetchURL, sshUrl)) ||
-			(urlComp.EqualURLs(r.PushURL, url) || urlComp.EqualURLs(r.PushURL, sshUrl)) {
+		zap.L().Sugar().Debugf("Checking remote %+v for match with URL %q or %q", r, httpUrl, sshUrl)
+		if (urlComp.EqualURLs(r.FetchURL, httpUrl) || urlComp.EqualURLs(r.FetchURL, sshUrl)) ||
+			(urlComp.EqualURLs(r.PushURL, httpUrl) || urlComp.EqualURLs(r.PushURL, sshUrl)) {
 			remote = r
 			return remote, err
 		}
