@@ -4,6 +4,7 @@ Manage security groups in Azure DevOps.
 * [azdo security group create](./azdo_security_group_create.md)
 * [azdo security group delete](./azdo_security_group_delete.md)
 * [azdo security group list](./azdo_security_group_list.md)
+* [azdo security group membership](./azdo_security_group_membership.md)
 
 ### See also
 
