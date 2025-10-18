@@ -147,14 +147,14 @@ func TestClientRemotes(t *testing.T) {
 	rs, err := client.Remotes(context.Background())
 	require.NoError(t, err)
 	assert.Len(t, rs, 4)
-	assert.Equal(t, "upstream", rs[0].Name)
-	assert.Equal(t, "default", rs[0].Resolved)
-	assert.Equal(t, "github", rs[1].Name)
+	assert.Equal(t, "github", rs[0].Name)
+	assert.Equal(t, "", rs[0].Resolved)
+	assert.Equal(t, "origin", rs[1].Name)
 	assert.Equal(t, "", rs[1].Resolved)
-	assert.Equal(t, "origin", rs[2].Name)
-	assert.Equal(t, "", rs[2].Resolved)
-	assert.Equal(t, "test", rs[3].Name)
-	assert.Equal(t, "other", rs[3].Resolved)
+	assert.Equal(t, "test", rs[2].Name)
+	assert.Equal(t, "other", rs[2].Resolved)
+	assert.Equal(t, "upstream", rs[3].Name)
+	assert.Equal(t, "default", rs[3].Resolved)
 }
 
 func TestClientRemotes_no_resolved_remote(t *testing.T) {
@@ -184,10 +184,10 @@ func TestClientRemotes_no_resolved_remote(t *testing.T) {
 	rs, err := client.Remotes(context.Background())
 	require.NoError(t, err)
 	assert.Len(t, rs, 4)
+	assert.Equal(t, "no-azdo", rs[0].Name)
 	assert.Equal(t, "origin", rs[1].Name)
-	assert.Equal(t, "test", rs[3].Name)
-	assert.Equal(t, "upstream", rs[0].Name)
-	assert.Equal(t, "no-azdo", rs[2].Name)
+	assert.Equal(t, "test", rs[2].Name)
+	assert.Equal(t, "upstream", rs[3].Name)
 }
 
 func TestParseRemotes(t *testing.T) {
