@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/tmeckel/azdo-cli/internal/git"
+	"go.uber.org/zap"
 )
 
 // RemoteSet represents a set of git remotes which point to an AzDO endpoint
@@ -34,22 +35,29 @@ func (r RemoteSet) FindByRepo(repo Repository) (*Remote, error) {
 }
 
 func (r RemoteSet) DefaultRemote() (*Remote, error) {
-	if len(r) == 1 {
-		ok, err := IsAzDORemoteURL(r[0].FetchURL)
-		if err != nil {
-			return nil, err
-		}
-		if ok {
-			return r[0], nil
-		}
-	} else {
-		for _, rr := range r {
-			if rr.Resolved != "default" {
+	if len(r) == 0 {
+		return nil, fmt.Errorf("no Azure DevOps remotes found")
+	}
+
+	// First pass: look for an explicitly resolved remote that is a valid AzDO remote
+	for _, rr := range r {
+		if rr.Resolved != "" {
+			if ok, _ := IsAzDORemoteURL(rr.FetchURL); ok {
 				return rr, nil
+			} else {
+				zap.L().Sugar().Warnf("Ignoring explicitly resolved remote %q because its URL %q is not a valid Azure DevOps URL", rr.Name, rr.FetchURL)
 			}
 		}
 	}
-	return nil, fmt.Errorf("no default remote found")
+
+	// Second pass (fallback): find the first valid AzDO remote in the sorted list.
+	for _, rr := range r {
+		if ok, _ := IsAzDORemoteURL(rr.FetchURL); ok {
+			return rr, nil
+		}
+	}
+
+	return nil, fmt.Errorf("no default Azure DevOps remote found")
 }
 
 // Filter remotes by given organization, maintains original order
