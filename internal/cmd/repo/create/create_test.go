@@ -2,7 +2,7 @@ package create
 
 import (
 	"context"
-	"fmt"
+	"os"
 	"testing"
 
 	"github.com/google/uuid"
@@ -22,25 +22,16 @@ func TestRunCreate_ParameterValidation(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
+	os.Setenv("AZDO_CONFIG_DIR", "./testdata/config")
+
 	mCmdCtx := mocks.NewMockCmdContext(ctrl)
 	mCmdCtx.EXPECT().Context().Return(context.Background()).AnyTimes()
 	ios, _, _, _ := iostreams.Test()
 	mCmdCtx.EXPECT().IOStreams().Return(ios, nil).AnyTimes()
-	mConfig := mocks.NewMockConfig(ctrl)
-	mCmdCtx.EXPECT().Config().Return(mConfig, nil).AnyTimes()
-	mAuth := mocks.NewMockAuthConfig(ctrl)
-	mAuth.EXPECT().GetDefaultOrganization().Return("org1", nil).AnyTimes()
-	mConfig.EXPECT().Authentication().Return(mAuth).AnyTimes()
 	mClientFactory := mocks.NewMockClientFactory(ctrl)
 	mGit := mocks.NewMockAzDOGitClient(ctrl)
-	mClientFactory.EXPECT().Git(gomock.Any(), gomock.Any()).Return(mGit, nil).AnyTimes()
+	mClientFactory.EXPECT().Git(gomock.Any(), "org1").Return(mGit, nil).AnyTimes()
 	mCmdCtx.EXPECT().ClientFactory().Return(mClientFactory).AnyTimes()
-	mPrinter := mocks.NewMockPrinter(ctrl)
-	mPrinter.EXPECT().AddColumns(gomock.Any()).AnyTimes()
-	mPrinter.EXPECT().AddField(gomock.Any()).AnyTimes()
-	mPrinter.EXPECT().EndRow().AnyTimes()
-	mPrinter.EXPECT().Render().AnyTimes()
-	mCmdCtx.EXPECT().Printer(gomock.Any()).Return(mPrinter, nil).AnyTimes()
 
 	cases := []struct {
 		name    string
@@ -50,27 +41,27 @@ func TestRunCreate_ParameterValidation(t *testing.T) {
 		{
 			name:    "invalid new repo path too short",
 			opts:    &createOptions{repo: "onlyproj"},
-			wantErr: "invalid value",
+			wantErr: `not a valid repository name, expected the "[ORGANIZATION/]PROJECT/REPO" format, got "onlyproj"`,
 		},
 		{
 			name:    "invalid new repo path too long",
 			opts:    &createOptions{repo: "a/b/c/d"},
-			wantErr: "invalid value",
+			wantErr: `not a valid repository name, expected the "[ORGANIZATION/]PROJECT/REPO" format, got "a/b/c/d"`,
 		},
 		{
 			name:    "parent repo in different org",
 			opts:    &createOptions{repo: "org1/proj1/repo1", parentRepo: "org2/pX/rX"},
-			wantErr: "organization for new repo and parent repo must match",
+			wantErr: "annot fork across organizations: \"org1\" and \"org2\"",
 		},
 		{
 			name:    "parent repo in different default org",
 			opts:    &createOptions{repo: "proj1/repo1", parentRepo: "org2/pX/rX"},
-			wantErr: "organization for new repo and parent repo must match",
+			wantErr: "annot fork across organizations: \"org1\" and \"org2\"",
 		},
 		{
 			name:    "invalid parent repo path",
 			opts:    &createOptions{repo: "org1/proj1/repo1", parentRepo: "a/b/c/d/e"},
-			wantErr: "invalid parent value",
+			wantErr: `not a valid repository name, expected the "[ORGANIZATION/]PROJECT/REPO" format, got "a/b/c/d/e"`,
 		},
 		{
 			name:    "source-branch without parent",
@@ -99,16 +90,16 @@ func TestRunCreate_Fork(t *testing.T) {
 	}{
 		{
 			name: "fork without source branch",
-			opts: &createOptions{repo: "proj1/repo1", parentRepo: "org1/pX/rX"},
+			opts: &createOptions{repo: "org1/proj1/repo1", parentRepo: "org1/pX/rX"},
 		},
 		{
 			name:        "fork with source branch",
-			opts:        &createOptions{repo: "proj1/repo1", parentRepo: "org1/pX/rX", sourceBranch: "main"},
+			opts:        &createOptions{repo: "org1/proj1/repo1", parentRepo: "org1/pX/rX", sourceBranch: "main"},
 			expectedRef: types.ToPtr("refs/heads/main"),
 		},
 		{
 			name:        "fork with full source branch ref",
-			opts:        &createOptions{repo: "proj1/repo1", parentRepo: "org1/pX/rX", sourceBranch: "refs/heads/main"},
+			opts:        &createOptions{repo: "org1/proj1/repo1", parentRepo: "org1/pX/rX", sourceBranch: "refs/heads/main"},
 			expectedRef: types.ToPtr("refs/heads/main"),
 		},
 	}
@@ -118,21 +109,19 @@ func TestRunCreate_Fork(t *testing.T) {
 			ctrl := gomock.NewController(t)
 			defer ctrl.Finish()
 
+			os.Setenv("AZDO_CONFIG_DIR", "./testdata/config")
+
 			mCmdCtx := mocks.NewMockCmdContext(ctrl)
 			mCmdCtx.EXPECT().Context().Return(context.Background()).AnyTimes()
 			ios, _, _, _ := iostreams.Test()
 			mCmdCtx.EXPECT().IOStreams().Return(ios, nil).AnyTimes()
-			mConfig := mocks.NewMockConfig(ctrl)
-			mCmdCtx.EXPECT().Config().Return(mConfig, nil).AnyTimes()
-			mAuth := mocks.NewMockAuthConfig(ctrl)
-			mAuth.EXPECT().GetDefaultOrganization().Return("org1", nil).AnyTimes()
-			mConfig.EXPECT().Authentication().Return(mAuth).AnyTimes()
+
 			mClientFactory := mocks.NewMockClientFactory(ctrl)
 			mCmdCtx.EXPECT().ClientFactory().Return(mClientFactory).AnyTimes()
 			mGit := mocks.NewMockAzDOGitClient(ctrl)
-			mClientFactory.EXPECT().Git(gomock.Any(), gomock.Any()).Return(mGit, nil).AnyTimes()
+			mClientFactory.EXPECT().Git(gomock.Any(), "org1").Return(mGit, nil).AnyTimes()
 			mCore := mocks.NewMockCoreClient(ctrl)
-			mClientFactory.EXPECT().Core(gomock.Any(), gomock.Any()).Return(mCore, nil).AnyTimes()
+			mClientFactory.EXPECT().Core(gomock.Any(), "org1").Return(mCore, nil).AnyTimes()
 			mPrinter := mocks.NewMockPrinter(ctrl)
 			mCmdCtx.EXPECT().Printer(gomock.Any()).Return(mPrinter, nil).AnyTimes()
 			mPrinter.EXPECT().AddColumns(gomock.Any()).AnyTimes()
@@ -166,14 +155,9 @@ func TestRunCreate_APIInvocationAndOutput(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
+	os.Setenv("AZDO_CONFIG_DIR", "./testdata/config")
+
 	mCmdCtx := mocks.NewMockCmdContext(ctrl)
-	mMockConfig := mocks.NewMockConfig(ctrl)
-	mMockAlias := mocks.NewMockAliasConfig(ctrl)
-	mMockAuth := mocks.NewMockAuthConfig(ctrl)
-	mMockAuth.EXPECT().GetDefaultOrganization().Return("org1", nil).AnyTimes()
-	mMockConfig.EXPECT().Authentication().Return(mMockAuth).AnyTimes()
-	mMockConfig.EXPECT().Aliases().Return(mMockAlias).AnyTimes()
-	mCmdCtx.EXPECT().Config().Return(mMockConfig, nil).AnyTimes()
 	mCmdCtx.EXPECT().Context().Return(context.Background()).AnyTimes()
 
 	ios, _, stdout, _ := iostreams.Test()
@@ -183,7 +167,6 @@ func TestRunCreate_APIInvocationAndOutput(t *testing.T) {
 
 	mockConnFac := mocks.NewMockConnectionFactory(ctrl)
 	mCmdCtx.EXPECT().ConnectionFactory().Return(mockConnFac).AnyTimes()
-	mockConnFac.EXPECT().Connection("org1").Return(nil, nil).AnyTimes()
 
 	mockClientFac := mocks.NewMockClientFactory(ctrl)
 	mCmdCtx.EXPECT().ClientFactory().Return(mockClientFac).AnyTimes()
@@ -209,7 +192,7 @@ func TestRunCreate_APIInvocationAndOutput(t *testing.T) {
 	).Times(1)
 
 	opts := &createOptions{
-		repo: "proj1/repo1",
+		repo: "org1/proj1/repo1",
 	}
 
 	err := runCreate(mCmdCtx, opts)
@@ -217,37 +200,4 @@ func TestRunCreate_APIInvocationAndOutput(t *testing.T) {
 	outStr := stdout.String()
 	assert.Contains(t, outStr, "repo1")
 	assert.Contains(t, outStr, "proj1")
-}
-
-func TestRunCreate_NoDefaultOrganizationConfigured(t *testing.T) {
-	ctrl := gomock.NewController(t)
-	defer ctrl.Finish()
-
-	mCmdCtx := mocks.NewMockCmdContext(ctrl)
-	mCmdCtx.EXPECT().Context().Return(context.Background()).AnyTimes()
-	ios, _, _, _ := iostreams.Test()
-	mCmdCtx.EXPECT().IOStreams().Return(ios, nil).AnyTimes()
-	mConfig := mocks.NewMockConfig(ctrl)
-	mCmdCtx.EXPECT().Config().Return(mConfig, nil).AnyTimes()
-	mAuth := mocks.NewMockAuthConfig(ctrl)
-	mAuth.EXPECT().GetDefaultOrganization().Return("", nil).AnyTimes()
-	mConfig.EXPECT().Authentication().Return(mAuth).AnyTimes()
-
-	opts := &createOptions{
-		repo: "proj1/repo1",
-	}
-	t.Run("EmptyDefaultOrganization", func(t *testing.T) {
-		mAuth := mocks.NewMockAuthConfig(ctrl)
-		mAuth.EXPECT().GetDefaultOrganization().Return("", nil).AnyTimes()
-		mConfig.EXPECT().Authentication().Return(mAuth).AnyTimes()
-		err := runCreate(mCmdCtx, opts)
-		assert.Error(t, err)
-	})
-	t.Run("ErrorGettingDefaultOrganization", func(t *testing.T) {
-		mAuth := mocks.NewMockAuthConfig(ctrl)
-		mAuth.EXPECT().GetDefaultOrganization().Return("", fmt.Errorf("no default org")).AnyTimes()
-		mConfig.EXPECT().Authentication().Return(mAuth).AnyTimes()
-		err := runCreate(mCmdCtx, opts)
-		assert.Error(t, err)
-	})
 }
