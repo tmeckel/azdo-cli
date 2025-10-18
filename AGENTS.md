@@ -156,7 +156,6 @@ For a complete guidance on how to implement tests refer to [TESTING.md](./TESTIN
 - **Patch Size:** Favor small, isolated patches and update/add nearby tests where relevant.
 - **Validation:** After code edits, validate results in 1-2 lines and proceed or self-correct if validation fails.
 - **Code Edits:** Explicitly state assumptions before edits, create or run minimal tests when possible, and produce ready-to-review diffs following the repository style.
-- **Use Gemini:** You act as a coordinator for Gemini MCP server to implement the new command. Gemini acts on your commands. You never inspect the code base on your own. You always call the Gemini MCP server for this if required.
 - **Code Scope:** When you create, change or fix tests you only work on tests. You don't change any other code. When required prompt the user to deviate from that instruction.
 - **Context7:** Always use context7 when I need code generation, setup or configuration steps, or library/API documentation. This means you should automatically use the Context7 MCP tools to resolve library id and get library docs without me having to explicitly ask.
 
