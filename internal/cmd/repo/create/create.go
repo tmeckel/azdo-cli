@@ -89,6 +89,10 @@ func runCreate(ctx util.CmdContext, opts *createOptions) error {
 			return err
 		}
 
+		if r.Organization() != parent.Organization() {
+			return util.FlagErrorf("cannot fork across organizations: %q and %q", r.Organization(), parent.Organization())
+		}
+
 		coreClient, err := ctx.ClientFactory().Core(ctx.Context(), parent.Organization())
 		if err != nil {
 			return err
