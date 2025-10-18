@@ -120,11 +120,7 @@ func TestEvaluateFormatted(t *testing.T) {
 				indent:   "",
 				colorize: false,
 			},
-			wantW: heredoc.Doc(`
-				First title	bug,help wanted
-				Second but not last
-				Alas, tis' the end	,feature
-			`),
+			wantW: "First title\tbug,help wanted\nSecond but not last\t\nAlas, tis' the end\t,feature\n",
 		},
 		{
 			name: "with env var",
