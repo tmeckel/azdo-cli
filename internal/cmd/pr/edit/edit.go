@@ -142,54 +142,73 @@ func runCmd(ctx util.CmdContext, opts *editOptions) (err error) {
 	}
 
 	// Handle reviewers
-	var reviewers []git.IdentityRefWithVote
+	reviewersMap := make(map[string]git.IdentityRefWithVote)
 	if pr.Reviewers != nil {
-		reviewers = *pr.Reviewers
+		for _, r := range *pr.Reviewers {
+			if r.Id != nil {
+				reviewersMap[*r.Id] = r
+			}
+		}
 	}
 
-	// Batch process all reviewers to add
-	allReviewersToAdd := append([]string{}, opts.addRequiredReviewer...)
-	allReviewersToAdd = append(allReviewersToAdd, opts.addOptionalReviewer...)
-
-	if len(allReviewersToAdd) > 0 {
-		descriptors, err := shared.GetReviewerDescriptors(ctx.Context(), identityClient, allReviewersToAdd)
+	// Handle reviewers to remove
+	if len(opts.removeRequiredReviewer) > 0 {
+		identities, err := shared.GetReviewerIdentities(ctx.Context(), identityClient, opts.removeRequiredReviewer)
 		if err != nil {
-			return fmt.Errorf("failed to get reviewer descriptors: %w", err)
+			return fmt.Errorf("failed to resolve required reviewers to remove: %w", err)
 		}
-
-		// Add required reviewers
-		for i, r := range opts.addRequiredReviewer {
-			reviewers = append(reviewers, git.IdentityRefWithVote{
-				DisplayName: types.ToPtr(r),
-				Descriptor:  types.ToPtr(descriptors[i]),
-				IsRequired:  types.ToPtr(true),
-			})
-		}
-
-		// Add optional reviewers
-		offset := len(opts.addRequiredReviewer)
-		for i, r := range opts.addOptionalReviewer {
-			reviewers = append(reviewers, git.IdentityRefWithVote{
-				DisplayName: types.ToPtr(r),
-				Descriptor:  types.ToPtr(descriptors[offset+i]),
-				IsRequired:  types.ToPtr(false),
-			})
+		for _, identity := range identities {
+			id := identity.Id.String()
+			if reviewer, ok := reviewersMap[id]; ok && reviewer.IsRequired != nil && *reviewer.IsRequired {
+				delete(reviewersMap, id)
+			}
 		}
 	}
-
-	// Remove required reviewers
-	for _, r := range opts.removeRequiredReviewer {
-		reviewers = removeReviewer(reviewers, r, true)
+	if len(opts.removeOptionalReviewer) > 0 {
+		identities, err := shared.GetReviewerIdentities(ctx.Context(), identityClient, opts.removeOptionalReviewer)
+		if err != nil {
+			return fmt.Errorf("failed to resolve optional reviewers to remove: %w", err)
+		}
+		for _, identity := range identities {
+			id := identity.Id.String()
+			if reviewer, ok := reviewersMap[id]; ok && (reviewer.IsRequired == nil || !*reviewer.IsRequired) {
+				delete(reviewersMap, id)
+			}
+		}
 	}
 
-	// Remove optional reviewers
-	for _, r := range opts.removeOptionalReviewer {
-		reviewers = removeReviewer(reviewers, r, false)
+	// Handle reviewers to add
+	if len(opts.addOptionalReviewer) > 0 {
+		identities, err := shared.GetReviewerIdentities(ctx.Context(), identityClient, opts.addOptionalReviewer)
+		if err != nil {
+			return fmt.Errorf("failed to resolve optional reviewers to add: %w", err)
+		}
+		for _, identity := range identities {
+			id := identity.Id.String()
+			if _, exists := reviewersMap[id]; !exists {
+				reviewersMap[id] = git.IdentityRefWithVote{Id: types.ToPtr(id), IsRequired: types.ToPtr(false)}
+			}
+		}
+	}
+	if len(opts.addRequiredReviewer) > 0 {
+		identities, err := shared.GetReviewerIdentities(ctx.Context(), identityClient, opts.addRequiredReviewer)
+		if err != nil {
+			return fmt.Errorf("failed to resolve required reviewers to add: %w", err)
+		}
+		for _, identity := range identities {
+			id := identity.Id.String()
+			reviewersMap[id] = git.IdentityRefWithVote{Id: types.ToPtr(id), IsRequired: types.ToPtr(true)}
+		}
 	}
 
-	if len(reviewers) > 0 {
-		updatePullRequest.Reviewers = &reviewers
+	// Convert map to slice
+	finalReviewers := make([]git.IdentityRefWithVote, 0, len(reviewersMap))
+	for _, r := range reviewersMap {
+		finalReviewers = append(finalReviewers, r)
 	}
+	// We need to set the reviewers on the update request, even if the final list is empty,
+	// to support removing all reviewers.
+	updatePullRequest.Reviewers = &finalReviewers
 
 	// Handle labels
 	var labels []core.WebApiTagDefinition
@@ -239,16 +258,6 @@ func readBodyFile(filename string) ([]byte, error) {
 	return os.ReadFile(filename) //nolint:gosec
 }
 
-func removeReviewer(reviewers []git.IdentityRefWithVote, reviewerToRemove string, required bool) []git.IdentityRefWithVote {
-	var updatedReviewers []git.IdentityRefWithVote
-	for _, r := range reviewers {
-		// Access DisplayName and UniqueName directly
-		if !((strings.EqualFold(*r.DisplayName, reviewerToRemove) || (r.UniqueName != nil && strings.EqualFold(*r.UniqueName, reviewerToRemove))) && *r.IsRequired == required) {
-			updatedReviewers = append(updatedReviewers, r)
-		}
-	}
-	return updatedReviewers
-}
 
 func removeLabel(labels []core.WebApiTagDefinition, labelToRemove string) []core.WebApiTagDefinition {
 	var updatedLabels []core.WebApiTagDefinition
