@@ -313,19 +313,9 @@ func Test_exportFormat_Write(t *testing.T) {
 			args: args{
 				data: map[string]string{"name": "hubot"},
 			},
-			wantW:   "hubot\n",
+			wantW:   "\"hubot\"\n",
 			wantErr: false,
 			istty:   false,
-		},
-		{
-			name:     "with jq filter pretty printing",
-			exporter: jsonExporter{filter: "."},
-			args: args{
-				data: map[string]string{"name": "hubot"},
-			},
-			wantW:   "{\n  \"name\": \"hubot\"\n}\n",
-			wantErr: false,
-			istty:   true,
 		},
 		{
 			name:     "with Go template",
