@@ -413,6 +413,21 @@ List security groups
 -t, --template string         Format JSON output using a Go template; see "azdo help formatting"
 ````
 
+#### `azdo security group membership`
+
+Manage security group memberships
+
+##### `azdo security group membership list [ORGANIZATION/]GROUP | [ORGANIZATION/]PROJECT/GROUP [flags]`
+
+List the members of an Azure DevOps security group.
+
+```
+-q, --jq expression         Filter JSON output using a jq expression
+    --json fields           Output JSON with the specified fields
+-r, --relationship string   Relationship type: members or memberof: {members|memberof} (default "members")
+-t, --template string       Format JSON output using a Go template; see "azdo help formatting"
+````
+
 
 ### See also
 
