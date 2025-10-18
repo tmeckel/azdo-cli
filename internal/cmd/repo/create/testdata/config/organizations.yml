@@ -1,0 +1,9 @@
+org1:
+  url: https://dev.azure.com/org1
+  pat: foobar_org1
+  git_protocol: https
+
+org2:
+  url: https://dev.azure.com/org2
+  pat: foobar_org2
+  git_protocol: https
