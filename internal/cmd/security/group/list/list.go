@@ -12,7 +12,6 @@ import (
 	"github.com/microsoft/azure-devops-go-api/azuredevops/v7/graph"
 	"github.com/spf13/cobra"
 	"github.com/tmeckel/azdo-cli/internal/cmd/util"
-	"github.com/tmeckel/azdo-cli/internal/config"
 	"github.com/tmeckel/azdo-cli/internal/types"
 )
 
@@ -117,7 +116,7 @@ func runCommand(ctx util.CmdContext, o *opts) error {
 
 	if organization == "" {
 		zap.L().Sugar().Debug("No organization provided, fetching default from config")
-		cfg, err := config.NewConfig()
+		cfg, err := ctx.Config()
 		if err != nil {
 			return err
 		}
