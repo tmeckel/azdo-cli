@@ -12,12 +12,12 @@ import (
 	"path"
 	"regexp"
 	"runtime"
-	"sort"
 	"strings"
 	"sync"
 
 	"github.com/cli/safeexec"
 	"github.com/tmeckel/azdo-cli/internal/iostreams"
+	"go.uber.org/zap"
 )
 
 var remoteRE = regexp.MustCompile(`(.+)\s+(.+)\s+\((push|fetch)\)`)
@@ -233,8 +233,10 @@ func (c *client) Remotes(ctx context.Context) (RemoteSet, error) {
 	}
 
 	remotes := parseRemotes(outputLines(remoteOut))
+
+	zap.L().Sugar().Debugf("Found remotes %+v ", remotes)
+
 	populateResolvedRemotes(remotes, outputLines(configOut))
-	sort.Sort(remotes)
 	return remotes, nil
 }
 
@@ -327,9 +329,6 @@ func (c *client) ShowRefs(ctx context.Context, refs []string) ([]Ref, error) {
 	// This functionality relies on parsing output from the git command despite
 	// an error status being returned from git.
 	out, err := cmd.Output()
-	if err != nil {
-		return nil, err
-	}
 	var verified []Ref
 	for _, line := range outputLines(out) {
 		parts := strings.SplitN(line, " ", 2)
@@ -340,6 +339,9 @@ func (c *client) ShowRefs(ctx context.Context, refs []string) ([]Ref, error) {
 			Hash: parts[0],
 			Name: parts[1],
 		})
+	}
+	if err != nil {
+		return verified, err
 	}
 	return verified, err
 }
@@ -823,16 +825,19 @@ func parseCloneArgs(extraArgs []string) (args []string, target string) {
 }
 
 func parseRemotes(remotesStr []string) RemoteSet {
+	zap.L().Sugar().Debugf("Parsing remotes: %+v", remotesStr)
 	remotes := RemoteSet{}
 	for _, r := range remotesStr {
 		match := remoteRE.FindStringSubmatch(r)
 		if match == nil {
+			zap.L().Sugar().Debugf("Skipping unparsable remote line: %q", r)
 			continue
 		}
 		name := strings.TrimSpace(match[1])
 		urlStr := strings.TrimSpace(match[2])
 		urlType := strings.TrimSpace(match[3])
 
+		zap.L().Sugar().Debugf("Found remote name=%q url=%q type=%q", name, urlStr, urlType)
 		url, err := ParseURL(urlStr)
 		if err != nil {
 			continue
@@ -846,20 +851,24 @@ func parseRemotes(remotesStr []string) RemoteSet {
 			 * and seeing if it matches the current remote name
 			 * before searching through the entire list of remotes
 			 **/
+			zap.L().Sugar().Debugf("Checking last remote %q against last remote %q", remotes[len(remotes)-1].Name, name)
 			rem = remotes[len(remotes)-1]
 			if name != rem.Name {
 				rem = nil
 			}
 		}
 		if rem == nil {
+			zap.L().Sugar().Debugf("Adding new remote %q", name)
 			rem = &Remote{Name: name}
 			remotes = append(remotes, rem)
 		}
 
 		switch urlType {
 		case "fetch":
+			zap.L().Sugar().Debugf("Setting fetch URL for remote %q to %q", name, urlStr)
 			rem.FetchURL = url
 		case "push":
+			zap.L().Sugar().Debugf("Setting push URL for remote %q to %q", name, urlStr)
 			rem.PushURL = url
 		}
 	}
@@ -868,6 +877,7 @@ func parseRemotes(remotesStr []string) RemoteSet {
 
 func populateResolvedRemotes(remotes RemoteSet, resolved []string) {
 	for _, l := range resolved {
+		zap.L().Sugar().Debugf("Parsing resolved remote line: %q", l)
 		parts := strings.SplitN(l, " ", 2)
 		if len(parts) < 2 {
 			continue
@@ -879,6 +889,7 @@ func populateResolvedRemotes(remotes RemoteSet, resolved []string) {
 		name := rp[1]
 		for _, r := range remotes {
 			if r.Name == name {
+				zap.L().Sugar().Debugf("Setting resolved URL for remote %q to %q", name, parts[1])
 				r.Resolved = parts[1]
 				break
 			}
