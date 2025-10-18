@@ -350,27 +350,10 @@ func runCmd(ctx util.CmdContext, opts *createOptions) (err error) {
 		IsDraft:       types.ToPtr(opts.isDraft),
 	}
 
-	allReviewers := append(opts.requiredReviewer, opts.optionalReviewer...) //nolint:gocritic
-	if len(allReviewers) > 0 {
-		descriptors, err := shared.GetReviewerDescriptors(ctx.Context(), identityClient, allReviewers)
+		if len(opts.requiredReviewer) > 0 || len(opts.optionalReviewer) > 0 {
+		reviewersList, err := shared.ResolveReviewers(ctx.Context(), identityClient, opts.requiredReviewer, opts.optionalReviewer)
 		if err != nil {
-			return fmt.Errorf("failed to get reviewer descriptors: %w", err)
-		}
-		var reviewersList []azgit.IdentityRefWithVote
-		for i, r := range opts.requiredReviewer {
-			reviewersList = append(reviewersList, azgit.IdentityRefWithVote{
-				DisplayName: types.ToPtr(r),
-				Descriptor:  types.ToPtr(descriptors[i]),
-				IsRequired:  types.ToPtr(true),
-			})
-		}
-		offset := len(opts.requiredReviewer)
-		for i, r := range opts.optionalReviewer {
-			reviewersList = append(reviewersList, azgit.IdentityRefWithVote{
-				DisplayName: types.ToPtr(r),
-				Descriptor:  types.ToPtr(descriptors[offset+i]),
-				IsRequired:  types.ToPtr(false),
-			})
+			return fmt.Errorf("failed to resolve reviewers: %w", err)
 		}
 		prRequest.Reviewers = &reviewersList
 	}
