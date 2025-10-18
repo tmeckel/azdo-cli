@@ -86,6 +86,9 @@ func runCmd(ctx util.CmdContext, opts *usersListOptions) error {
 		return err
 	}
 
+	io.StartProgressIndicator()
+	defer io.StopProgressIndicator()
+
 	cfg, err := ctx.Config()
 	if err != nil {
 		return err
