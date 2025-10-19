@@ -2,11 +2,10 @@ package delete
 
 import (
 	"fmt"
-	"strings"
 
-	"github.com/microsoft/azure-devops-go-api/azuredevops/v7/core"
 	"github.com/microsoft/azure-devops-go-api/azuredevops/v7/graph"
 	"github.com/spf13/cobra"
+	"github.com/tmeckel/azdo-cli/internal/cmd/security/group/shared"
 	"github.com/tmeckel/azdo-cli/internal/cmd/util"
 	"github.com/tmeckel/azdo-cli/internal/types"
 	"go.uber.org/zap"
@@ -48,100 +47,28 @@ func run(ctx util.CmdContext, opts *deleteOpts) error {
 		return err
 	}
 
-	// Parse scope argument
-	parts := strings.Split(opts.scope, "/")
-	var orgName, projectName, groupName string
-	zap.L().Debug("Parsed scope parts", zap.Strings("parts", parts))
-	switch len(parts) {
-	case 2:
-		zap.L().Debug("Detected organization/group format")
-		orgName, groupName = parts[0], parts[1]
-	case 3:
-		zap.L().Debug("Detected organization/project/group format")
-		orgName, projectName, groupName = parts[0], parts[1], parts[2]
-	default:
-		return fmt.Errorf("invalid scope format: must be ORGANIZATION/GROUP or ORGANIZATION/PROJECT/GROUP")
-	}
+	ios.StartProgressIndicator()
+	defer ios.StopProgressIndicator()
 
-	// Establish clients
-	graphClient, err := ctx.ClientFactory().Graph(ctx.Context(), orgName)
+	target, err := shared.ParseTarget(opts.scope)
 	if err != nil {
 		return err
 	}
 
-	// If projectName is given, resolve its descriptor (scope lookup)
-	var scopeDescriptor *string = nil
-	if projectName != "" {
-		zap.L().Debug("Resolving project scope descriptor", zap.String("project", projectName))
-		coreClient, err := ctx.ClientFactory().Core(ctx.Context(), orgName)
-		if err != nil {
-			return err
-		}
-		project, err := coreClient.GetProject(ctx.Context(), core.GetProjectArgs{
-			ProjectId: &projectName,
-		})
-		if err != nil {
-			return fmt.Errorf("failed to get project: %w", err)
-		}
-
-		desc, err := graphClient.GetDescriptor(ctx.Context(), graph.GetDescriptorArgs{
-			StorageKey: project.Id,
-		})
-		if err != nil {
-			return fmt.Errorf("failed to get scope descriptor: %w", err)
-		}
-		if desc.Value == nil {
-			return fmt.Errorf("scope descriptor is nil")
-		}
-		scopeDescriptor = desc.Value
+	graphClient, err := ctx.ClientFactory().Graph(ctx.Context(), target.Organization)
+	if err != nil {
+		return err
 	}
 
-	var matchingGroups []graph.GraphGroup
-	var continuationToken *string
-	for {
-		// Lookup groups by name
-		searchArgs := graph.ListGroupsArgs{
-			ContinuationToken: continuationToken,
-			ScopeDescriptor:   scopeDescriptor,
-		}
-		response, err := graphClient.ListGroups(ctx.Context(), searchArgs)
-		if err != nil {
-			return fmt.Errorf("failed to list groups: %w", err)
-		}
-
-		for _, g := range *response.GraphGroups {
-			if strings.EqualFold(types.GetValue(g.DisplayName, ""), groupName) {
-				matchingGroups = append(matchingGroups, g)
-			}
-		}
-		if response.ContinuationToken == nil || len(*response.ContinuationToken) == 0 || (*response.ContinuationToken)[0] == "" {
-			break
-		}
+	zap.L().Debug("Resolving group for deletion", zap.String("organization", target.Organization), zap.String("project", target.Project), zap.String("group", target.GroupName))
+	targetGroup, err := shared.FindGroupByName(ctx, target.Organization, target.Project, target.GroupName, opts.descriptor)
+	if err != nil {
+		return err
 	}
 
-	var targetDescriptor *string
-	switch len(matchingGroups) {
-	case 0:
-		return fmt.Errorf("no group found with name %q", groupName)
-	case 1:
-		targetDescriptor = matchingGroups[0].Descriptor
-	default:
-		if opts.descriptor == "" {
-			return fmt.Errorf("multiple groups found with the given name; please specify --descriptor")
-		}
-		// Find group matching the provided descriptor
-		for _, g := range matchingGroups {
-			if types.GetValue(g.Descriptor, "") == opts.descriptor {
-				targetDescriptor = g.Descriptor
-				break
-			}
-		}
-		if targetDescriptor == nil {
-			return fmt.Errorf("no group found with the specified descriptor %q", opts.descriptor)
-		}
-	}
+	ios.StopProgressIndicator()
 
-	if targetDescriptor == nil {
+	if targetGroup == nil || targetGroup.Descriptor == nil || types.GetValue(targetGroup.Descriptor, "") == "" {
 		return fmt.Errorf("target descriptor is nil")
 	}
 
@@ -151,7 +78,7 @@ func run(ctx util.CmdContext, opts *deleteOpts) error {
 		if err != nil {
 			return err
 		}
-		confirmed, err := p.Confirm(fmt.Sprintf("Delete security group %q?", groupName), false)
+		confirmed, err := p.Confirm(fmt.Sprintf("Delete security group %q?", target.GroupName), false)
 		if err != nil {
 			return err
 		}
@@ -162,12 +89,12 @@ func run(ctx util.CmdContext, opts *deleteOpts) error {
 
 	// Perform delete
 	err = graphClient.DeleteGroup(ctx.Context(), graph.DeleteGroupArgs{
-		GroupDescriptor: targetDescriptor,
+		GroupDescriptor: targetGroup.Descriptor,
 	})
 	if err != nil {
 		return fmt.Errorf("failed to delete group: %w", err)
 	}
 
-	fmt.Fprintf(ios.Out, "Deleted security group %q.\n", groupName)
+	fmt.Fprintf(ios.Out, "Deleted security group %q.\n", target.GroupName)
 	return nil
 }
