@@ -1,15 +1,13 @@
 package create
 
 import (
-	"context"
 	"fmt"
 	"slices"
-	"strings"
 
 	"github.com/MakeNowJust/heredoc"
-	"github.com/microsoft/azure-devops-go-api/azuredevops/v7/core"
 	"github.com/microsoft/azure-devops-go-api/azuredevops/v7/graph"
 	"github.com/spf13/cobra"
+	"github.com/tmeckel/azdo-cli/internal/cmd/security/group/shared"
 	"github.com/tmeckel/azdo-cli/internal/cmd/util"
 	"github.com/tmeckel/azdo-cli/internal/types"
 )
@@ -85,26 +83,15 @@ func runCreate(ctx util.CmdContext, opts *createOpts) error {
 		return err
 	}
 
-	var organization, project string
-
-	organization, err = cfg.Authentication().GetDefaultOrganization()
+	scope, err := shared.ParseScope(ctx, opts.scope)
 	if err != nil {
 		return err
 	}
+	organization := scope.Organization
+	project := scope.Project
 
-	if opts.scope != "" {
-		parts := strings.Split(opts.scope, "/")
-		if len(parts) < 1 || len(parts) > 2 {
-			return util.FlagErrorf("invalid scope format: %s", opts.scope)
-		}
-		organization = parts[0]
-		if len(parts) == 2 {
-			organization = parts[0]
-			project = parts[1]
-		}
-		if !slices.Contains(cfg.Authentication().GetOrganizations(), organization) {
-			return util.FlagErrorf("organization %q not found", organization)
-		}
+	if opts.scope != "" && !slices.Contains(cfg.Authentication().GetOrganizations(), organization) {
+		return util.FlagErrorf("organization %q not found", organization)
 	}
 
 	cf := ctx.ClientFactory()
@@ -114,28 +101,9 @@ func runCreate(ctx util.CmdContext, opts *createOpts) error {
 		return err
 	}
 
-	var scopeDescriptor *string
-	if project != "" {
-		coreClient, err := cf.Core(ctx.Context(), organization)
-		if err != nil {
-			return err
-		}
-
-		prj, err := coreClient.GetProject(context.Background(), core.GetProjectArgs{
-			ProjectId: &project,
-		})
-		if err != nil {
-			return fmt.Errorf("failed to get project: %w", err)
-		}
-
-		descriptor, err := graphClient.GetDescriptor(ctx.Context(), graph.GetDescriptorArgs{
-			StorageKey: prj.Id,
-		})
-		if err != nil {
-			return fmt.Errorf("failed to get project descriptor: %w", err)
-		}
-
-		scopeDescriptor = descriptor.Value
+	scopeDescriptor, _, err := shared.ResolveScopeDescriptor(ctx, organization, project)
+	if err != nil {
+		return err
 	}
 
 	var groupDescriptors *[]string
@@ -155,7 +123,7 @@ func runCreate(ctx util.CmdContext, opts *createOpts) error {
 			ScopeDescriptor:  scopeDescriptor,
 			GroupDescriptors: groupDescriptors,
 		}
-		createdGroup, err = graphClient.CreateGroupVsts(context.Background(), args)
+		createdGroup, err = graphClient.CreateGroupVsts(ctx.Context(), args)
 	case opts.email != "":
 		args := graph.CreateGroupMailAddressArgs{
 			CreationContext: &graph.GraphGroupMailAddressCreationContext{
@@ -164,7 +132,7 @@ func runCreate(ctx util.CmdContext, opts *createOpts) error {
 			ScopeDescriptor:  scopeDescriptor,
 			GroupDescriptors: groupDescriptors,
 		}
-		createdGroup, err = graphClient.CreateGroupMailAddress(context.Background(), args)
+		createdGroup, err = graphClient.CreateGroupMailAddress(ctx.Context(), args)
 	case opts.originID != "":
 		args := graph.CreateGroupOriginIdArgs{
 			CreationContext: &graph.GraphGroupOriginIdCreationContext{
@@ -173,7 +141,7 @@ func runCreate(ctx util.CmdContext, opts *createOpts) error {
 			ScopeDescriptor:  scopeDescriptor,
 			GroupDescriptors: groupDescriptors,
 		}
-		createdGroup, err = graphClient.CreateGroupOriginId(context.Background(), args)
+		createdGroup, err = graphClient.CreateGroupOriginId(ctx.Context(), args)
 	default:
 		return fmt.Errorf("exactly one of --name, --email, or --origin-id must be specified")
 	}
