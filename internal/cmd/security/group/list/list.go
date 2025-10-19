@@ -8,9 +8,9 @@ import (
 	"go.uber.org/zap"
 
 	"github.com/MakeNowJust/heredoc"
-	"github.com/microsoft/azure-devops-go-api/azuredevops/v7/core"
 	"github.com/microsoft/azure-devops-go-api/azuredevops/v7/graph"
 	"github.com/spf13/cobra"
+	"github.com/tmeckel/azdo-cli/internal/cmd/security/group/shared"
 	"github.com/tmeckel/azdo-cli/internal/cmd/util"
 	"github.com/tmeckel/azdo-cli/internal/types"
 )
@@ -69,6 +69,15 @@ func NewCmd(ctx util.CmdContext) *cobra.Command {
 
 func runCommand(ctx util.CmdContext, o *opts) error {
 	zap.L().Sugar().Debug("Starting security group list command")
+
+	ios, err := ctx.IOStreams()
+	if err != nil {
+		return err
+	}
+
+	ios.StartProgressIndicator()
+	defer ios.StopProgressIndicator()
+
 	var re *regexp.Regexp
 	if o.filter != "" {
 		var err error
@@ -87,45 +96,13 @@ func runCommand(ctx util.CmdContext, o *opts) error {
 			}
 		}
 	}
-	// Parse target
-	ios, err := ctx.IOStreams()
+	scope, err := shared.ParseScope(ctx, o.target)
 	if err != nil {
 		return err
 	}
-	zap.L().Sugar().Debug("Acquired IOStreams")
 
-	ios.StartProgressIndicator()
-	defer ios.StopProgressIndicator()
-
-	var organization string
-	var project string
-
-	if o.target != "" {
-		zap.L().Sugar().Debugf("Target provided: %s", o.target)
-		parts := strings.Split(o.target, "/")
-		if len(parts) < 1 || len(parts) > 2 {
-			return util.FlagErrorf("invalid target format: %s", o.target)
-		}
-
-		organization = parts[0]
-		if len(parts) == 2 {
-			organization = parts[0]
-			project = parts[1]
-		}
-	}
-
-	if organization == "" {
-		zap.L().Sugar().Debug("No organization provided, fetching default from config")
-		cfg, err := ctx.Config()
-		if err != nil {
-			return err
-		}
-		o, err := cfg.Authentication().GetDefaultOrganization()
-		if err != nil {
-			return err
-		}
-		organization = o
-	}
+	organization := scope.Organization
+	project := scope.Project
 
 	zap.L().Sugar().Debugf("Organization: %s", organization)
 	graphClient, err := ctx.ClientFactory().Graph(ctx.Context(), organization)
@@ -134,30 +111,12 @@ func runCommand(ctx util.CmdContext, o *opts) error {
 	}
 	zap.L().Sugar().Debug("Graph client created")
 
-	var scopeDescriptor *string
-	if project != "" {
-		zap.L().Sugar().Debug("Fetching Core client for project scope")
-		coreClient, err := ctx.ClientFactory().Core(ctx.Context(), organization)
-		if err != nil {
-			return fmt.Errorf("failed to get core client: %w", err)
-		}
-		project, err := coreClient.GetProject(ctx.Context(), core.GetProjectArgs{
-			ProjectId: &project,
-		})
-		if err != nil {
-			return fmt.Errorf("failed to get project: %w", err)
-		}
-		zap.L().Sugar().Debugf("Fetched project: %s", types.GetValue(project.Name, ""))
-
-		descriptor, err := graphClient.GetDescriptor(ctx.Context(), graph.GetDescriptorArgs{
-			StorageKey: project.Id,
-		})
-		if err != nil {
-			return fmt.Errorf("failed to get project descriptor: %w", err)
-		}
-		zap.L().Sugar().Debugf("Project descriptor: %s", types.GetValue(descriptor.Value, ""))
-
-		scopeDescriptor = descriptor.Value
+	scopeDescriptor, _, err := shared.ResolveScopeDescriptor(ctx, organization, project)
+	if err != nil {
+		return err
+	}
+	if scopeDescriptor != nil {
+		zap.L().Sugar().Debugf("Project descriptor: %s", types.GetValue(scopeDescriptor, ""))
 	}
 
 	zap.L().Sugar().Debug("Starting group fetch loop")
