@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"strings"
 
 	"github.com/MakeNowJust/heredoc"
 	"github.com/microsoft/azure-devops-go-api/azuredevops/v7"
@@ -17,7 +18,7 @@ import (
 
 type opts struct {
 	scope    string
-	member   string
+	members  []string
 	exporter util.Exporter
 }
 
@@ -30,6 +31,7 @@ type addResult struct {
 	MemberOrigin        string `json:"memberOrigin,omitempty"`
 	MemberOriginID      string `json:"memberOriginId,omitempty"`
 	RelationshipCreated bool   `json:"relationshipCreated"`
+	Status              string `json:"status,omitempty"`
 }
 
 func NewCmd(ctx util.CmdContext) *cobra.Command {
@@ -63,7 +65,7 @@ func NewCmd(ctx util.CmdContext) *cobra.Command {
 		},
 	}
 
-	cmd.Flags().StringVarP(&o.member, "member", "m", "", "Email, descriptor, or principal name of the user or group to add.")
+	cmd.Flags().StringSliceVarP(&o.members, "member", "m", nil, "List of (comma-separated) Email, descriptor, or principal name of the user or group to add.")
 	_ = cmd.MarkFlagRequired("member")
 	util.AddJSONFlags(cmd, &o.exporter, []string{
 		"groupDescriptor",
@@ -74,6 +76,7 @@ func NewCmd(ctx util.CmdContext) *cobra.Command {
 		"memberOrigin",
 		"memberOriginId",
 		"relationshipCreated",
+		"status",
 	})
 
 	return cmd
@@ -83,6 +86,10 @@ func runAdd(ctx util.CmdContext, o *opts) error {
 	ios, err := ctx.IOStreams()
 	if err != nil {
 		return err
+	}
+
+	if len(o.members) == 0 {
+		return util.FlagErrorf("at least one --member value must be provided")
 	}
 
 	ios.StartProgressIndicator()
@@ -109,72 +116,104 @@ func runAdd(ctx util.CmdContext, o *opts) error {
 		return fmt.Errorf("resolved group descriptor is empty")
 	}
 
-	member, err := shared.ResolveMemberDescriptor(ctx, organization, o.member)
-	if err != nil {
-		return err
-	}
-	if member == nil || types.GetValue(member.Descriptor, "") == "" {
-		return fmt.Errorf("failed to resolve member descriptor")
-	}
-
-	memberDescriptor := types.GetValue(member.Descriptor, "")
-
 	graphClient, err := ctx.ClientFactory().Graph(ctx.Context(), organization)
 	if err != nil {
 		return err
 	}
 
-	zap.L().Debug("checking existing membership",
-		zap.String("groupDescriptor", types.GetValue(group.Descriptor, "")),
-		zap.String("memberDescriptor", memberDescriptor),
-	)
+	results := make([]addResult, 0, len(o.members))
 
-	err = graphClient.CheckMembershipExistence(ctx.Context(), graph.CheckMembershipExistenceArgs{
-		ContainerDescriptor: group.Descriptor,
-		SubjectDescriptor:   types.ToPtr(memberDescriptor),
-	})
-	if err == nil {
-		return fmt.Errorf("%q is already a member of %q", o.member, target.GroupName)
-	}
-
-	var wrapped *azuredevops.WrappedError
-	if !errors.As(err, &wrapped) || wrapped == nil || wrapped.StatusCode == nil || *wrapped.StatusCode != http.StatusNotFound {
-		return fmt.Errorf("failed to check existing membership: %w", err)
-	}
-
-	zap.L().Debug("adding membership",
-		zap.String("groupDescriptor", types.GetValue(group.Descriptor, "")),
-		zap.String("memberDescriptor", memberDescriptor),
-		zap.String("memebr", o.member),
-	)
-
-	membership, err := graphClient.AddMembership(ctx.Context(), graph.AddMembershipArgs{
-		ContainerDescriptor: group.Descriptor,
-		SubjectDescriptor:   types.ToPtr(memberDescriptor),
-	})
-	if err != nil {
-		var addErr *azuredevops.WrappedError
-		if errors.As(err, &addErr) && addErr != nil && addErr.StatusCode != nil && *addErr.StatusCode == http.StatusConflict {
-			return fmt.Errorf("%q is already a member of %q", o.member, target.GroupName)
+	for _, rawMember := range o.members {
+		memberInput := strings.TrimSpace(rawMember)
+		if memberInput == "" {
+			return util.FlagErrorf("member value must not be empty")
 		}
-		return fmt.Errorf("failed to add membership: %w", err)
+
+		memberSubject, err := shared.ResolveMemberDescriptor(ctx, organization, memberInput)
+		if err != nil {
+			return err
+		}
+		if memberSubject == nil || types.GetValue(memberSubject.Descriptor, "") == "" {
+			return fmt.Errorf("failed to resolve member descriptor for %q", memberInput)
+		}
+
+		memberDescriptor := types.GetValue(memberSubject.Descriptor, "")
+
+		zap.L().Debug("checking existing membership",
+			zap.String("groupDescriptor", types.GetValue(group.Descriptor, "")),
+			zap.String("memberDescriptor", memberDescriptor),
+		)
+
+		err = graphClient.CheckMembershipExistence(ctx.Context(), graph.CheckMembershipExistenceArgs{
+			ContainerDescriptor: group.Descriptor,
+			SubjectDescriptor:   types.ToPtr(memberDescriptor),
+		})
+		if err == nil {
+			results = append(results, addResult{
+				GroupDescriptor:     types.GetValue(group.Descriptor, ""),
+				GroupDisplayName:    types.GetValue(group.DisplayName, target.GroupName),
+				MemberDescriptor:    memberDescriptor,
+				MemberDisplayName:   types.GetValue(memberSubject.DisplayName, ""),
+				MemberSubjectKind:   types.GetValue(memberSubject.SubjectKind, ""),
+				MemberOrigin:        types.GetValue(memberSubject.Origin, ""),
+				MemberOriginID:      types.GetValue(memberSubject.OriginId, ""),
+				RelationshipCreated: false,
+				Status:              "already member",
+			})
+			continue
+		}
+
+		var wrapped *azuredevops.WrappedError
+		if !errors.As(err, &wrapped) || wrapped == nil || wrapped.StatusCode == nil || *wrapped.StatusCode != http.StatusNotFound {
+			return fmt.Errorf("failed to check existing membership for %q: %w", memberInput, err)
+		}
+
+		zap.L().Debug("adding membership",
+			zap.String("groupDescriptor", types.GetValue(group.Descriptor, "")),
+			zap.String("memberDescriptor", memberDescriptor),
+			zap.String("member", memberInput),
+		)
+
+		membership, err := graphClient.AddMembership(ctx.Context(), graph.AddMembershipArgs{
+			ContainerDescriptor: group.Descriptor,
+			SubjectDescriptor:   types.ToPtr(memberDescriptor),
+		})
+		if err != nil {
+			var addErr *azuredevops.WrappedError
+			if errors.As(err, &addErr) && addErr != nil && addErr.StatusCode != nil && *addErr.StatusCode == http.StatusConflict {
+				results = append(results, addResult{
+					GroupDescriptor:     types.GetValue(group.Descriptor, ""),
+					GroupDisplayName:    types.GetValue(group.DisplayName, target.GroupName),
+					MemberDescriptor:    memberDescriptor,
+					MemberDisplayName:   types.GetValue(memberSubject.DisplayName, ""),
+					MemberSubjectKind:   types.GetValue(memberSubject.SubjectKind, ""),
+					MemberOrigin:        types.GetValue(memberSubject.Origin, ""),
+					MemberOriginID:      types.GetValue(memberSubject.OriginId, ""),
+					RelationshipCreated: false,
+					Status:              "already member",
+				})
+				continue
+			}
+			return fmt.Errorf("failed to add membership for %q: %w", memberInput, err)
+		}
+
+		results = append(results, addResult{
+			GroupDescriptor:     types.GetValue(group.Descriptor, ""),
+			GroupDisplayName:    types.GetValue(group.DisplayName, target.GroupName),
+			MemberDescriptor:    types.GetValue(membership.MemberDescriptor, memberDescriptor),
+			MemberDisplayName:   types.GetValue(memberSubject.DisplayName, ""),
+			MemberSubjectKind:   types.GetValue(memberSubject.SubjectKind, ""),
+			MemberOrigin:        types.GetValue(memberSubject.Origin, ""),
+			MemberOriginID:      types.GetValue(memberSubject.OriginId, ""),
+			RelationshipCreated: true,
+			Status:              "added",
+		})
 	}
 
 	ios.StopProgressIndicator()
 
-	result := addResult{
-		GroupDescriptor:     types.GetValue(group.Descriptor, ""),
-		GroupDisplayName:    types.GetValue(group.DisplayName, target.GroupName),
-		MemberDescriptor:    types.GetValue(membership.MemberDescriptor, memberDescriptor),
-		MemberDisplayName:   types.GetValue(member.DisplayName, ""),
-		MemberSubjectKind:   types.GetValue(member.SubjectKind, ""),
-		MemberOrigin:        types.GetValue(member.Origin, ""),
-		MemberOriginID:      types.GetValue(member.OriginId, ""),
-		RelationshipCreated: true,
-	}
-
 	if o.exporter != nil {
-		return o.exporter.Write(ios, result)
+		return o.exporter.Write(ios, results)
 	}
 
 	tp, err := ctx.Printer("list")
@@ -182,16 +221,19 @@ func runAdd(ctx util.CmdContext, o *opts) error {
 		return err
 	}
 
-	tp.AddColumns("Group", "Member", "Descriptor")
+	tp.AddColumns("Group", "Member", "Descriptor", "Status")
 	tp.EndRow()
-	tp.AddField(result.GroupDisplayName)
-	if result.MemberDisplayName != "" {
-		tp.AddField(result.MemberDisplayName)
-	} else {
-		tp.AddField(result.MemberDescriptor)
+	for _, r := range results {
+		tp.AddField(r.GroupDisplayName)
+		if r.MemberDisplayName != "" {
+			tp.AddField(r.MemberDisplayName)
+		} else {
+			tp.AddField(r.MemberDescriptor)
+		}
+		tp.AddField(r.MemberDescriptor)
+		tp.AddField(r.Status)
+		tp.EndRow()
 	}
-	tp.AddField(result.MemberDescriptor)
-	tp.EndRow()
 
 	return tp.Render()
 }
