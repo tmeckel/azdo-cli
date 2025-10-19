@@ -417,6 +417,17 @@ List security groups
 
 Manage security group memberships
 
+##### `azdo security group membership add [ORGANIZATION/]GROUP | [ORGANIZATION/]PROJECT/GROUP [flags]`
+
+Add a member to an Azure DevOps security group.
+
+```
+-q, --jq expression     Filter JSON output using a jq expression
+    --json fields       Output JSON with the specified fields
+-m, --member string     Email, descriptor, or principal name of the user or group to add.
+-t, --template string   Format JSON output using a Go template; see "azdo help formatting"
+````
+
 ##### `azdo security group membership list [ORGANIZATION/]GROUP | [ORGANIZATION/]PROJECT/GROUP [flags]`
 
 List the members of an Azure DevOps security group.

@@ -1,6 +1,7 @@
 ## azdo security group membership
 Manage security group memberships
 ### Available commands
+* [azdo security group membership add](./azdo_security_group_membership_add.md)
 * [azdo security group membership list](./azdo_security_group_membership_list.md)
 
 ### See also
