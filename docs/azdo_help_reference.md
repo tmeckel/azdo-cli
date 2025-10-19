@@ -438,6 +438,19 @@ Show details of an Azure DevOps security group
 -t, --template string   Format JSON output using a Go template; see "azdo help formatting"
 ````
 
+#### `azdo security group update ORGANIZATION/GROUP | ORGANIZATION/PROJECT/GROUP [flags]`
+
+Update an Azure DevOps security group
+
+```
+    --description string   New description for the security group.
+    --descriptor string    Descriptor of the security group (required if multiple groups match the name).
+-q, --jq expression        Filter JSON output using a jq expression
+    --json fields          Output JSON with the specified fields
+    --name string          New display name for the security group.
+-t, --template string      Format JSON output using a Go template; see "azdo help formatting"
+````
+
 
 ### See also
 
