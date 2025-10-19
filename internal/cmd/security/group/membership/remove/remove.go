@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"strings"
 
 	"github.com/MakeNowJust/heredoc"
 	"github.com/microsoft/azure-devops-go-api/azuredevops/v7"
@@ -17,7 +18,7 @@ import (
 
 type opts struct {
 	scope    string
-	member   string
+	members  []string
 	yes      bool
 	exporter util.Exporter
 }
@@ -29,6 +30,7 @@ type removeResult struct {
 	MemberDisplayName   string `json:"memberDisplayName,omitempty"`
 	MemberSubjectKind   string `json:"memberSubjectKind,omitempty"`
 	RelationshipRemoved bool   `json:"relationshipRemoved"`
+	Status              string `json:"status,omitempty"`
 }
 
 func NewCmd(ctx util.CmdContext) *cobra.Command {
@@ -61,7 +63,7 @@ func NewCmd(ctx util.CmdContext) *cobra.Command {
 		},
 	}
 
-	cmd.Flags().StringVarP(&o.member, "member", "m", "", "Email, descriptor, or principal name of the user or group to remove.")
+	cmd.Flags().StringSliceVarP(&o.members, "member", "m", nil, "List of (comma-separated) Email, descriptor, or principal name of the user or group to remove.")
 	_ = cmd.MarkFlagRequired("member")
 	cmd.Flags().BoolVarP(&o.yes, "yes", "y", false, "Do not prompt for confirmation.")
 	util.AddJSONFlags(cmd, &o.exporter, []string{
@@ -71,6 +73,7 @@ func NewCmd(ctx util.CmdContext) *cobra.Command {
 		"memberDisplayName",
 		"memberSubjectKind",
 		"relationshipRemoved",
+		"status",
 	})
 
 	return cmd
@@ -80,6 +83,10 @@ func runRemove(ctx util.CmdContext, o *opts) error {
 	ios, err := ctx.IOStreams()
 	if err != nil {
 		return err
+	}
+
+	if len(o.members) == 0 {
+		return util.FlagErrorf("at least one --member value must be provided")
 	}
 
 	ios.StartProgressIndicator()
@@ -106,47 +113,100 @@ func runRemove(ctx util.CmdContext, o *opts) error {
 		return fmt.Errorf("resolved group descriptor is empty")
 	}
 
-	memberSubject, err := shared.ResolveMemberDescriptor(ctx, organization, o.member)
-	if err != nil {
-		return err
-	}
-	memberDescriptor := types.GetValue(memberSubject.Descriptor, "")
-	if memberDescriptor == "" {
-		return fmt.Errorf("failed to resolve member descriptor")
-	}
-
 	graphClient, err := ctx.ClientFactory().Graph(ctx.Context(), organization)
 	if err != nil {
 		return err
 	}
 
-	zap.L().Debug("checking membership before removal",
-		zap.String("groupDescriptor", types.GetValue(group.Descriptor, "")),
-		zap.String("memberDescriptor", memberDescriptor),
-	)
+	type removalCandidate struct {
+		input       string
+		subject     *graph.GraphSubject
+		descriptor  string
+		displayName string
+		exists      bool
+		removed     bool
+	}
 
-	err = graphClient.CheckMembershipExistence(ctx.Context(), graph.CheckMembershipExistenceArgs{
-		ContainerDescriptor: group.Descriptor,
-		SubjectDescriptor:   types.ToPtr(memberDescriptor),
-	})
-	if err != nil {
-		var wrapped *azuredevops.WrappedError
-		if errors.As(err, &wrapped) && wrapped != nil && wrapped.StatusCode != nil && *wrapped.StatusCode == http.StatusNotFound {
-			return fmt.Errorf("%s (%s) is not a member of %s", o.member, memberDescriptor, target.GroupName)
+	candidates := make([]removalCandidate, 0, len(o.members))
+
+	for _, rawMember := range o.members {
+		memberInput := strings.TrimSpace(rawMember)
+		if memberInput == "" {
+			return util.FlagErrorf("member value must not be empty")
 		}
-		return fmt.Errorf("failed to verify existing membership: %w", err)
+
+		memberSubject, err := shared.ResolveMemberDescriptor(ctx, organization, memberInput)
+		if err != nil {
+			return err
+		}
+		if memberSubject == nil || types.GetValue(memberSubject.Descriptor, "") == "" {
+			return fmt.Errorf("failed to resolve member descriptor for %q", memberInput)
+		}
+
+		memberDescriptor := types.GetValue(memberSubject.Descriptor, "")
+		displayName := types.GetValue(memberSubject.DisplayName, memberDescriptor)
+
+		zap.L().Debug("checking membership before removal",
+			zap.String("groupDescriptor", types.GetValue(group.Descriptor, "")),
+			zap.String("memberDescriptor", memberDescriptor),
+		)
+
+		exists := true
+		err = graphClient.CheckMembershipExistence(ctx.Context(), graph.CheckMembershipExistenceArgs{
+			ContainerDescriptor: group.Descriptor,
+			SubjectDescriptor:   types.ToPtr(memberDescriptor),
+		})
+		if err != nil {
+			var wrapped *azuredevops.WrappedError
+			if errors.As(err, &wrapped) && wrapped != nil && wrapped.StatusCode != nil && *wrapped.StatusCode == http.StatusNotFound {
+				exists = false
+			} else {
+				return fmt.Errorf("failed to verify existing membership for %q: %w", memberInput, err)
+			}
+		}
+
+		candidates = append(candidates, removalCandidate{
+			input:       memberInput,
+			subject:     memberSubject,
+			descriptor:  memberDescriptor,
+			displayName: displayName,
+			exists:      exists,
+		})
 	}
 
 	ios.StopProgressIndicator()
 
-	if !o.yes {
+	removable := 0
+	for _, c := range candidates {
+		if c.exists {
+			removable++
+		}
+	}
+
+	if removable > 0 && !o.yes {
 		p, err := ctx.Prompter()
 		if err != nil {
 			return err
 		}
-		displayName := types.GetValue(memberSubject.DisplayName, memberDescriptor)
-		confirmMessage := fmt.Sprintf("Remove %s (%s) from group %q?", o.member, displayName, target.GroupName)
-		confirmed, err := p.Confirm(confirmMessage, false)
+
+		var prompt string
+		if removable == 1 {
+			var name string
+			for _, c := range candidates {
+				if c.exists {
+					name = c.displayName
+					if name == "" {
+						name = c.descriptor
+					}
+					break
+				}
+			}
+			prompt = fmt.Sprintf("Remove %q from group %q?", name, target.GroupName)
+		} else {
+			prompt = fmt.Sprintf("Remove %d members from group %q?", removable, target.GroupName)
+		}
+
+		confirmed, err := p.Confirm(prompt, false)
 		if err != nil {
 			return err
 		}
@@ -155,45 +215,79 @@ func runRemove(ctx util.CmdContext, o *opts) error {
 		}
 	}
 
-	ios.StartProgressIndicator()
+	if removable > 0 {
+		ios.StartProgressIndicator()
+		for i := range candidates {
+			if !candidates[i].exists {
+				continue
+			}
 
-	zap.L().Debug("removing membership",
-		zap.String("groupDescriptor", types.GetValue(group.Descriptor, "")),
-		zap.String("memberDescriptor", memberDescriptor),
-	)
+			zap.L().Debug("removing membership",
+				zap.String("groupDescriptor", types.GetValue(group.Descriptor, "")),
+				zap.String("memberDescriptor", candidates[i].descriptor),
+			)
 
-	err = graphClient.RemoveMembership(ctx.Context(), graph.RemoveMembershipArgs{
-		ContainerDescriptor: group.Descriptor,
-		SubjectDescriptor:   types.ToPtr(memberDescriptor),
-	})
-	if err != nil {
-		var wrapped *azuredevops.WrappedError
-		if errors.As(err, &wrapped) && wrapped != nil && wrapped.StatusCode != nil && *wrapped.StatusCode == http.StatusNotFound {
-			return fmt.Errorf("%s is not a member of %s", memberDescriptor, target.GroupName)
+			err = graphClient.RemoveMembership(ctx.Context(), graph.RemoveMembershipArgs{
+				ContainerDescriptor: group.Descriptor,
+				SubjectDescriptor:   types.ToPtr(candidates[i].descriptor),
+			})
+			if err != nil {
+				var wrapped *azuredevops.WrappedError
+				if errors.As(err, &wrapped) && wrapped != nil && wrapped.StatusCode != nil && *wrapped.StatusCode == http.StatusNotFound {
+					candidates[i].exists = false
+					continue
+				}
+				ios.StopProgressIndicator()
+				return fmt.Errorf("failed to remove membership for %q: %w", candidates[i].input, err)
+			}
+
+			candidates[i].removed = true
 		}
-		return fmt.Errorf("failed to remove membership: %w", err)
+		ios.StopProgressIndicator()
 	}
 
-	ios.StopProgressIndicator()
+	results := make([]removeResult, 0, len(candidates))
+	for _, c := range candidates {
+		status := "not a member"
+		if c.removed {
+			status = "removed"
+		} else if c.exists {
+			status = "not removed"
+		}
 
-	result := removeResult{
-		GroupDescriptor:     types.GetValue(group.Descriptor, ""),
-		GroupDisplayName:    types.GetValue(group.DisplayName, target.GroupName),
-		MemberDescriptor:    memberDescriptor,
-		MemberDisplayName:   types.GetValue(memberSubject.DisplayName, ""),
-		MemberSubjectKind:   types.GetValue(memberSubject.SubjectKind, ""),
-		RelationshipRemoved: true,
+		results = append(results, removeResult{
+			GroupDescriptor:     types.GetValue(group.Descriptor, ""),
+			GroupDisplayName:    types.GetValue(group.DisplayName, target.GroupName),
+			MemberDescriptor:    c.descriptor,
+			MemberDisplayName:   c.displayName,
+			MemberSubjectKind:   types.GetValue(c.subject.SubjectKind, ""),
+			RelationshipRemoved: c.removed,
+			Status:              status,
+		})
 	}
 
 	if o.exporter != nil {
-		return o.exporter.Write(ios, result)
+		return o.exporter.Write(ios, results)
 	}
 
-	display := result.MemberDescriptor
-	if result.MemberDisplayName != "" {
-		display = fmt.Sprintf("%s (%s)", result.MemberDisplayName, result.MemberDescriptor)
+	tp, err := ctx.Printer("list")
+	if err != nil {
+		return err
 	}
 
-	fmt.Fprintf(ios.Out, "Removed %s from group %q\n", display, target.GroupName)
-	return nil
+	tp.AddColumns("Group", "Member", "Descriptor", "Status")
+	tp.EndRow()
+	for _, r := range results {
+		tp.AddField(r.GroupDisplayName)
+		if r.MemberDisplayName != "" {
+			tp.AddField(r.MemberDisplayName)
+		} else {
+			tp.AddField(r.MemberDescriptor)
+		}
+		tp.AddField(r.MemberDescriptor)
+		tp.AddField(r.Status)
+		tp.EndRow()
+	}
+
+	return tp.Render()
 }
