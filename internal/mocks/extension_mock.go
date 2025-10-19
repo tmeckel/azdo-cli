@@ -14,6 +14,7 @@ import (
 	reflect "reflect"
 
 	uuid "github.com/google/uuid"
+	graph "github.com/microsoft/azure-devops-go-api/azuredevops/v7/graph"
 	gomock "go.uber.org/mock/gomock"
 )
 
@@ -39,6 +40,21 @@ func NewMockAzDOExtension(ctrl *gomock.Controller) *MockAzDOExtension {
 // EXPECT returns an object that allows the caller to indicate expected use.
 func (m *MockAzDOExtension) EXPECT() *MockAzDOExtensionMockRecorder {
 	return m.recorder
+}
+
+// FindGroupsByDisplayName mocks base method.
+func (m *MockAzDOExtension) FindGroupsByDisplayName(ctx context.Context, displayName string, scopeDescriptor *string) ([]*graph.GraphGroup, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "FindGroupsByDisplayName", ctx, displayName, scopeDescriptor)
+	ret0, _ := ret[0].([]*graph.GraphGroup)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// FindGroupsByDisplayName indicates an expected call of FindGroupsByDisplayName.
+func (mr *MockAzDOExtensionMockRecorder) FindGroupsByDisplayName(ctx, displayName, scopeDescriptor any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FindGroupsByDisplayName", reflect.TypeOf((*MockAzDOExtension)(nil).FindGroupsByDisplayName), ctx, displayName, scopeDescriptor)
 }
 
 // GetSelfID mocks base method.
