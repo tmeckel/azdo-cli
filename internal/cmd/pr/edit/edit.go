@@ -258,7 +258,6 @@ func readBodyFile(filename string) ([]byte, error) {
 	return os.ReadFile(filename) //nolint:gosec
 }
 
-
 func removeLabel(labels []core.WebApiTagDefinition, labelToRemove string) []core.WebApiTagDefinition {
 	var updatedLabels []core.WebApiTagDefinition
 	for _, l := range labels {

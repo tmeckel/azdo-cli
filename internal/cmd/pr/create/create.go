@@ -350,7 +350,7 @@ func runCmd(ctx util.CmdContext, opts *createOptions) (err error) {
 		IsDraft:       types.ToPtr(opts.isDraft),
 	}
 
-		if len(opts.requiredReviewer) > 0 || len(opts.optionalReviewer) > 0 {
+	if len(opts.requiredReviewer) > 0 || len(opts.optionalReviewer) > 0 {
 		reviewersList, err := shared.ResolveReviewers(ctx.Context(), identityClient, opts.requiredReviewer, opts.optionalReviewer)
 		if err != nil {
 			return fmt.Errorf("failed to resolve reviewers: %w", err)
