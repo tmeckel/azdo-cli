@@ -424,7 +424,7 @@ Add a member to an Azure DevOps security group.
 ```
 -q, --jq expression     Filter JSON output using a jq expression
     --json fields       Output JSON with the specified fields
--m, --member string     Email, descriptor, or principal name of the user or group to add.
+-m, --member strings    List of (comma-separated) Email, descriptor, or principal name of the user or group to add.
 -t, --template string   Format JSON output using a Go template; see "azdo help formatting"
 ````
 
@@ -446,7 +446,7 @@ Remove a member from an Azure DevOps security group.
 ```
 -q, --jq expression     Filter JSON output using a jq expression
     --json fields       Output JSON with the specified fields
--m, --member string     Email, descriptor, or principal name of the user or group to remove.
+-m, --member strings    List of (comma-separated) Email, descriptor, or principal name of the user or group to remove.
 -t, --template string   Format JSON output using a Go template; see "azdo help formatting"
 -y, --yes               Do not prompt for confirmation.
 ````
