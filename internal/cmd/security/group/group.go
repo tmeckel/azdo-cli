@@ -7,6 +7,7 @@ import (
 	"github.com/tmeckel/azdo-cli/internal/cmd/security/group/list"
 	"github.com/tmeckel/azdo-cli/internal/cmd/security/group/membership"
 	"github.com/tmeckel/azdo-cli/internal/cmd/security/group/show"
+	"github.com/tmeckel/azdo-cli/internal/cmd/security/group/update"
 	"github.com/tmeckel/azdo-cli/internal/cmd/util"
 )
 
@@ -26,6 +27,7 @@ func NewCmd(ctx util.CmdContext) *cobra.Command {
 	cmd.AddCommand(list.NewCmd(ctx))
 	cmd.AddCommand(membership.NewCmd(ctx))
 	cmd.AddCommand(show.NewCmd(ctx))
+	cmd.AddCommand(update.NewCmd(ctx))
 
 	return cmd
 }
