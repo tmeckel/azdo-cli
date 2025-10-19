@@ -18,9 +18,9 @@ Use --member to provide the member's email, descriptor, or principal name.
 
 	Output JSON with the specified fields
 
-* `-m`, `--member` `string`
+* `-m`, `--member` `strings`
 
-	Email, descriptor, or principal name of the user or group to remove.
+	List of (comma-separated) Email, descriptor, or principal name of the user or group to remove.
 
 * `-t`, `--template` `string`
 
