@@ -428,6 +428,16 @@ List the members of an Azure DevOps security group.
 -t, --template string       Format JSON output using a Go template; see "azdo help formatting"
 ````
 
+#### `azdo security group show ORGANIZATION/GROUP | ORGANIZATION/PROJECT/GROUP [flags]`
+
+Show details of an Azure DevOps security group
+
+```
+-q, --jq expression     Filter JSON output using a jq expression
+    --json fields       Output JSON with the specified fields
+-t, --template string   Format JSON output using a Go template; see "azdo help formatting"
+````
+
 
 ### See also
 
