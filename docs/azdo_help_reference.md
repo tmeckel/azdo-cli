@@ -439,6 +439,18 @@ List the members of an Azure DevOps security group.
 -t, --template string       Format JSON output using a Go template; see "azdo help formatting"
 ````
 
+##### `azdo security group membership remove [ORGANIZATION/]GROUP | [ORGANIZATION/]PROJECT/GROUP [flags]`
+
+Remove a member from an Azure DevOps security group.
+
+```
+-q, --jq expression     Filter JSON output using a jq expression
+    --json fields       Output JSON with the specified fields
+-m, --member string     Email, descriptor, or principal name of the user or group to remove.
+-t, --template string   Format JSON output using a Go template; see "azdo help formatting"
+-y, --yes               Do not prompt for confirmation.
+````
+
 #### `azdo security group show ORGANIZATION/GROUP | ORGANIZATION/PROJECT/GROUP [flags]`
 
 Show details of an Azure DevOps security group
