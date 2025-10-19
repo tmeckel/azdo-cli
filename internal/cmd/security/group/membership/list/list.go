@@ -4,10 +4,10 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/microsoft/azure-devops-go-api/azuredevops/v7/core"
 	"github.com/microsoft/azure-devops-go-api/azuredevops/v7/graph"
 	"github.com/microsoft/azure-devops-go-api/azuredevops/v7/identity"
 	"github.com/spf13/cobra"
+	"github.com/tmeckel/azdo-cli/internal/cmd/security/group/shared"
 	"github.com/tmeckel/azdo-cli/internal/cmd/util"
 	"github.com/tmeckel/azdo-cli/internal/types"
 	"go.uber.org/zap"
@@ -58,53 +58,24 @@ func runList(ctx util.CmdContext, o *opts) error {
 	ios.StartProgressIndicator()
 	defer ios.StopProgressIndicator()
 
-	var organization, project, group string
-	parts := strings.Split(o.scope, "/")
-	switch len(parts) {
-	case 2:
-		organization, group = parts[0], parts[1]
-	case 3:
-		organization, project, group = parts[0], parts[1], parts[2]
-	default:
-		return util.FlagErrorf("invalid scope format: %q", o.scope)
+	target, err := shared.ParseTargetWithDefault(ctx, o.scope)
+	if err != nil {
+		return err
 	}
+	organization := target.Organization
+	project := target.Project
+	group := target.GroupName
 
 	graphClient, err := ctx.ClientFactory().Graph(ctx.Context(), organization)
 	if err != nil {
 		return err
 	}
 
-	var projectDescriptor *string
-	var projectID *string
-
-	if project != "" {
-		zap.L().Sugar().Debug("Fetching Core client for project scope")
-		coreClient, err := ctx.ClientFactory().Core(ctx.Context(), organization)
-		if err != nil {
-			return fmt.Errorf("failed to get core client: %w", err)
-		}
-		p, err := coreClient.GetProject(ctx.Context(), core.GetProjectArgs{
-			ProjectId: &project,
-		})
-		if err != nil {
-			return fmt.Errorf("failed to get project: %w", err)
-		}
-		projectID = types.ToPtr(p.Id.String())
-
-		zap.L().Sugar().Debugf("Fetched project: %q (%s)", *p.Name, p.Id.String())
-
-		descriptor, err := graphClient.GetDescriptor(ctx.Context(), graph.GetDescriptorArgs{
-			StorageKey: p.Id,
-		})
-		if err != nil {
-			return fmt.Errorf("failed to get project descriptor: %w", err)
-		}
-		zap.L().Sugar().Debugf("Project descriptor: %s", types.GetValue(descriptor.Value, ""))
-
-		projectDescriptor = descriptor.Value
+	scopeDescriptor, projectID, err := shared.ResolveScopeDescriptor(ctx, organization, project)
+	if err != nil {
+		return err
 	}
-
-	zap.L().Sugar().Debug("projectDescriptor: ", types.GetValue(projectDescriptor, "nil"))
+	zap.L().Sugar().Debug("projectDescriptor: ", types.GetValue(scopeDescriptor, "nil"))
 	zap.L().Sugar().Debugf("projectID: ", types.GetValue(projectID, "nil"))
 
 	identityClient, err := ctx.ClientFactory().Identity(ctx.Context(), organization)
@@ -135,7 +106,7 @@ func runList(ctx util.CmdContext, o *opts) error {
 				propVal := props["LocalScopeId"].(map[string]any)
 				scope := propVal["$value"].(string)
 				zap.L().Sugar().Debugf("Found group %q with scope %q", types.GetValue(g.ProviderDisplayName, ""), scope)
-				if strings.EqualFold(scope, *projectID) {
+				if strings.EqualFold(scope, types.GetValue(projectID, "")) {
 					groupDescriptor = g.SubjectDescriptor
 					break
 				}
@@ -157,6 +128,7 @@ func runList(ctx util.CmdContext, o *opts) error {
 	if err != nil {
 		return err
 	}
+
 	if memberships == nil || len(*memberships) == 0 {
 		ios.StopProgressIndicator()
 
