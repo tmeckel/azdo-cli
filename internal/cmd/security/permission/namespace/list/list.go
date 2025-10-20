@@ -2,6 +2,8 @@ package list
 
 import (
 	"fmt"
+	"slices"
+	"strings"
 
 	"go.uber.org/zap"
 
@@ -119,13 +121,17 @@ func runCommand(ctx util.CmdContext, o *opts) error {
 		return nil
 	}
 
-	table, err := ctx.Printer("list")
+	table, err := ctx.Printer("table")
 	if err != nil {
 		return err
 	}
 
 	table.AddColumns("Namespace ID", "Name", "Display Name", "Dataspace", "Remotable")
 	table.EndRow()
+
+	slices.SortFunc(namespaces, func(a, b security.SecurityNamespaceDescription) int {
+		return strings.Compare(strings.ToLower(*a.Name), strings.ToLower(*b.Name))
+	})
 
 	for _, ns := range namespaces {
 		entry := shared.TransformNamespace(ns)
