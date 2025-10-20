@@ -15,6 +15,7 @@ import (
 	"github.com/spf13/cobra/doc"
 	"github.com/spf13/pflag"
 	"github.com/tmeckel/azdo-cli/internal/cmd/root"
+	"github.com/tmeckel/azdo-cli/internal/text"
 )
 
 // GenManTree will generate a man page for this command and all descendants
@@ -128,8 +129,8 @@ func manPreamble(buf *bytes.Buffer, header *GenManHeader, cmd *cobra.Command, da
 	fmt.Fprintf(buf, `%% "%s" "%s" "%s" "%s" "%s"
 # NAME
 `, header.Title, header.Section, header.Date.Format("Jan 2006"), header.Source, header.Manual)
-	fmt.Fprintf(buf, "%s - %s\n\n", dashedName, cmd.Short)
-	buf.WriteString("# SYNOPSIS\n")
+	fmt.Fprintf(buf, "%s \\- %s\n\n", dashedName, cmd.Short)
+	fmt.Fprintf(buf, "# SYNOPSIS\n")
 	fmt.Fprintf(buf, "`%s`\n\n", cmd.UseLine())
 
 	if cmd.Long != "" && cmd.Long != cmd.Short {
@@ -149,10 +150,15 @@ func manPrintFlags(buf *bytes.Buffer, flags *pflag.FlagSet) {
 		} else {
 			fmt.Fprintf(buf, "`--%s`", flag.Name)
 		}
-		if varname == "" {
+
+		defval := getDefaultValueDisplayString(flag)
+
+		if varname == "" && defval != "" {
+			fmt.Fprintf(buf, " `%s`\n", strings.TrimSpace(defval))
+		} else if varname == "" {
 			buf.WriteString("\n")
 		} else {
-			fmt.Fprintf(buf, " <%s>\n", varname)
+			fmt.Fprintf(buf, " `<%s>%s`\n", varname, defval)
 		}
 		fmt.Fprintf(buf, ":   %s\n\n", usage)
 	})
@@ -173,6 +179,34 @@ func manPrintOptions(buf *bytes.Buffer, command *cobra.Command) {
 	}
 }
 
+func manPrintAliases(buf *bytes.Buffer, command *cobra.Command) {
+	if len(command.Aliases) > 0 {
+		buf.WriteString("# ALIASES\n")
+		buf.WriteString(strings.Join(root.BuildAliasList(command, command.Aliases), ", "))
+		buf.WriteString("\n")
+	}
+}
+
+func manPrintJSONFields(buf *bytes.Buffer, command *cobra.Command) {
+	raw, ok := command.Annotations["help:json-fields"]
+	if !ok {
+		return
+	}
+
+	buf.WriteString("# JSON FIELDS\n")
+	buf.WriteString(text.FormatSlice(strings.Split(raw, ","), 0, 0, "`", "`", true))
+	buf.WriteString("\n")
+}
+
+func manPrintExitCodes(buf *bytes.Buffer) {
+	buf.WriteString("# EXIT CODES\n")
+	buf.WriteString("0: Successful execution\n\n")
+	buf.WriteString("1: Error\n\n")
+	buf.WriteString("2: Command canceled\n\n")
+	buf.WriteString("4: Authentication required\n\n")
+	buf.WriteString("NOTE: Specific commands may have additional exit codes. Refer to the command's help for more information.\n\n")
+}
+
 func genMan(cmd *cobra.Command, header *GenManHeader) []byte {
 	cmd.InitDefaultHelpCmd()
 	cmd.InitDefaultHelpFlag()
@@ -190,6 +224,10 @@ func genMan(cmd *cobra.Command, header *GenManHeader) []byte {
 		}
 	}
 	manPrintOptions(buf, cmd)
+	manPrintAliases(buf, cmd)
+	manPrintJSONFields(buf, cmd)
+	manPrintExitCodes(buf)
+
 	if len(cmd.Example) > 0 {
 		buf.WriteString("# EXAMPLE\n")
 		fmt.Fprintf(buf, "```\n%s\n```\n", cmd.Example)
