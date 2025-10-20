@@ -71,7 +71,6 @@ func NewCmd(ctx util.CmdContext) *cobra.Command {
 			head branch of the pull request. Disable this with %[1]s--no-maintainer-edit%[1]s.
 
 			Adding a pull request to projects requires authorization with the %[1]sproject%[1]s scope.
-			To authorize, run %[1]sgh auth refresh -s project%[1]s.
 		`, "`"),
 		Example: heredoc.Doc(`
 			$ azdo pr create --title "The bug is fixed" --description "Everything works again"
