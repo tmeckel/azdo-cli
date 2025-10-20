@@ -71,7 +71,7 @@ func runList(ctx util.CmdContext, o *opts) error {
 		return err
 	}
 
-	scopeDescriptor, projectID, err := shared.ResolveScopeDescriptor(ctx, organization, project)
+	scopeDescriptor, projectID, err := util.ResolveScopeDescriptor(ctx, organization, project)
 	if err != nil {
 		return err
 	}
