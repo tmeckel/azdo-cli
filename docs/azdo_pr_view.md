@@ -1,12 +1,15 @@
-## azdo pr view
+## Command `azdo pr view`
+
 ```
 azdo pr view [<number> | <branch> | <url>] [flags]
 ```
+
 Display the title, body, and other information about a pull request.
 
 Without an argument, the pull request that belongs to the current branch
 is displayed.
 %!(EXTRA string=`)
+
 ### Options
 
 
@@ -42,6 +45,10 @@ is displayed.
 
 	Format JSON output using a Go template; see &#34;azdo help formatting&#34;
 
+
+### ALIASES
+
+- `show`
 
 ### See also
 

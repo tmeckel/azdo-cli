@@ -1,8 +1,11 @@
-## azdo pr checkout
+## Command `azdo pr checkout`
+
 Check out a pull request in git
+
 ```
 azdo pr checkout <number> [flags]
 ```
+
 ### Options
 
 

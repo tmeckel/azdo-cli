@@ -1,11 +1,14 @@
-## azdo security group membership add
+## Command `azdo security group membership add`
+
 ```
 azdo security group membership add [ORGANIZATION/]GROUP | [ORGANIZATION/]PROJECT/GROUP [flags]
 ```
+
 Add a user or group as a member to an Azure DevOps security group.
 
 The positional argument accepts either ORGANIZATION/GROUP or ORGANIZATION/PROJECT/GROUP.
 Use --member to provide the member's email, descriptor, or principal name.
+
 
 ### Options
 
@@ -16,7 +19,7 @@ Use --member to provide the member's email, descriptor, or principal name.
 
 * `--json` `fields`
 
-	Output JSON with the specified fields
+	Output JSON with the specified fields. Prefix a field with &#39;-&#39; to exclude it.
 
 * `-m`, `--member` `strings`
 
@@ -26,6 +29,16 @@ Use --member to provide the member's email, descriptor, or principal name.
 
 	Format JSON output using a Go template; see &#34;azdo help formatting&#34;
 
+
+### ALIASES
+
+- `a`
+- `create`
+- `cr`
+
+### JSON Fields
+
+`groupDescriptor`, `groupDisplayName`, `memberDescriptor`, `memberDisplayName`, `memberOrigin`, `memberOriginId`, `memberSubjectKind`, `relationshipCreated`, `status`
 
 ### Examples
 

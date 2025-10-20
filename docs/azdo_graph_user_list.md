@@ -1,7 +1,9 @@
-## azdo graph user list
+## Command `azdo graph user list`
+
 ```
 azdo graph user list [project] [flags]
 ```
+
 List users and groups from an Azure DevOps project or organization.
 
 By default, it lists users in the organization. You can scope the search to a specific
@@ -9,6 +11,7 @@ project by providing the project name as an argument.
 
 The command allows filtering by user type (e.g., 'aad', 'msa', 'svc') and supports
 prefix-based filtering on user display names.
+
 
 ### Options
 
@@ -23,7 +26,7 @@ prefix-based filtering on user display names.
 
 * `--json` `fields`
 
-	Output JSON with the specified fields
+	Output JSON with the specified fields. Prefix a field with &#39;-&#39; to exclude it.
 
 * `-L`, `--limit` `int`
 
@@ -41,6 +44,14 @@ prefix-based filtering on user display names.
 
 	Subject types filter (comma-separated). If not specified defaults to &#39;aad&#39;
 
+
+### ALIASES
+
+- `ls`
+
+### JSON Fields
+
+`descriptor`, `displayName`, `mailAddress`, `origin`, `principalName`
 
 ### Examples
 

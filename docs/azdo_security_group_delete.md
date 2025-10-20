@@ -1,8 +1,11 @@
-## azdo security group delete
+## Command `azdo security group delete`
+
 Delete an Azure DevOps security group
+
 ```
 azdo security group delete [ORGANIZATION/GROUP | ORGANIZATION/PROJECT/GROUP] [flags]
 ```
+
 ### Options
 
 
@@ -14,6 +17,12 @@ azdo security group delete [ORGANIZATION/GROUP | ORGANIZATION/PROJECT/GROUP] [fl
 
 	Do not prompt for confirmation
 
+
+### ALIASES
+
+- `d`
+- `del`
+- `rm`
 
 ### See also
 

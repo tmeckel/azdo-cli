@@ -1,12 +1,15 @@
-## azdo auth logout
+## Command `azdo auth logout`
+
 ```
 azdo auth logout [ORG]
 ```
+
 Remove authentication for a Azure DevOps organization.
 
 This command removes the authentication configuration for an organization either specified
 interactively or via passing an organization name.
 %!(EXTRA string=`)
+
 ### Examples
 
 ```bash

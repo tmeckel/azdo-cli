@@ -1,8 +1,11 @@
-## azdo project list
+## Command `azdo project list`
+
 List the projects for an organization
+
 ```
 azdo project list [organization] [flags]
 ```
+
 ### Options
 
 
@@ -18,6 +21,11 @@ azdo project list [organization] [flags]
 
 	Project state filter: {deleting|new|wellFormed|createPending|all|unchanged|deleted}
 
+
+### ALIASES
+
+- `ls`
+- `l`
 
 ### Examples
 

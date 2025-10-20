@@ -1,7 +1,16 @@
-## azdo security permission
+## Command `azdo security permission`
+
 Manage Azure DevOps security permissions.
+
 ### Available commands
+
 * [azdo security permission namespace](./azdo_security_permission_namespace.md)
+
+### ALIASES
+
+- `p`
+- `perm`
+- `permissions`
 
 ### See also
 

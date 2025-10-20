@@ -1,10 +1,13 @@
-## azdo pr vote
+## Command `azdo pr vote`
+
 ```
 azdo pr vote [<number> | <branch> | <url>] [flags]
 ```
+
 Cast or reset your reviewer vote on an Azure DevOps pull request.
 
 Without an argument, the pull request associated with the current branch is selected.
+
 
 ### Options
 

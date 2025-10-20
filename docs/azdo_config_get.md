@@ -1,8 +1,11 @@
-## azdo config get
+## Command `azdo config get`
+
 Print the value of a given configuration key
+
 ```
 azdo config get <key> [flags]
 ```
+
 ### Options
 
 

@@ -1,8 +1,11 @@
-## azdo repo delete
+## Command `azdo repo delete`
+
 Delete a Git repository in a team project
+
 ```
 azdo repo delete [organization/]project/repository [flags]
 ```
+
 ### Options
 
 
@@ -10,6 +13,10 @@ azdo repo delete [organization/]project/repository [flags]
 
 	Do not prompt for confirmation
 
+
+### ALIASES
+
+- `d`
 
 ### Examples
 

@@ -1,8 +1,11 @@
-## azdo pr reopen
+## Command `azdo pr reopen`
+
 Reopen a pull request
+
 ```
 azdo pr reopen <number> | <branch> | <url> [flags]
 ```
+
 ### Options
 
 

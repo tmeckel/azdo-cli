@@ -1,12 +1,15 @@
-## azdo pr comment
+## Command `azdo pr comment`
+
 ```
 azdo pr comment [<number> | <branch> | <url>] [flags]
 ```
+
 Comment an existing pull request.
 
 Without an argument, the pull request that belongs to the current branch is updated.
 If there are more than one pull request associated with the current branch, one pull request must be selected explicitly.
 %!(EXTRA string=`)
+
 ### Options
 
 

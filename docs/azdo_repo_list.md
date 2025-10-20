@@ -1,8 +1,11 @@
-## azdo repo list
+## Command `azdo repo list`
+
 List repositories of a project inside an organization
+
 ```
 azdo repo list [organization/]<project> [flags]
 ```
+
 ### Options
 
 
@@ -22,6 +25,11 @@ azdo repo list [organization/]<project> [flags]
 
 	Filter by repository visibility: {public|private}
 
+
+### ALIASES
+
+- `ls`
+- `l`
 
 ### Examples
 

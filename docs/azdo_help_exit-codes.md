@@ -1,4 +1,5 @@
-## azdo exit-codes
+## Command `azdo exit-codes`
+
 azdo follows normal conventions regarding exit codes.
 
 - If a command completes successfully, the exit code will be 0
@@ -12,6 +13,7 @@ azdo follows normal conventions regarding exit codes.
 NOTE: It is possible that a particular command may have more exit codes, so it is a good
 practice to check documentation for the command if you are relying on exit codes to
 control some behavior.
+
 
 ### See also
 

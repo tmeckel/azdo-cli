@@ -1,8 +1,11 @@
-## azdo project delete
+## Command `azdo project delete`
+
 Delete a project
+
 ```
 azdo project delete [ORGANIZATION/]PROJECT [flags]
 ```
+
 ### Options
 
 
@@ -12,7 +15,7 @@ azdo project delete [ORGANIZATION/]PROJECT [flags]
 
 * `--json` `fields`
 
-	Output JSON with the specified fields
+	Output JSON with the specified fields. Prefix a field with &#39;-&#39; to exclude it.
 
 * `--max-wait` `int`
 
@@ -30,6 +33,14 @@ azdo project delete [ORGANIZATION/]PROJECT [flags]
 
 	Skip confirmation prompt
 
+
+### ALIASES
+
+- `d`
+
+### JSON Fields
+
+`ID`, `Status`, `Url`
 
 ### Examples
 

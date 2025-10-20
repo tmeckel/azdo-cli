@@ -1,4 +1,5 @@
-## azdo mintty
+## Command `azdo mintty`
+
 MinTTY is the terminal emulator that comes by default with Git
 for Windows. It has known issues with azdo's ability to prompt a
 user for input.
@@ -13,6 +14,7 @@ There are a few workarounds to make azdo work with MinTTY:
 
 - Prefix invocations of azdo with winpty, eg: "winpty azdo auth login".
   NOTE: this can lead to some UI bugs.
+
 
 ### See also
 

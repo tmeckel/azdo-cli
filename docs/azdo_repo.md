@@ -1,6 +1,9 @@
-## azdo repo
+## Command `azdo repo`
+
 Work with Azure DevOps Git repositories.
+
 ### Available commands
+
 * [azdo repo clone](./azdo_repo_clone.md)
 * [azdo repo create](./azdo_repo_create.md)
 * [azdo repo delete](./azdo_repo_delete.md)
@@ -8,6 +11,10 @@ Work with Azure DevOps Git repositories.
 * [azdo repo list](./azdo_repo_list.md)
 * [azdo repo restore](./azdo_repo_restore.md)
 * [azdo repo set-default](./azdo_repo_set-default.md)
+
+### ALIASES
+
+- `r`
 
 ### Examples
 

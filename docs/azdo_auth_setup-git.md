@@ -1,7 +1,9 @@
-## azdo auth setup-git
+## Command `azdo auth setup-git`
+
 ```
 azdo auth setup-git [flags]
 ```
+
 This command configures git to use AzDO CLI as a credential helper.
 For more information on git credential helpers please reference:
 https://git-scm.com/docs/gitcredentials.
@@ -13,6 +15,7 @@ Alternatively, use the `--organization` flag to specify a single organization to
 If the organization is not authenticated with, the command fails with an error.
 
 Be aware that a credential helper will only work with git remotes that use the HTTPS protocol.
+
 
 ### Options
 
