@@ -26,9 +26,11 @@ type JSONFlagError struct {
 
 func AddJSONFlags(cmd *cobra.Command, exportTarget *Exporter, fields []string) {
 	f := cmd.Flags()
-	f.StringSlice("json", nil, "Output JSON with the specified `fields`")
+	f.StringSlice("json", nil, "Output JSON with the specified `fields`. Prefix a field with '-' to exclude it.")
 	f.StringP("jq", "q", "", "Filter JSON output using a jq `expression`")
 	f.StringP("template", "t", "", "Format JSON output using a Go template; see \"azdo help formatting\"")
+
+	f.Lookup("json").NoOptDefVal = jsonSelectAllSentinel
 
 	_ = cmd.RegisterFlagCompletionFunc("json", func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
 		var results []string
@@ -58,14 +60,11 @@ func AddJSONFlags(cmd *cobra.Command, exportTarget *Exporter, fields []string) {
 			if export == nil {
 				*exportTarget = nil
 			} else {
-				allowedFields := types.NewStringSet()
-				allowedFields.AddValues(fields)
-				for _, f := range export.fields {
-					if !allowedFields.Contains(f) {
-						sort.Strings(fields)
-						return JSONFlagError{fmt.Errorf("unknown JSON field: %q\navailable fields:\n  %s", f, strings.Join(fields, "\n  "))}
-					}
+				resolved, err := resolveJSONSelection(export.Fields(), fields)
+				if err != nil {
+					return err
 				}
+				export.SetFields(resolved)
 				*exportTarget = export
 			}
 		} else {
@@ -75,10 +74,6 @@ func AddJSONFlags(cmd *cobra.Command, exportTarget *Exporter, fields []string) {
 	}
 
 	cmd.SetFlagErrorFunc(func(c *cobra.Command, e error) error {
-		if c == cmd && e.Error() == "flag needs an argument: --json" {
-			sort.Strings(fields)
-			return JSONFlagError{fmt.Errorf("specify one or more comma-separated fields for `--json`:\n  %s", strings.Join(fields, "\n  "))}
-		}
 		if cmd.HasParent() {
 			return cmd.Parent().FlagErrorFunc()(c, e)
 		}
@@ -93,6 +88,95 @@ func AddJSONFlags(cmd *cobra.Command, exportTarget *Exporter, fields []string) {
 		cmd.Annotations = map[string]string{}
 	}
 	cmd.Annotations["help:json-fields"] = strings.Join(fields, ",")
+}
+
+const jsonSelectAllSentinel = "*"
+
+func resolveJSONSelection(raw []string, allowed []string) ([]string, error) {
+	if len(allowed) == 0 {
+		return nil, JSONFlagError{fmt.Errorf("no JSON fields are defined for this command")}
+	}
+
+	result := slices.Clone(allowed)
+	haveExplicitInclude := false
+
+	allowedSet := types.NewStringSet()
+	allowedSet.AddValues(allowed)
+
+	for _, item := range raw {
+		if item == "" || item == jsonSelectAllSentinel {
+			// an empty entry or sentinel means "use defaults"
+			continue
+		}
+
+		remove := false
+		if strings.HasPrefix(item, "-") {
+			remove = true
+			item = strings.TrimPrefix(item, "-")
+		}
+		if item == "" {
+			return nil, JSONFlagError{fmt.Errorf("invalid JSON field selector \"-\"")}
+		}
+		if !allowedSet.Contains(item) {
+			sorted := slices.Clone(allowed)
+			sort.Strings(sorted)
+			return nil, JSONFlagError{fmt.Errorf("unknown JSON field: %q\navailable fields:\n  %s", item, strings.Join(sorted, "\n  "))}
+		}
+
+		if remove {
+			result = removeJSONField(result, item)
+			continue
+		}
+
+		if !haveExplicitInclude {
+			result = result[:0]
+			haveExplicitInclude = true
+		}
+
+		if !containsJSONField(result, item) {
+			result = append(result, item)
+		}
+	}
+
+	if !haveExplicitInclude {
+		// Ensure exclusions above are reflected while preserving original order.
+		result = filterAllowedBySelection(allowed, result)
+	}
+
+	if len(result) == 0 {
+		return nil, JSONFlagError{fmt.Errorf("no JSON fields selected; all columns were excluded")}
+	}
+
+	return result, nil
+}
+
+func removeJSONField(fields []string, target string) []string {
+	idx := slices.Index(fields, target)
+	if idx == -1 {
+		return fields
+	}
+	return append(fields[:idx], fields[idx+1:]...)
+}
+
+func containsJSONField(fields []string, target string) bool {
+	return slices.Contains(fields, target)
+}
+
+func filterAllowedBySelection(allowed, selection []string) []string {
+	if len(selection) == len(allowed) {
+		return selection
+	}
+
+	selected := types.NewStringSet()
+	selected.AddValues(selection)
+
+	result := make([]string, 0, len(selection))
+	for _, name := range allowed {
+		if selected.Contains(name) {
+			result = append(result, name)
+		}
+	}
+	return result
 }
 
 func checkJSONFlags(cmd *cobra.Command) (*jsonExporter, error) {
