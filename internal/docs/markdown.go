@@ -65,7 +65,7 @@ func hasNonHelpFlags(fs *pflag.FlagSet) (found bool) {
 			found = true
 		}
 	})
-	return
+	return found
 }
 
 var hiddenFlagDefaults = map[string]bool{
