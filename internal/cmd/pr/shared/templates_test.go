@@ -95,7 +95,7 @@ func TestTemplateManager_GetTemplate_NoDefaultBranch(t *testing.T) {
 	mRepoCtx.EXPECT().GitClient().Return(mGitClient, nil).AnyTimes() // Needed for NewTemplateManager
 
 	mAzdoRepo.EXPECT().GitRepository(gomock.Any(), gomock.Any()).Return(mockGitRepo, nil).AnyTimes() // Add this
-	mAzdoRepo.EXPECT().FullName().Return("org/proj/repo").AnyTimes() // For error message
+	mAzdoRepo.EXPECT().FullName().Return("org/proj/repo").AnyTimes()                                 // For error message
 
 	tm, err := NewTemplateManager(mCmdCtx)
 	require.NoError(t, err)
