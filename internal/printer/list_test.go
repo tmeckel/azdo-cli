@@ -1,110 +1,110 @@
 package printer
 
 import (
-    "bytes"
-    "strings"
-    "testing"
-    "time"
+	"bytes"
+	"strings"
+	"testing"
+	"time"
 
-    "github.com/stretchr/testify/require"
+	"github.com/stretchr/testify/require"
 )
 
 func TestListPrinter_SingleRow(t *testing.T) {
-    buf := &bytes.Buffer{}
-    lp, err := NewListPrinter(buf)
-    require.NoError(t, err)
+	buf := &bytes.Buffer{}
+	lp, err := NewListPrinter(buf)
+	require.NoError(t, err)
 
-    lp.AddColumns("ID", "Name")
-    lp.AddField("123")
-    lp.AddField("Repo1")
-    lp.EndRow()
+	lp.AddColumns("ID", "Name")
+	lp.AddField("123")
+	lp.AddField("Repo1")
+	lp.EndRow()
 
-    require.NoError(t, lp.Render())
-    out := buf.String()
-    require.Contains(t, out, "ID:")
-    require.Contains(t, out, "123")
-    require.Contains(t, out, "Name:")
-    require.Contains(t, out, "Repo1")
+	require.NoError(t, lp.Render())
+	out := buf.String()
+	require.Contains(t, out, "ID:")
+	require.Contains(t, out, "123")
+	require.Contains(t, out, "Name:")
+	require.Contains(t, out, "Repo1")
 }
 
 func TestListPrinter_MultipleRows(t *testing.T) {
-    buf := &bytes.Buffer{}
-    lp, _ := NewListPrinter(buf)
+	buf := &bytes.Buffer{}
+	lp, _ := NewListPrinter(buf)
 
-    lp.AddColumns("ID", "Name")
-    // Row 1
-    lp.AddField("123")
-    lp.AddField("Repo1")
-    lp.EndRow()
-    // Row 2
-    lp.AddField("456")
-    lp.AddField("Repo2")
-    lp.EndRow()
+	lp.AddColumns("ID", "Name")
+	// Row 1
+	lp.AddField("123")
+	lp.AddField("Repo1")
+	lp.EndRow()
+	// Row 2
+	lp.AddField("456")
+	lp.AddField("Repo2")
+	lp.EndRow()
 
-    require.NoError(t, lp.Render())
-    lines := strings.Split(buf.String(), "\n")
-    // Expect blank line between objects
-    require.Contains(t, buf.String(), "\n\n")
-    require.Contains(t, lines[0], "ID:")
-    require.Contains(t, lines[0], "123")
-    require.Contains(t, lines[1], "Name:")
-    require.Contains(t, lines[1], "Repo1")
-    require.Contains(t, lines[3], "ID:")
-    require.Contains(t, lines[3], "456")
-    require.Contains(t, lines[4], "Name:")
-    require.Contains(t, lines[4], "Repo2")
+	require.NoError(t, lp.Render())
+	lines := strings.Split(buf.String(), "\n")
+	// Expect blank line between objects
+	require.Contains(t, buf.String(), "\n\n")
+	require.Contains(t, lines[0], "ID:")
+	require.Contains(t, lines[0], "123")
+	require.Contains(t, lines[1], "Name:")
+	require.Contains(t, lines[1], "Repo1")
+	require.Contains(t, lines[3], "ID:")
+	require.Contains(t, lines[3], "456")
+	require.Contains(t, lines[4], "Name:")
+	require.Contains(t, lines[4], "Repo2")
 }
 
 func TestListPrinter_MissingColumnName(t *testing.T) {
-    buf := &bytes.Buffer{}
-    lp, _ := NewListPrinter(buf)
+	buf := &bytes.Buffer{}
+	lp, _ := NewListPrinter(buf)
 
-    lp.AddColumns("ID")
-    lp.AddField("123")
-    lp.AddField("ExtraField") // no column name for this index
-    lp.EndRow()
+	lp.AddColumns("ID")
+	lp.AddField("123")
+	lp.AddField("ExtraField") // no column name for this index
+	lp.EndRow()
 
-    require.NoError(t, lp.Render())
-    out := buf.String()
-    require.Contains(t, out, "col1:")
-    require.Contains(t, out, "ExtraField")
+	require.NoError(t, lp.Render())
+	out := buf.String()
+	require.Contains(t, out, "col1:")
+	require.Contains(t, out, "ExtraField")
 }
 
 func TestListPrinter_AddTimeField(t *testing.T) {
-    buf := &bytes.Buffer{}
-    lp, _ := NewListPrinter(buf)
-    lp.AddColumns("Created")
-    now := time.Date(2024, 1, 1, 12, 0, 0, 0, time.UTC)
-    past := now.Add(-time.Hour)
+	buf := &bytes.Buffer{}
+	lp, _ := NewListPrinter(buf)
+	lp.AddColumns("Created")
+	now := time.Date(2024, 1, 1, 12, 0, 0, 0, time.UTC)
+	past := now.Add(-time.Hour)
 
-    lp.AddTimeField(now, past, nil)
-    lp.EndRow()
+	lp.AddTimeField(now, past, nil)
+	lp.EndRow()
 
-    require.NoError(t, lp.Render())
-    out := buf.String()
-    require.Contains(t, out, "Created:")
+	require.NoError(t, lp.Render())
+	out := buf.String()
+	require.Contains(t, out, "Created:")
 }
 
 // Negative/edge case tests
 func TestListPrinter_NoColumns(t *testing.T) {
-    buf := &bytes.Buffer{}
-    lp, _ := NewListPrinter(buf)
+	buf := &bytes.Buffer{}
+	lp, _ := NewListPrinter(buf)
 
-    lp.AddField("ValueWithoutHeader")
-    lp.EndRow()
+	lp.AddField("ValueWithoutHeader")
+	lp.EndRow()
 
-    // Even without columns, should render with col index fallback
-    require.NoError(t, lp.Render())
-    out := buf.String()
-    require.Contains(t, out, "col0:")
-    require.Contains(t, out, "ValueWithoutHeader")
+	// Even without columns, should render with col index fallback
+	require.NoError(t, lp.Render())
+	out := buf.String()
+	require.Contains(t, out, "col0:")
+	require.Contains(t, out, "ValueWithoutHeader")
 }
 
 func TestListPrinter_RenderEmpty(t *testing.T) {
-    buf := &bytes.Buffer{}
-    lp, _ := NewListPrinter(buf)
+	buf := &bytes.Buffer{}
+	lp, _ := NewListPrinter(buf)
 
-    // No rows added; Render should produce no error and empty output
-    require.NoError(t, lp.Render())
-    require.Equal(t, "", buf.String())
+	// No rows added; Render should produce no error and empty output
+	require.NoError(t, lp.Render())
+	require.Equal(t, "", buf.String())
 }
