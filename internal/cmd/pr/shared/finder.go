@@ -73,14 +73,14 @@ func parseSelector(selector string) (org string, proj string, repo string, prid 
 func NewFinder(ctx util.CmdContext) (f PRFinder, err error) {
 	iostrms, err := ctx.IOStreams()
 	if err != nil {
-		return
+		return f, err
 	}
 	f = &finder{
 		repoCtx:  ctx.RepoContext(),
 		progress: iostrms,
 		ctx:      ctx.Context(),
 	}
-	return
+	return f, err
 }
 
 func (f *finder) Find(opts FindOptions) (*git.GitPullRequest, azdo.Repository, error) {
