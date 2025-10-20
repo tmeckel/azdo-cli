@@ -3,6 +3,7 @@ package security
 import (
 	"github.com/spf13/cobra"
 	"github.com/tmeckel/azdo-cli/internal/cmd/security/group"
+	"github.com/tmeckel/azdo-cli/internal/cmd/security/permission"
 	"github.com/tmeckel/azdo-cli/internal/cmd/util"
 )
 
@@ -19,6 +20,7 @@ func NewCmd(ctx util.CmdContext) *cobra.Command {
 	}
 
 	cmd.AddCommand(group.NewCmd(ctx))
+	cmd.AddCommand(permission.NewCmd(ctx))
 
 	return cmd
 }
