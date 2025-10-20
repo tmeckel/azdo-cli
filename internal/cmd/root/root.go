@@ -71,6 +71,8 @@ func NewCmdRoot(ctx util.CmdContext, version, buildDate string) (*cobra.Command,
 		return rootUsageFunc(iostrms.ErrOut, c)
 	})
 
+	cmd.SetFlagErrorFunc(rootFlagErrorFunc)
+
 	cmd.AddGroup(&cobra.Group{
 		ID:    "core",
 		Title: "Core commands",
