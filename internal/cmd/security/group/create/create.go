@@ -7,7 +7,6 @@ import (
 	"github.com/MakeNowJust/heredoc"
 	"github.com/microsoft/azure-devops-go-api/azuredevops/v7/graph"
 	"github.com/spf13/cobra"
-	"github.com/tmeckel/azdo-cli/internal/cmd/security/group/shared"
 	"github.com/tmeckel/azdo-cli/internal/cmd/util"
 	"github.com/tmeckel/azdo-cli/internal/types"
 )
@@ -83,7 +82,7 @@ func runCreate(ctx util.CmdContext, opts *createOpts) error {
 		return err
 	}
 
-	scope, err := shared.ParseScope(ctx, opts.scope)
+	scope, err := util.ParseScope(ctx, opts.scope)
 	if err != nil {
 		return err
 	}
@@ -101,7 +100,7 @@ func runCreate(ctx util.CmdContext, opts *createOpts) error {
 		return err
 	}
 
-	scopeDescriptor, _, err := shared.ResolveScopeDescriptor(ctx, organization, project)
+	scopeDescriptor, _, err := util.ResolveScopeDescriptor(ctx, organization, project)
 	if err != nil {
 		return err
 	}
