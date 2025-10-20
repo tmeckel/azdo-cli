@@ -134,7 +134,6 @@ func BenchmarkGenMarkdownToFile(b *testing.B) {
 }
 
 func TestPrintFlagsHTMLShowsDefaultValues(t *testing.T) {
-
 	type TestOptions struct {
 		Limit     int
 		Template  string
