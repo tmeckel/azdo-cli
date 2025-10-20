@@ -1,7 +1,9 @@
-## azdo pr merge
+## Command `azdo pr merge`
+
 ```
 azdo pr merge <number> | <branch> | <url> [flags]
 ```
+
 Merge a pull request on Azure DevOps.
 
 Without an argument, the pull request that belongs to the current branch
@@ -9,6 +11,7 @@ is selected.
 
 If required checks have not yet passed, auto-complete will be enabled.
 %!(EXTRA string=`)
+
 ### Options
 
 

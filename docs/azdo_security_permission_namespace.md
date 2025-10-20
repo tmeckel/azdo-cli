@@ -1,8 +1,16 @@
-## azdo security permission namespace
+## Command `azdo security permission namespace`
+
 Inspect security permission namespaces.
+
 ### Available commands
+
 * [azdo security permission namespace list](./azdo_security_permission_namespace_list.md)
 * [azdo security permission namespace show](./azdo_security_permission_namespace_show.md)
+
+### ALIASES
+
+- `n`
+- `ns`
 
 ### See also
 

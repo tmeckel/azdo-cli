@@ -1,8 +1,15 @@
-## azdo repo restore
+## Command `azdo repo restore`
+
 Restore a deleted repository
+
 ```
 azdo repo restore [organization/]project/repository
 ```
+
+### ALIASES
+
+- `ls`
+
 ### Examples
 
 ```bash

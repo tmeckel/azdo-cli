@@ -1,10 +1,13 @@
-## azdo security group update
+## Command `azdo security group update`
+
 ```
 azdo security group update ORGANIZATION/GROUP | ORGANIZATION/PROJECT/GROUP [flags]
 ```
+
 Update the display name and/or description of an Azure DevOps security group.
 
 Provide the organization segment and optional project segment to scope the lookup. At least one of --name or --description must be specified.
+
 
 ### Options
 
@@ -23,7 +26,7 @@ Provide the organization segment and optional project segment to scope the looku
 
 * `--json` `fields`
 
-	Output JSON with the specified fields
+	Output JSON with the specified fields. Prefix a field with &#39;-&#39; to exclude it.
 
 * `--name` `string`
 
@@ -33,6 +36,14 @@ Provide the organization segment and optional project segment to scope the looku
 
 	Format JSON output using a Go template; see &#34;azdo help formatting&#34;
 
+
+### ALIASES
+
+- `u`
+
+### JSON Fields
+
+`description`, `descriptor`, `domain`, `mailAddress`, `name`, `origin`, `originId`, `principalName`, `url`
 
 ### Examples
 

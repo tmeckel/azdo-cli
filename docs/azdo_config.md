@@ -1,4 +1,5 @@
-## azdo config
+## Command `azdo config`
+
 Display or change configuration settings for azdo.
 
 Current respected settings:
@@ -10,7 +11,9 @@ Current respected settings:
 - browser: the web browser to use for opening URLs
 - default_organization: the default Azure DevOps organization to use, if no organization is specified
 
+
 ### Available commands
+
 * [azdo config get](./azdo_config_get.md)
 * [azdo config list](./azdo_config_list.md)
 * [azdo config set](./azdo_config_set.md)

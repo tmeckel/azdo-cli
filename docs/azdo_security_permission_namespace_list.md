@@ -1,10 +1,13 @@
-## azdo security permission namespace list
+## Command `azdo security permission namespace list`
+
 ```
 azdo security permission namespace list [ORGANIZATION] [flags]
 ```
+
 List all security permission namespaces available in an Azure DevOps organization.
 
 Namespaces define the scope and structure for security permissions on various resources.
+
 
 ### Options
 
@@ -15,7 +18,7 @@ Namespaces define the scope and structure for security permissions on various re
 
 * `--json` `fields`
 
-	Output JSON with the specified fields
+	Output JSON with the specified fields. Prefix a field with &#39;-&#39; to exclude it.
 
 * `--local-only`
 
@@ -25,6 +28,15 @@ Namespaces define the scope and structure for security permissions on various re
 
 	Format JSON output using a Go template; see &#34;azdo help formatting&#34;
 
+
+### ALIASES
+
+- `ls`
+- `l`
+
+### JSON Fields
+
+`dataspaceCategory`, `displayName`, `elementLength`, `extensionType`, `isRemotable`, `name`, `namespaceId`, `readPermission`, `separatorValue`, `structureValue`, `systemBitMask`, `useTokenTranslator`, `writePermission`
 
 ### See also
 

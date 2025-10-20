@@ -1,8 +1,11 @@
-## azdo pr list
+## Command `azdo pr list`
+
 ```
 azdo pr list [[organization/]project/repository] [flags]
 ```
+
 List pull requests in a Azure DevOps repository or project.
+
 
 ### Options
 
@@ -29,7 +32,7 @@ List pull requests in a Azure DevOps repository or project.
 
 * `--json` `fields`
 
-	Output JSON with the specified fields
+	Output JSON with the specified fields. Prefix a field with &#39;-&#39; to exclude it.
 
 * `-l`, `--label` `strings`
 
@@ -55,6 +58,14 @@ List pull requests in a Azure DevOps repository or project.
 
 	Format JSON output using a Go template; see &#34;azdo help formatting&#34;
 
+
+### ALIASES
+
+- `ls`
+
+### JSON Fields
+
+`artifactId`, `autoCompleteSetBy`, `closedBy`, `closedDate`, `codeReviewId`, `commits`, `completionOptions`, `completionQueueTime`, `createdBy`, `creationDate`, `description`, `forkSource`, `hasMultipleMergeBases`, `isDraft`, `labels`, `lastMergeCommit`, `lastMergeSourceCommit`, `lastMergeTargetCommit`, `mergeFailureMessage`, `mergeFailureType`, `mergeId`, `mergeOptions`, `mergeStatus`, `pullRequestId`, `remoteUrl`, `repository`, `reviewers`, `sourceRefName`, `status`, `supportsIterations`, `targetRefName`, `title`, `url`, `workItemRefs`
 
 ### Examples
 

@@ -1,4 +1,5 @@
-## azdo environment
+## Command `azdo environment`
+
 AZDO_TOKEN: an authentication token for an Azure DevOps Organization
 API requests. Setting this avoids being prompted to authenticate and takes precedence over
 previously stored credentials.
@@ -39,6 +40,7 @@ the default value will be one of the following paths (in order of precedence):
   - "$HOME/.config/azdo".
 
 AZDO_PROMPT_DISABLED: set to any value to disable interactive prompting in the terminal.
+
 
 ### See also
 

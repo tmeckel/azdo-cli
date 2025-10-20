@@ -1,8 +1,11 @@
-## azdo config set
+## Command `azdo config set`
+
 Update configuration with a value for the given key
+
 ```
 azdo config set <key> <value> [flags]
 ```
+
 ### Options
 
 

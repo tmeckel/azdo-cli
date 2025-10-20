@@ -1,13 +1,16 @@
-## azdo repo edit
+## Command `azdo repo edit`
+
 ```
 azdo repo edit [organization/]project/repository [flags]
 ```
+
 Modify properties of an Azure DevOps Git repository, including changing its default branch, renaming it, or toggling its disabled state.
 
 Constraints for disabled repositories:
 - When a repository is disabled, the only permitted action is to enable it using --enable.
 - Attempts to change the default branch, rename, or disable an already-disabled repository will be blocked with a clear error message.
 - Trying to re-disable a disabled repository or re-enable an enabled repository will also produce a specific "already disabled/enabled" error.
+
 
 ### Options
 
@@ -30,7 +33,7 @@ Constraints for disabled repositories:
 
 * `--json` `fields`
 
-	Output JSON with the specified fields
+	Output JSON with the specified fields. Prefix a field with &#39;-&#39; to exclude it.
 
 * `--name` `string`
 
@@ -40,6 +43,15 @@ Constraints for disabled repositories:
 
 	Format JSON output using a Go template; see &#34;azdo help formatting&#34;
 
+
+### ALIASES
+
+- `e`
+- `update`
+
+### JSON Fields
+
+`DefaultBranch`, `ID`, `Name`, `Project`
 
 ### Examples
 

@@ -1,7 +1,9 @@
-## azdo pr create
+## Command `azdo pr create`
+
 ```
 azdo pr create [flags]
 ```
+
 Create a pull request on Azure DevOps.
 
 When the current branch isn't fully pushed to a git remote, a prompt will ask where
@@ -23,6 +25,7 @@ head branch of the pull request. Disable this with `--no-maintainer-edit`.
 
 Adding a pull request to projects requires authorization with the `project` scope.
 To authorize, run `gh auth refresh -s project`.
+
 
 ### Options
 
@@ -83,6 +86,10 @@ To authorize, run `gh auth refresh -s project`.
 
 	Use a pull request template for the description of the new pull request. The command will fail if no template is found
 
+
+### ALIASES
+
+- `new`
 
 ### Examples
 

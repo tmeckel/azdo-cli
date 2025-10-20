@@ -1,6 +1,9 @@
-## azdo
+## Command `azdo`
+
 Work seamlessly with Azure DevOps from the command line.
+
 ### Core commands
+
 * [azdo auth](./azdo_auth.md)
 * [azdo graph](./azdo_graph.md)
 * [azdo pr](./azdo_pr.md)
@@ -8,12 +11,15 @@ Work seamlessly with Azure DevOps from the command line.
 * [azdo repo](./azdo_repo.md)
 
 ### Security commands
+
 * [azdo security](./azdo_security.md)
 
 ### Alias commands
+
 * [azdo co](./azdo_co.md)
 
 ### Additional commands
+
 * [azdo config](./azdo_config.md)
 
 ### Options

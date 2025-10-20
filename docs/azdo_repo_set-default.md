@@ -1,7 +1,9 @@
-## azdo repo set-default
+## Command `azdo repo set-default`
+
 ```
 azdo repo set-default [<repository>] [flags]
 ```
+
 
 			This command sets the default remote repository to use when querying the
 			Azure DevOps API for the locally cloned repository.
@@ -14,6 +16,7 @@ azdo repo set-default [<repository>] [flags]
 			- working with Azure DevOps Pipelines
 
 			The command will only take configured remotes into account which point to a Azure DevOps organization.
+
 ### Options
 
 

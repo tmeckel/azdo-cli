@@ -1,12 +1,15 @@
-## azdo pr edit
+## Command `azdo pr edit`
+
 ```
 azdo pr edit [<number> | <branch> | <url>] [flags]
 ```
+
 Edit an existing pull request.
 
 Without an argument, the pull request that belongs to the current branch is selected.
 If there are more than one pull request associated with the current branch, one pull request will be selected based on the shared finder logic.
 %!(EXTRA string=`)
+
 ### Options
 
 

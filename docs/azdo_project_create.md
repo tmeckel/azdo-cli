@@ -1,7 +1,9 @@
-## azdo project create
+## Command `azdo project create`
+
 ```
 azdo project create [ORGANIZATION/]PROJECT [flags]
 ```
+
 Create a new Azure DevOps project in the specified organization.
 
 This command queues a project creation operation and polls for its completion.
@@ -13,6 +15,7 @@ In this case, it will output the operation ID, status, and URL, which you can us
 The --max-wait flag allows you to specify a custom timeout for the polling operation.
 
 If the organization name is omitted from the project argument, the default configured organization is used.
+
 
 ### Options
 
@@ -27,7 +30,7 @@ If the organization name is omitted from the project argument, the default confi
 
 * `--json` `fields`
 
-	Output JSON with the specified fields
+	Output JSON with the specified fields. Prefix a field with &#39;-&#39; to exclude it.
 
 * `--max-wait` `int`
 
@@ -53,6 +56,14 @@ If the organization name is omitted from the project argument, the default confi
 
 	Project visibility (private or public)
 
+
+### ALIASES
+
+- `cr`
+
+### JSON Fields
+
+`id`, `name`, `operationID`, `operationStatus`, `operationURL`, `process`, `sourceControl`, `state`, `visibility`
 
 ### Examples
 

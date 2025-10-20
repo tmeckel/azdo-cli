@@ -1,8 +1,11 @@
-## azdo config list
+## Command `azdo config list`
+
 Print a list of configuration keys and values
+
 ```
 azdo config list [flags]
 ```
+
 ### Options
 
 
@@ -14,6 +17,10 @@ azdo config list [flags]
 
 	Get per-organization configuration
 
+
+### ALIASES
+
+- `ls`
 
 ### See also
 

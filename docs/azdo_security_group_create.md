@@ -1,10 +1,13 @@
-## azdo security group create
+## Command `azdo security group create`
+
 ```
 azdo security group create [ORGANIZATION|ORGANIZATION/PROJECT] [flags]
 ```
+
 Create a security group in an Azure DevOps organization or project.
 
 Security groups can be created by name, email, or origin ID. Exactly one of these must be specified.
+
 
 ### Options
 
@@ -27,7 +30,7 @@ Security groups can be created by name, email, or origin ID. Exactly one of thes
 
 * `--json` `fields`
 
-	Output JSON with the specified fields
+	Output JSON with the specified fields. Prefix a field with &#39;-&#39; to exclude it.
 
 * `--name` `string`
 
@@ -41,6 +44,16 @@ Security groups can be created by name, email, or origin ID. Exactly one of thes
 
 	Format JSON output using a Go template; see &#34;azdo help formatting&#34;
 
+
+### ALIASES
+
+- `add`
+- `new`
+- `c`
+
+### JSON Fields
+
+`description`, `descriptor`, `displayName`, `domain`, `mailAddress`, `origin`, `originId`, `principalName`, `url`
 
 ### See also
 

@@ -1,4 +1,5 @@
-## azdo formatting
+## Command `azdo formatting`
+
 By default, the result of `gh` commands are output in line-based plain text format.
 Some commands support passing the `--json` flag, which converts the output to JSON format.
 Once in JSON, the output can be further formatted according to a required formatting string by
@@ -33,6 +34,7 @@ with this formatting directive:
 - `hyperlink <url> <text>`: renders a terminal hyperlink
 
 To learn more about Go templates, see: <https://golang.org/pkg/text/template/>.
+
 
 ### Examples
 

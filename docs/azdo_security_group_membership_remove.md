@@ -1,11 +1,14 @@
-## azdo security group membership remove
+## Command `azdo security group membership remove`
+
 ```
 azdo security group membership remove [ORGANIZATION/]GROUP | [ORGANIZATION/]PROJECT/GROUP [flags]
 ```
+
 Remove a user or group from an Azure DevOps security group.
 
 The positional argument accepts either ORGANIZATION/GROUP or ORGANIZATION/PROJECT/GROUP.
 Use --member to provide the member's email, descriptor, or principal name.
+
 
 ### Options
 
@@ -16,7 +19,7 @@ Use --member to provide the member's email, descriptor, or principal name.
 
 * `--json` `fields`
 
-	Output JSON with the specified fields
+	Output JSON with the specified fields. Prefix a field with &#39;-&#39; to exclude it.
 
 * `-m`, `--member` `strings`
 
@@ -30,6 +33,18 @@ Use --member to provide the member's email, descriptor, or principal name.
 
 	Do not prompt for confirmation.
 
+
+### ALIASES
+
+- `d`
+- `r`
+- `rm`
+- `delete`
+- `del`
+
+### JSON Fields
+
+`groupDescriptor`, `groupDisplayName`, `memberDescriptor`, `memberDisplayName`, `memberSubjectKind`, `relationshipRemoved`, `status`
 
 ### Examples
 

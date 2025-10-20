@@ -1,8 +1,11 @@
-## azdo pr close
+## Command `azdo pr close`
+
 Close a pull request
+
 ```
 azdo pr close <number> | <branch> | <url> [flags]
 ```
+
 ### Options
 
 

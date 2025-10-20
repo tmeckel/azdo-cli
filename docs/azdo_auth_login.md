@@ -1,7 +1,9 @@
-## azdo auth login
+## Command `azdo auth login`
+
 ```
 azdo auth login [flags]
 ```
+
 Authenticate with a Azure DevOps Organization.
 
 The default authentication mode is a an interactive process in which a personal access token (PAT) can be added. After completion, the
@@ -18,6 +20,7 @@ This method is most suitable for "headless" use of azdo such as in automation. S
 `azdo help environment` for more info.
 
 To use azdo in Azure DevOps Pipeline Tasks (or other automation environments), add `AZDO_TOKEN: ${{ azdo.token }}` to "env".
+
 
 ### Options
 

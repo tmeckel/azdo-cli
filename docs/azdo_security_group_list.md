@@ -1,8 +1,11 @@
-## azdo security group list
+## Command `azdo security group list`
+
 ```
 azdo security group list [ORGANIZATION[/PROJECT]] [flags]
 ```
+
 List all security groups within a given project or organization.
+
 ### Options
 
 
@@ -16,7 +19,7 @@ List all security groups within a given project or organization.
 
 * `--json` `fields`
 
-	Output JSON with the specified fields
+	Output JSON with the specified fields. Prefix a field with &#39;-&#39; to exclude it.
 
 * `--subject-types` `strings`
 
@@ -26,6 +29,15 @@ List all security groups within a given project or organization.
 
 	Format JSON output using a Go template; see &#34;azdo help formatting&#34;
 
+
+### ALIASES
+
+- `ls`
+- `l`
+
+### JSON Fields
+
+`description`, `id`, `mailAddress`, `name`, `principalName`
 
 ### Examples
 
