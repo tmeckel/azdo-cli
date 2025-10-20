@@ -24,7 +24,6 @@ By default, users with write access to the base repository can push new commits 
 head branch of the pull request. Disable this with `--no-maintainer-edit`.
 
 Adding a pull request to projects requires authorization with the `project` scope.
-To authorize, run `gh auth refresh -s project`.
 
 
 ### Options
