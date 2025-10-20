@@ -493,6 +493,16 @@ List security permission namespaces.
 -t, --template string   Format JSON output using a Go template; see "azdo help formatting"
 ````
 
+##### `azdo security permission namespace show [ORGANIZATION/]NAMESPACE [flags]`
+
+Show details for a security permission namespace.
+
+```
+-q, --jq expression     Filter JSON output using a jq expression
+    --json fields       Output JSON with the specified fields
+-t, --template string   Format JSON output using a Go template; see "azdo help formatting"
+````
+
 
 ### See also
 
