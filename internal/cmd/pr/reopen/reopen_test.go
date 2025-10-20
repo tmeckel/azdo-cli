@@ -123,7 +123,7 @@ func TestReopenCmd_NoPRFound(t *testing.T) {
 
 	mRepoCtx.EXPECT().Repo().Return(mAzdoRepo, nil).AnyTimes()
 	mRepoCtx.EXPECT().GitClient().Return(mGitClient, nil).AnyTimes()
-    mGitClient.EXPECT().GetPullRequestById(gomock.Any(), gomock.Any()).Return(nil, assert.AnError)
+	mGitClient.EXPECT().GetPullRequestById(gomock.Any(), gomock.Any()).Return(nil, assert.AnError)
 	mAzdoRepo.EXPECT().Project().Return("project").AnyTimes()
 
 	cmd := reopencmd.NewCmd(mCmdCtx)
@@ -131,5 +131,5 @@ func TestReopenCmd_NoPRFound(t *testing.T) {
 
 	_, err := cmd.ExecuteC()
 	require.Error(t, err)
-    assert.Contains(t, err.Error(), "failed to find abandoned pull request")
+	assert.Contains(t, err.Error(), "failed to find abandoned pull request")
 }
