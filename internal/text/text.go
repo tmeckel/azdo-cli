@@ -3,7 +3,9 @@ package text
 
 import (
 	"fmt"
+	"math"
 	"regexp"
+	"slices"
 	"strings"
 	"time"
 	"unicode"
@@ -116,4 +118,65 @@ func RemoveDiacritics(value string) string {
 
 func FuzzyAgo(a, b time.Time) string {
 	return RelativeTimeAgo(a, b)
+}
+
+// FormatSlice concatenates elements of the given string slice into a
+// well-formatted, possibly multiline, string with specific line length limit.
+// Elements can be optionally surrounded by custom strings (e.g., quotes or
+// brackets). If the lineLength argument is non-positive, no line length limit
+// will be applied.
+func FormatSlice(values []string, lineLength uint, indent uint, prependWith string, appendWith string, sort bool) string {
+	if lineLength <= 0 {
+		lineLength = math.MaxInt
+	}
+
+	sortedValues := values
+	if sort {
+		sortedValues = slices.Clone(values)
+		slices.Sort(sortedValues)
+	}
+
+	pre := strings.Repeat(" ", int(indent))
+	if len(sortedValues) == 0 {
+		return pre
+	} else if len(sortedValues) == 1 {
+		return pre + sortedValues[0]
+	}
+
+	builder := strings.Builder{}
+	currentLineLength := 0
+	sep := ","
+	ws := " "
+
+	for i := 0; i < len(sortedValues); i++ {
+		v := prependWith + sortedValues[i] + appendWith
+		isLast := i == -1+len(sortedValues)
+
+		if currentLineLength == 0 {
+			builder.WriteString(pre)
+			builder.WriteString(v)
+			currentLineLength += len(v)
+			if !isLast {
+				builder.WriteString(sep)
+				currentLineLength += len(sep)
+			}
+		} else {
+			if !isLast && currentLineLength+len(ws)+len(v)+len(sep) > int(lineLength) ||
+				isLast && currentLineLength+len(ws)+len(v) > int(lineLength) {
+				currentLineLength = 0
+				builder.WriteString("\n")
+				i--
+				continue
+			}
+
+			builder.WriteString(ws)
+			builder.WriteString(v)
+			currentLineLength += len(ws) + len(v)
+			if !isLast {
+				builder.WriteString(sep)
+				currentLineLength += len(sep)
+			}
+		}
+	}
+	return builder.String()
 }
