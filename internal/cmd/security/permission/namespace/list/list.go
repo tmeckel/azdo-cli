@@ -8,6 +8,7 @@ import (
 	"github.com/MakeNowJust/heredoc"
 	"github.com/microsoft/azure-devops-go-api/azuredevops/v7/security"
 	"github.com/spf13/cobra"
+	"github.com/tmeckel/azdo-cli/internal/cmd/security/permission/namespace/shared"
 	"github.com/tmeckel/azdo-cli/internal/cmd/util"
 	"github.com/tmeckel/azdo-cli/internal/types"
 )
@@ -16,23 +17,6 @@ type opts struct {
 	target    string
 	localOnly bool
 	exporter  util.Exporter
-}
-
-type namespaceEntry struct {
-	NamespaceID       string `json:"namespaceId"`
-	Name              string `json:"name,omitempty"`
-	DisplayName       string `json:"displayName,omitempty"`
-	DataspaceCategory string `json:"dataspaceCategory,omitempty"`
-	IsRemotable       *bool  `json:"isRemotable,omitempty"`
-	ExtensionType     string `json:"extensionType,omitempty"`
-	ElementLength     *int   `json:"elementLength,omitempty"`
-	SeparatorValue    string `json:"separatorValue,omitempty"`
-	WritePermission   string `json:"writePermission,omitempty"`
-	ReadPermission    string `json:"readPermission,omitempty"`
-	UseTranslator     *bool  `json:"useTokenTranslator,omitempty"`
-	SystemBitMask     string `json:"systemBitMask,omitempty"`
-	StructureValue    *int   `json:"structureValue,omitempty"`
-	ActionsCount      *int   `json:"actionsCount,omitempty"`
 }
 
 func NewCmd(ctx util.CmdContext) *cobra.Command {
@@ -123,9 +107,9 @@ func runCommand(ctx util.CmdContext, o *opts) error {
 	ios.StopProgressIndicator()
 
 	if o.exporter != nil {
-		results := make([]namespaceEntry, 0, len(namespaces))
+		results := make([]shared.NamespaceEntry, 0, len(namespaces))
 		for _, ns := range namespaces {
-			results = append(results, transformNamespace(ns))
+			results = append(results, shared.TransformNamespace(ns))
 		}
 		return o.exporter.Write(ios, results)
 	}
@@ -144,7 +128,7 @@ func runCommand(ctx util.CmdContext, o *opts) error {
 	table.EndRow()
 
 	for _, ns := range namespaces {
-		entry := transformNamespace(ns)
+		entry := shared.TransformNamespace(ns)
 		table.AddField(entry.NamespaceID)
 		table.AddField(entry.Name)
 		table.AddField(entry.DisplayName)
@@ -158,49 +142,4 @@ func runCommand(ctx util.CmdContext, o *opts) error {
 	}
 
 	return table.Render()
-}
-
-func transformNamespace(ns security.SecurityNamespaceDescription) namespaceEntry {
-	var namespaceID string
-	if ns.NamespaceId != nil {
-		namespaceID = ns.NamespaceId.String()
-	}
-
-	var systemBitMask string
-	if ns.SystemBitMask != nil {
-		systemBitMask = fmt.Sprintf("0x%X", *ns.SystemBitMask)
-	}
-
-	var writePermission string
-	if ns.WritePermission != nil {
-		writePermission = fmt.Sprintf("0x%X", *ns.WritePermission)
-	}
-
-	var readPermission string
-	if ns.ReadPermission != nil {
-		readPermission = fmt.Sprintf("0x%X", *ns.ReadPermission)
-	}
-
-	entry := namespaceEntry{
-		NamespaceID:       namespaceID,
-		Name:              types.GetValue(ns.Name, ""),
-		DisplayName:       types.GetValue(ns.DisplayName, ""),
-		DataspaceCategory: types.GetValue(ns.DataspaceCategory, ""),
-		IsRemotable:       ns.IsRemotable,
-		ExtensionType:     types.GetValue(ns.ExtensionType, ""),
-		ElementLength:     ns.ElementLength,
-		SeparatorValue:    types.GetValue(ns.SeparatorValue, ""),
-		WritePermission:   writePermission,
-		ReadPermission:    readPermission,
-		UseTranslator:     ns.UseTokenTranslator,
-		SystemBitMask:     systemBitMask,
-		StructureValue:    ns.StructureValue,
-	}
-
-	if ns.Actions != nil {
-		count := len(*ns.Actions)
-		entry.ActionsCount = types.ToPtr(count)
-	}
-
-	return entry
 }
