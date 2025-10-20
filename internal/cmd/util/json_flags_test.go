@@ -30,16 +30,53 @@ func TestAddJSONFlags(t *testing.T) {
 			wantsExport: nil,
 		},
 		{
-			name:        "empty JSON flag",
-			fields:      []string{"one", "two"},
-			args:        []string{"--json"},
+			name:   "json with no explicit fields",
+			fields: []string{"one", "two"},
+			args:   []string{"--json"},
+			wantsExport: &jsonExporter{
+				fields:   []string{"one", "two"},
+				filter:   "",
+				template: "",
+			},
+		},
+		{
+			name:   "json with exclusions only",
+			fields: []string{"id", "number", "title"},
+			args:   []string{"--json=-number"},
+			wantsExport: &jsonExporter{
+				fields:   []string{"id", "title"},
+				filter:   "",
+				template: "",
+			},
+		},
+		{
+			name:   "json with includes and exclusions",
+			fields: []string{"id", "number", "title"},
+			args:   []string{"--json=number,title,-number"},
+			wantsExport: &jsonExporter{
+				fields:   []string{"title"},
+				filter:   "",
+				template: "",
+			},
+		},
+		{
+			name:        "json with all fields excluded",
+			fields:      []string{"id", "number"},
+			args:        []string{"--json=-id,-number"},
 			wantsExport: nil,
-			wantsError:  "specify one or more comma-separated fields for `--json`:\n  one\n  two",
+			wantsError:  "no JSON fields selected; all columns were excluded",
+		},
+		{
+			name:        "json with undefined fields excluded",
+			fields:      []string{"id"},
+			args:        []string{"--json=-number"},
+			wantsExport: nil,
+			wantsError:  "unknown JSON field: \"number\"\navailable fields:\n  id",
 		},
 		{
 			name:        "invalid JSON field",
 			fields:      []string{"id", "number"},
-			args:        []string{"--json", "idontexist"},
+			args:        []string{"--json=idontexist"},
 			wantsExport: nil,
 			wantsError:  "unknown JSON field: \"idontexist\"\navailable fields:\n  id\n  number",
 		},
@@ -67,7 +104,7 @@ func TestAddJSONFlags(t *testing.T) {
 		{
 			name:   "with JSON fields",
 			fields: []string{"id", "number", "title"},
-			args:   []string{"--json", "number,title"},
+			args:   []string{"--json=number,title"},
 			wantsExport: &jsonExporter{
 				fields:   []string{"number", "title"},
 				filter:   "",
@@ -77,7 +114,7 @@ func TestAddJSONFlags(t *testing.T) {
 		{
 			name:   "with jq filter",
 			fields: []string{"id", "number", "title"},
-			args:   []string{"--json", "number", "-q.number"},
+			args:   []string{"--json=number", "-q=.number"},
 			wantsExport: &jsonExporter{
 				fields:   []string{"number"},
 				filter:   ".number",
@@ -87,12 +124,19 @@ func TestAddJSONFlags(t *testing.T) {
 		{
 			name:   "with Go template",
 			fields: []string{"id", "number", "title"},
-			args:   []string{"--json", "number", "-t", "{{.number}}"},
+			args:   []string{"--json=number", "-t", "{{.number}}"},
 			wantsExport: &jsonExporter{
 				fields:   []string{"number"},
 				filter:   "",
 				template: "{{.number}}",
 			},
+		},
+		{
+			name:        "json when fields list empty",
+			fields:      []string{},
+			args:        []string{"--json"},
+			wantsExport: nil,
+			wantsError:  "no JSON fields are defined for this command",
 		},
 	}
 	for _, tt := range tests {
