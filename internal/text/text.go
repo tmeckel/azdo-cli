@@ -48,7 +48,7 @@ func Truncate(maxWidth int, s string) string {
 	if maxWidth >= minWidthForEllipsis {
 		tail = ellipsis
 	}
-	r := truncate.StringWithTail(s, uint(maxWidth), tail)
+	r := truncate.StringWithTail(s, uint(maxWidth), tail) //nolint:gosec
 	if DisplayWidth(r) < maxWidth {
 		r += " "
 	}
@@ -136,7 +136,7 @@ func FormatSlice(values []string, lineLength uint, indent uint, prependWith stri
 		slices.Sort(sortedValues)
 	}
 
-	pre := strings.Repeat(" ", int(indent))
+	pre := strings.Repeat(" ", int(indent)) //nolint:gosec
 	if len(sortedValues) == 0 {
 		return pre
 	} else if len(sortedValues) == 1 {
@@ -161,8 +161,8 @@ func FormatSlice(values []string, lineLength uint, indent uint, prependWith stri
 				currentLineLength += len(sep)
 			}
 		} else {
-			if !isLast && currentLineLength+len(ws)+len(v)+len(sep) > int(lineLength) ||
-				isLast && currentLineLength+len(ws)+len(v) > int(lineLength) {
+			if !isLast && currentLineLength+len(ws)+len(v)+len(sep) > int(lineLength) || //nolint:gosec
+				isLast && currentLineLength+len(ws)+len(v) > int(lineLength) { //nolint:gosec
 				currentLineLength = 0
 				builder.WriteString("\n")
 				i--
