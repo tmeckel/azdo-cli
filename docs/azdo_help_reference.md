@@ -474,6 +474,25 @@ Update an Azure DevOps security group
 -t, --template string      Format JSON output using a Go template; see "azdo help formatting"
 ````
 
+### `azdo security permission`
+
+Manage Azure DevOps security permissions.
+
+#### `azdo security permission namespace`
+
+Inspect security permission namespaces.
+
+##### `azdo security permission namespace list [ORGANIZATION] [flags]`
+
+List security permission namespaces.
+
+```
+-q, --jq expression     Filter JSON output using a jq expression
+    --json fields       Output JSON with the specified fields
+    --local-only        Only include namespaces defined locally within the organization.
+-t, --template string   Format JSON output using a Go template; see "azdo help formatting"
+````
+
 
 ### See also
 
