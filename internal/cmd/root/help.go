@@ -120,7 +120,7 @@ func rootHelpFunc(iostrms *iostreams.IOStreams, command *cobra.Command, _ []stri
 	}
 	if longText != "" && command.LocalFlags().Lookup("jq") != nil {
 		longText = strings.TrimRight(longText, "\n") +
-			"\n\nFor more information about output formatting flags, see `gh help formatting`."
+			"\n\nFor more information about output formatting flags, see `azdo help formatting`."
 	}
 
 	helpEntries := []helpEntry{}
@@ -134,7 +134,7 @@ func rootHelpFunc(iostrms *iostreams.IOStreams, command *cobra.Command, _ []stri
 	}
 
 	// Statically calculated padding for non-extension commands,
-	// longest is `gh accessibility` with 13 characters + 1 space.
+	// longest is `azdo accessibility` with 13 characters + 1 space.
 	//
 	// Should consider novel way to calculate this in the future [AF]
 	namePadding := 14
