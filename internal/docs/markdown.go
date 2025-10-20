@@ -12,7 +12,29 @@ import (
 	"github.com/spf13/cobra/doc"
 	"github.com/spf13/pflag"
 	"github.com/tmeckel/azdo-cli/internal/cmd/root"
+	"github.com/tmeckel/azdo-cli/internal/text"
 )
+
+func printJSONFields(w io.Writer, cmd *cobra.Command) {
+	raw, ok := cmd.Annotations["help:json-fields"]
+	if !ok {
+		return
+	}
+
+	fmt.Fprint(w, "### JSON Fields\n\n")
+	fmt.Fprint(w, text.FormatSlice(strings.Split(raw, ","), 0, 0, "`", "`", true))
+	fmt.Fprint(w, "\n\n")
+}
+
+func printAliases(w io.Writer, cmd *cobra.Command) {
+	if len(cmd.Aliases) > 0 {
+		fmt.Fprintf(w, "### ALIASES\n\n")
+		for _, a := range root.BuildAliasList(cmd, cmd.Aliases) {
+			fmt.Fprintf(w, "- `%s`\n", strings.TrimSpace(a))
+		}
+		fmt.Fprint(w, "\n")
+	}
+}
 
 func printOptions(w io.Writer, cmd *cobra.Command) error {
 	flags := cmd.NonInheritedFlags()
@@ -43,42 +65,38 @@ func hasNonHelpFlags(fs *pflag.FlagSet) (found bool) {
 			found = true
 		}
 	})
-	return found
+	return
+}
+
+var hiddenFlagDefaults = map[string]bool{
+	"false": true,
+	"":      true,
+	"[]":    true,
+	"0s":    true,
+}
+
+var defaultValFormats = map[string]string{
+	"string":   " (default \"%s\")",
+	"duration": " (default \"%s\")",
+}
+
+func getDefaultValueDisplayString(f *pflag.Flag) string {
+	if hiddenFlagDefaults[f.DefValue] || hiddenFlagDefaults[f.Value.Type()] {
+		return ""
+	}
+
+	if dvf, found := defaultValFormats[f.Value.Type()]; found {
+		return fmt.Sprintf(dvf, f.Value)
+	}
+	return fmt.Sprintf(" (default %s)", f.Value)
 }
 
 type flagView struct {
 	Name      string
 	Varname   string
 	Shorthand string
+	DefValue  string
 	Usage     string
-}
-
-//nolint:unused
-var flagsHTMLTemplate = `
-<dl class="flags">{{ range . }}
-	<dt>{{ if .Shorthand }}<code>-{{.Shorthand}}</code>, {{ end -}}
-		<code>--{{.Name}}{{ if .Varname }} &lt;{{.Varname}}&gt;{{ end }}</code></dt>
-	<dd>{{.Usage}}</dd>
-{{ end }}</dl>
-`
-
-var htmlTpl = template.Must(template.New("htmlFlags").Parse(flagsHTMLTemplate)) //nolint:unused
-
-func printFlagsHTML(w io.Writer, fs *pflag.FlagSet) error { //nolint:unused
-	var flags []flagView
-	fs.VisitAll(func(f *pflag.Flag) {
-		if f.Hidden || f.Name == "help" {
-			return
-		}
-		varname, usage := pflag.UnquoteUsage(f)
-		flags = append(flags, flagView{
-			Name:      f.Name,
-			Varname:   varname,
-			Shorthand: f.Shorthand,
-			Usage:     usage,
-		})
-	})
-	return htmlTpl.Execute(w, flags)
 }
 
 var flagsMarkdownTemplate = `
@@ -118,21 +136,21 @@ func printFlagsMarkdown(w io.Writer, fs *pflag.FlagSet) error {
 
 // genMarkdownCustom creates custom markdown output.
 func genMarkdownCustom(cmd *cobra.Command, w io.Writer, linkHandler func(string) string) error {
-	fmt.Fprintf(w, "## %s\n", cmd.CommandPath())
+	fmt.Fprintf(w, "## Command `%s`\n\n", cmd.CommandPath())
 
 	hasLong := cmd.Long != ""
 	if !hasLong {
-		fmt.Fprintf(w, "%s\n", cmd.Short)
+		fmt.Fprintf(w, "%s\n\n", cmd.Short)
 	}
 	if cmd.Runnable() {
-		fmt.Fprintf(w, "```\n%s\n```\n", cmd.UseLine())
+		fmt.Fprintf(w, "```\n%s\n```\n\n", cmd.UseLine())
 	}
 	if hasLong {
-		fmt.Fprintf(w, "%s\n", cmd.Long)
+		fmt.Fprintf(w, "%s\n\n", cmd.Long)
 	}
 
 	for _, g := range root.GroupedCommands(cmd) {
-		fmt.Fprintf(w, "### %s\n", g.Title)
+		fmt.Fprintf(w, "### %s\n\n", g.Title)
 		for _, subcmd := range g.Commands {
 			fmt.Fprintf(w, "* [%s](%s)\n", subcmd.CommandPath(), linkHandler(cmdManualPath(subcmd)))
 		}
@@ -142,6 +160,9 @@ func genMarkdownCustom(cmd *cobra.Command, w io.Writer, linkHandler func(string)
 	if err := printOptions(w, cmd); err != nil {
 		return err
 	}
+
+	printAliases(w, cmd)
+	printJSONFields(w, cmd)
 
 	if len(cmd.Example) > 0 {
 		fmt.Fprint(w, "### Examples\n\n```bash\n")
