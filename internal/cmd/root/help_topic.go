@@ -184,13 +184,13 @@ var HelpTopics = []helpTopic{
 
 
 			# adding the --jq flag and selecting fields from the array
-			$ gh pr list --json author --jq '.[].author.login'
+			$ azdo pr list --json author --jq '.[].author.login'
 			monalisa
 			codercat
 			cli-maintainer
 
 			# --jq can be used to implement more complex filtering and output changes:
-			$ gh issue list --json number,title,labels --jq \
+			$ azdo issue list --json number,title,labels --jq \
 			  'map(select((.labels | length) > 0))    # must have labels
 			  | map(.labels = (.labels | map(.name))) # show only the label names
 			  | .[:3]                                 # select the first 3 results'
@@ -221,11 +221,11 @@ var HelpTopics = []helpTopic{
 			    }
 			  ]
 			# using the --template flag with the hyperlink helper
-			gh issue list --json title,url --template '{{range .}}{{hyperlink .url .title}}{{"\n"}}{{end}}'
+			azdo issue list --json title,url --template '{{range .}}{{hyperlink .url .title}}{{"\n"}}{{end}}'
 
 
 			# adding the --template flag and modifying the display format
-			$ gh pr list --json number,title,headRefName,updatedAt --template \
+			$ azdo pr list --json number,title,headRefName,updatedAt --template \
 				'{{range .}}{{tablerow (printf "#%v" .number | autocolor "green") .title .headRefName (timeago .updatedAt)}}{{end}}'
 
 			#123  A helpful contribution      contribution-branch       about 1 day ago
@@ -234,7 +234,7 @@ var HelpTopics = []helpTopic{
 
 
 			# a more complex example with the --template flag which formats a pull request using multiple tables with headers:
-			$ gh pr view 3519 --json number,title,body,reviews,assignees --template \
+			$ azdo pr view 3519 --json number,title,body,reviews,assignees --template \
 			'{{printf "#%v" .number}} {{.title}}
 
 			{{.body}}
