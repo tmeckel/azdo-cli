@@ -2,12 +2,15 @@ package root
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"io"
 	"sort"
 	"strings"
 
 	"github.com/spf13/cobra"
+	"github.com/spf13/pflag"
+	"github.com/tmeckel/azdo-cli/internal/cmd/util"
 	"github.com/tmeckel/azdo-cli/internal/iostreams"
 	"github.com/tmeckel/azdo-cli/internal/text"
 )
@@ -24,7 +27,7 @@ func rootUsageFunc(w io.Writer, command *cobra.Command) error {
 	}
 
 	if len(subcommands) > 0 {
-		fmt.Fprint(w, "\n\nAvailable commands:\n")
+		fmt.Fprint(w, "\n\nAvailable commands:\n\n")
 		for _, c := range subcommands {
 			fmt.Fprintf(w, "  %s\n", c.Name())
 		}
@@ -37,6 +40,13 @@ func rootUsageFunc(w io.Writer, command *cobra.Command) error {
 		fmt.Fprint(w, text.Indent(dedent(flagUsages), "  "))
 	}
 	return nil
+}
+
+func rootFlagErrorFunc(cmd *cobra.Command, err error) error {
+	if errors.Is(err, pflag.ErrHelp) {
+		return err
+	}
+	return util.FlagErrorWrap(err)
 }
 
 var hasFailed bool
@@ -99,8 +109,6 @@ func rootHelpFunc(iostrms *iostreams.IOStreams, command *cobra.Command, _ []stri
 		return
 	}
 
-	namePadding := 12
-
 	type helpEntry struct {
 		Title string
 		Body  string
@@ -112,7 +120,7 @@ func rootHelpFunc(iostrms *iostreams.IOStreams, command *cobra.Command, _ []stri
 	}
 	if longText != "" && command.LocalFlags().Lookup("jq") != nil {
 		longText = strings.TrimRight(longText, "\n") +
-			"\n\nFor more information about output formatting flags, see `azdo help formatting`."
+			"\n\nFor more information about output formatting flags, see `gh help formatting`."
 	}
 
 	helpEntries := []helpEntry{}
@@ -120,6 +128,16 @@ func rootHelpFunc(iostrms *iostreams.IOStreams, command *cobra.Command, _ []stri
 		helpEntries = append(helpEntries, helpEntry{"", longText})
 	}
 	helpEntries = append(helpEntries, helpEntry{"USAGE", command.UseLine()})
+
+	if len(command.Aliases) > 0 {
+		helpEntries = append(helpEntries, helpEntry{"ALIASES", strings.Join(BuildAliasList(command, command.Aliases), ", ") + "\n"})
+	}
+
+	// Statically calculated padding for non-extension commands,
+	// longest is `gh accessibility` with 13 characters + 1 space.
+	//
+	// Should consider novel way to calculate this in the future [AF]
+	namePadding := 14
 
 	for _, g := range GroupedCommands(command) {
 		var names []string
@@ -134,6 +152,9 @@ func rootHelpFunc(iostrms *iostreams.IOStreams, command *cobra.Command, _ []stri
 
 	if isRootCmd(command) {
 		var helpTopics []string
+		if c := findCommand(command, "accessibility"); c != nil {
+			helpTopics = append(helpTopics, rpad(c.Name()+":", namePadding)+c.Short)
+		}
 		if c := findCommand(command, "actions"); c != nil {
 			helpTopics = append(helpTopics, rpad(c.Name()+":", namePadding)+c.Short)
 		}
@@ -151,6 +172,10 @@ func rootHelpFunc(iostrms *iostreams.IOStreams, command *cobra.Command, _ []stri
 	inheritedFlagUsages := command.InheritedFlags().FlagUsages()
 	if inheritedFlagUsages != "" {
 		helpEntries = append(helpEntries, helpEntry{"INHERITED FLAGS", dedent(inheritedFlagUsages)})
+	}
+	if _, ok := command.Annotations["help:json-fields"]; ok {
+		fields := strings.Split(command.Annotations["help:json-fields"], ",")
+		helpEntries = append(helpEntries, helpEntry{"JSON FIELDS", text.FormatSlice(fields, 80, 0, "", "", true)})
 	}
 	if _, ok := command.Annotations["help:arguments"]; ok {
 		helpEntries = append(helpEntries, helpEntry{"ARGUMENTS", command.Annotations["help:arguments"]})
@@ -260,4 +285,26 @@ func dedent(s string) string {
 		fmt.Fprintln(&buf, strings.TrimPrefix(l, strings.Repeat(" ", minIndent)))
 	}
 	return strings.TrimSuffix(buf.String(), "\n")
+}
+
+func BuildAliasList(cmd *cobra.Command, aliases []string) []string {
+	return aliases
+	// if !cmd.HasParent() {
+	// 	return aliases
+	// }
+
+	// parentAliases := append(cmd.Parent().Aliases, cmd.Parent().Name())
+	// sort.Strings(parentAliases)
+
+	// var aliasesWithParentAliases []string
+	// // e.g aliases = [ls]
+	// for _, alias := range aliases {
+	// 	// e.g parentAliases = [codespaces, cs]
+	// 	for _, parentAlias := range parentAliases {
+	// 		// e.g. aliasesWithParentAliases = [codespaces list, codespaces ls, cs list, cs ls]
+	// 		aliasesWithParentAliases = append(aliasesWithParentAliases, fmt.Sprintf("%s %s", parentAlias, alias))
+	// 	}
+	// }
+
+	// return BuildAliasList(cmd.Parent(), aliasesWithParentAliases)
 }
