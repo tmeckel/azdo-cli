@@ -10,7 +10,6 @@ import (
 	"github.com/MakeNowJust/heredoc"
 	"github.com/microsoft/azure-devops-go-api/azuredevops/v7/graph"
 	"github.com/spf13/cobra"
-	"github.com/tmeckel/azdo-cli/internal/cmd/security/group/shared"
 	"github.com/tmeckel/azdo-cli/internal/cmd/util"
 	"github.com/tmeckel/azdo-cli/internal/types"
 )
@@ -96,7 +95,7 @@ func runCommand(ctx util.CmdContext, o *opts) error {
 			}
 		}
 	}
-	scope, err := shared.ParseScope(ctx, o.target)
+	scope, err := util.ParseScope(ctx, o.target)
 	if err != nil {
 		return err
 	}
@@ -111,7 +110,7 @@ func runCommand(ctx util.CmdContext, o *opts) error {
 	}
 	zap.L().Sugar().Debug("Graph client created")
 
-	scopeDescriptor, _, err := shared.ResolveScopeDescriptor(ctx, organization, project)
+	scopeDescriptor, _, err := util.ResolveScopeDescriptor(ctx, organization, project)
 	if err != nil {
 		return err
 	}
