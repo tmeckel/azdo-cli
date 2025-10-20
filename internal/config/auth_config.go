@@ -148,7 +148,7 @@ func (c *authConfig) GetDefaultOrganization() (organizationName string, err erro
 		return "", fmt.Errorf("no default organization defined")
 	}
 	organizationName = strings.ToLower(organizationName)
-	return
+	return organizationName, err
 }
 
 // SetDefaultOrganization will set the default organization for Azure DevOps
