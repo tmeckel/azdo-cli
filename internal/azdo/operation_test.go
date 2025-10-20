@@ -217,4 +217,3 @@ func TestPollOperationResultWithState(t *testing.T) {
 		})
 	}
 }
-
