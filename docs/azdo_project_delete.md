@@ -17,7 +17,7 @@ azdo project delete [ORGANIZATION/]PROJECT [flags]
 
 	Output JSON with the specified fields. Prefix a field with &#39;-&#39; to exclude it.
 
-* `--max-wait` `int`
+* `--max-wait` `int` (default `3600`)
 
 	Maximum wait time in seconds
 
