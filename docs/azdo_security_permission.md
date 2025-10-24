@@ -6,6 +6,7 @@ Manage Azure DevOps security permissions.
 
 * [azdo security permission list](./azdo_security_permission_list.md)
 * [azdo security permission namespace](./azdo_security_permission_namespace.md)
+* [azdo security permission show](./azdo_security_permission_show.md)
 
 ### ALIASES
 
