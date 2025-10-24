@@ -8,9 +8,9 @@ List security access control entries (ACEs) for an Azure DevOps security namespa
 
 Accepted TARGET formats:
   - (empty)                        → use the default organization
-  - ORGANIZATION                   → list all ACLs for the namespace in the organization
-  - ORGANIZATION/SUBJECT           → list ACLs for the specified subject
-  - ORGANIZATION/PROJECT/SUBJECT   → list ACLs for the subject scoped to the project
+  - ORGANIZATION                   → list all ACEs for the namespace in the organization
+  - ORGANIZATION/SUBJECT           → list ACEs for the specified subject
+  - ORGANIZATION/PROJECT/SUBJECT   → list ACEs for the subject scoped to the project
 
 
 ### Options
@@ -30,7 +30,7 @@ Accepted TARGET formats:
 
 * `--recurse`
 
-	Include child ACLs for the specified token when supported.
+	Include child ACEs for the specified token when supported.
 
 * `-t`, `--template` `string`
 
@@ -53,16 +53,16 @@ Accepted TARGET formats:
 ### Examples
 
 ```bash
-# List all ACLs for a namespace using the default organization
+# List all ACEs for a namespace using the default organization
 azdo security permission list --namespace-id 5a27515b-ccd7-42c9-84f1-54c998f03866
 
-# List all ACLs for a namespace in an explicit organization
+# List all ACEs for a namespace in an explicit organization
 azdo security permission list fabrikam --namespace-id 5a27515b-ccd7-42c9-84f1-54c998f03866
 
 # List all tokens for a specific user
 azdo security permission list fabrikam/contoso@example.com --namespace-id 5a27515b-ccd7-42c9-84f1-54c998f03866
 
-# List ACLs for a project-scoped group
+# List ACEs for a project-scoped group
 azdo security permission list fabrikam/ProjectAlpha/vssgp.Uy0xLTktMTIzNDU2 --namespace-id 5a27515b-ccd7-42c9-84f1-54c998f03866 --recurse
 ```
 
