@@ -175,7 +175,7 @@ func rootHelpFunc(iostrms *iostreams.IOStreams, command *cobra.Command, _ []stri
 	}
 	if _, ok := command.Annotations["help:json-fields"]; ok {
 		fields := strings.Split(command.Annotations["help:json-fields"], ",")
-		helpEntries = append(helpEntries, helpEntry{"JSON FIELDS", text.FormatSlice(fields, 80, 0, "", "", true)})
+		helpEntries = append(helpEntries, helpEntry{"JSON FIELDS", text.NewSliceFormatter(fields).WithLineLength(80).WithSort(true).String()})
 	}
 	if _, ok := command.Annotations["help:arguments"]; ok {
 		helpEntries = append(helpEntries, helpEntry{"ARGUMENTS", command.Annotations["help:arguments"]})
