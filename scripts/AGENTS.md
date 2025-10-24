@@ -40,25 +40,25 @@ When an update is needed, follow these exact steps to avoid ambiguity:
    - Do not attempt dynamic iteration — we keep the list explicit to control commit order and message content.
 
 4. **Generate Commit Messages**:
-   - Infer `type` from change nature (likely from filename + context):
+   - Infer `type` from change nature by analyzing the change.
+   - Then prefix the commit line with one of the following items:
      * `feat` — new feature or functionality.
      * `fix` — bug fixes.
      * `refactor` — restructuring without behavior change.
      * `test` — tests added or improved.
      * `chore` — maintenance work or data updates.
-   - Set `scope` to directory or module name (e.g., `azdo`, `pr/create`).
    - Be *verbose*: Commit messages **must** be multi-line, with a concise subject line and a detailed body explaining the *what*, *why*, and *impact* of the change.
 
      **Good Example:**
      ```
-     feat(repo): ✨ add --source-branch flag to create command
+     feat: ✨ add --source-branch flag to create command
 
      This commit enhances the `repo create` command by adding a new `--source-branch` flag. This allows users to specify a single branch to include when creating a fork, instead of the default behavior of copying all branches. This change also adds documentation to the code explaining the difference between the ParentRepository body parameter and the SourceRef query parameter in the underlying Azure DevOps REST API, clarifying the purpose of each.
      ```
 
      **Bad Example:**
      ```
-     feat(repo): add source branch flag
+     feat: add source branch flag
      ```
    - Append matching emoji (✨, 🐛, ♻️, ✅, 📦, etc.).
 
