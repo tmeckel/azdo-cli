@@ -10,7 +10,7 @@ import (
 	"github.com/MakeNowJust/heredoc"
 	"github.com/microsoft/azure-devops-go-api/azuredevops/v7/security"
 	"github.com/spf13/cobra"
-	"github.com/tmeckel/azdo-cli/internal/cmd/security/permission/namespace/shared"
+	"github.com/tmeckel/azdo-cli/internal/cmd/security/permission/shared"
 	"github.com/tmeckel/azdo-cli/internal/cmd/util"
 	"github.com/tmeckel/azdo-cli/internal/types"
 )
