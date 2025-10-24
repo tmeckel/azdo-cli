@@ -12,7 +12,7 @@ Without an argument, the pull request associated with the current branch is sele
 ### Options
 
 
-* `--vote` `string`
+* `--vote` `string` (default `&#34;approve&#34;`)
 
 	Vote value to set: {approve|approve-with-suggestions|reject|reset|wait-for-author}
 
