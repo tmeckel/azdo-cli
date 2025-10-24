@@ -655,13 +655,13 @@ p, perm, permissions
 
 #### `azdo security permission list [TARGET] [flags]`
 
-List security ACLs for a namespace, optionally filtered by subject.
+List security ACEs for a namespace, optionally filtered by subject.
 
 ```
 -q, --jq expression         Filter JSON output using a jq expression
     --json fields[=*]       Output JSON with the specified fields. Prefix a field with '-' to exclude it.
 -n, --namespace-id string   ID of the security namespace to query (required).
-    --recurse               Include child ACLs for the specified token when supported.
+    --recurse               Include child ACEs for the specified token when supported.
 -t, --template string       Format JSON output using a Go template; see "azdo help formatting"
     --token string          Security token to filter the results.
 ```
@@ -707,6 +707,24 @@ Show details for a security permission namespace.
 -q, --jq expression     Filter JSON output using a jq expression
     --json fields[=*]   Output JSON with the specified fields. Prefix a field with '-' to exclude it.
 -t, --template string   Format JSON output using a Go template; see "azdo help formatting"
+```
+
+Aliases
+
+```
+s
+```
+
+#### `azdo security permission show <TARGET> [flags]`
+
+Show permissions for a user or group.
+
+```
+-q, --jq expression         Filter JSON output using a jq expression
+    --json fields[=*]       Output JSON with the specified fields. Prefix a field with '-' to exclude it.
+-n, --namespace-id string   ID of the security namespace to query (required).
+-t, --template string       Format JSON output using a Go template; see "azdo help formatting"
+    --token string          Security token to query (required).
 ```
 
 Aliases
