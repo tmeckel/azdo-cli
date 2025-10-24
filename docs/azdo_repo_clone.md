@@ -22,7 +22,7 @@ or the value from the AZDO_ORGANIZATION environment variable.
 
 	Update all submodules after checkout
 
-* `-u`, `--upstream-remote-name` `string`
+* `-u`, `--upstream-remote-name` `string` (default `&#34;upstream&#34;`)
 
 	Upstream remote name when cloning a fork
 
