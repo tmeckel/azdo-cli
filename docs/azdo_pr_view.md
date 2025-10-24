@@ -13,11 +13,11 @@ is displayed.
 ### Options
 
 
-* `--comment-sort` `string`
+* `--comment-sort` `string` (default `&#34;desc&#34;`)
 
 	Sort comments by creation time; defaults to &#39;desc&#39; (newest first): {desc|asc}
 
-* `--comment-type` `string`
+* `--comment-type` `string` (default `&#34;text&#34;`)
 
 	Filter comments by type; defaults to &#39;text&#39;: {text|system|all}
 
