@@ -118,6 +118,11 @@ func runRemove(ctx util.CmdContext, o *opts) error {
 		return err
 	}
 
+	extensionsClient, err := ctx.ClientFactory().Extensions(ctx.Context(), organization)
+	if err != nil {
+		return err
+	}
+
 	type removalCandidate struct {
 		input       string
 		subject     *graph.GraphSubject
@@ -135,7 +140,7 @@ func runRemove(ctx util.CmdContext, o *opts) error {
 			return util.FlagErrorf("member value must not be empty")
 		}
 
-		memberSubject, err := shared.ResolveMemberDescriptor(ctx, organization, memberInput)
+		memberSubject, err := extensionsClient.ResolveMemberDescriptor(ctx.Context(), memberInput)
 		if err != nil {
 			return err
 		}
