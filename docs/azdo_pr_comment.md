@@ -17,7 +17,7 @@ If there are more than one pull request associated with the current branch, one 
 
 	Comment to add to the pull request. Use &#39;-&#39; to read from stdin.
 
-* `-t`, `--thread` `int`
+* `-t`, `--thread` `int` (default `0`)
 
 	ID of the thread to reply to.
 
