@@ -19,7 +19,7 @@ If required checks have not yet passed, auto-complete will be enabled.
 
 	Delete the source branch after merging
 
-* `--merge-strategy` `string`
+* `--merge-strategy` `string` (default `&#34;NoFastForward&#34;`)
 
 	Merge strategy to use: {noFastForward|squash|rebase|rebaseMerge}
 
@@ -27,7 +27,7 @@ If required checks have not yet passed, auto-complete will be enabled.
 
 	Message to include when completing the pull request
 
-* `--transition-work-items`
+* `--transition-work-items` (default `true`)
 
 	Transition linked work item statuses upon merging
 
