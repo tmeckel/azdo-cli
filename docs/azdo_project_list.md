@@ -9,11 +9,11 @@ azdo project list [organization] [flags]
 ### Options
 
 
-* `--format` `string`
+* `--format` `string` (default `&#34;table&#34;`)
 
 	Output format: {json}
 
-* `-l`, `--limit` `int`
+* `-l`, `--limit` `int` (default `30`)
 
 	Maximum number of projects to fetch
 
