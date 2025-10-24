@@ -14,7 +14,7 @@ If there are more than one pull request associated with the current branch, one 
 ### Options
 
 
-* `--color` `string`
+* `--color` `string` (default `&#34;auto&#34;`)
 
 	Use color in diff output: {always|never|auto}
 
