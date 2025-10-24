@@ -11,7 +11,6 @@ import (
 	"github.com/spf13/cobra"
 	"go.uber.org/zap"
 
-	groupShared "github.com/tmeckel/azdo-cli/internal/cmd/security/group/shared"
 	"github.com/tmeckel/azdo-cli/internal/cmd/security/permission/shared"
 	"github.com/tmeckel/azdo-cli/internal/cmd/util"
 	"github.com/tmeckel/azdo-cli/internal/types"
@@ -97,6 +96,14 @@ func NewCmd(ctx util.CmdContext) *cobra.Command {
 }
 
 func runCommand(ctx util.CmdContext, o *opts) error {
+	ios, err := ctx.IOStreams()
+	if err != nil {
+		return err
+	}
+
+	ios.StartProgressIndicator()
+	defer ios.StopProgressIndicator()
+
 	if strings.TrimSpace(o.namespaceID) == "" {
 		return util.FlagErrorf("--namespace-id is required")
 	}
@@ -106,20 +113,13 @@ func runCommand(ctx util.CmdContext, o *opts) error {
 		return util.FlagErrorf("invalid namespace id %q: %v", o.namespaceID, err)
 	}
 
-	scope, subject, hasSubject, err := shared.ParseSubjectTarget(ctx, o.rawTarget)
+	scope, err := shared.ParseSubjectTarget(ctx, o.rawTarget)
 	if err != nil {
 		return err
 	}
+	hasSubject := scope.Subject != ""
 
-	ios, err := ctx.IOStreams()
-	if err != nil {
-		return err
-	}
-
-	ios.StartProgressIndicator()
-	defer ios.StopProgressIndicator()
-
-	zap.L().Sugar().Debugf("Resolved scope organization=%q project=%q subject=%q", scope.Organization, scope.Project, subject)
+	zap.L().Sugar().Debugf("Resolved scope organization=%q project=%q subject=%q", scope.Organization, scope.Project, scope.Subject)
 
 	if hasSubject && scope.Project != "" {
 		if _, _, err := util.ResolveScopeDescriptor(ctx, scope.Organization, scope.Project); err != nil {
@@ -138,9 +138,14 @@ func runCommand(ctx util.CmdContext, o *opts) error {
 	}
 
 	if hasSubject {
-		member, err := groupShared.ResolveMemberDescriptor(ctx, scope.Organization, subject)
+		extensionsClient, err := ctx.ClientFactory().Extensions(ctx.Context(), scope.Organization)
 		if err != nil {
-			return fmt.Errorf("failed to resolve subject %q: %w", subject, err)
+			return err
+		}
+
+		member, err := extensionsClient.ResolveMemberDescriptor(ctx.Context(), scope.Subject)
+		if err != nil {
+			return fmt.Errorf("failed to resolve subject %q: %w", scope.Subject, err)
 		}
 
 		// The graph subject descriptor returned from ResolveMemberDescriptor may not
