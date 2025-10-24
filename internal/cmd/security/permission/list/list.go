@@ -6,12 +6,13 @@ import (
 
 	"github.com/MakeNowJust/heredoc"
 	"github.com/google/uuid"
+	"github.com/microsoft/azure-devops-go-api/azuredevops/v7/identity"
 	"github.com/microsoft/azure-devops-go-api/azuredevops/v7/security"
 	"github.com/spf13/cobra"
 	"go.uber.org/zap"
 
 	groupShared "github.com/tmeckel/azdo-cli/internal/cmd/security/group/shared"
-	permissionShared "github.com/tmeckel/azdo-cli/internal/cmd/security/permission/namespace/shared"
+	"github.com/tmeckel/azdo-cli/internal/cmd/security/permission/shared"
 	"github.com/tmeckel/azdo-cli/internal/cmd/util"
 	"github.com/tmeckel/azdo-cli/internal/types"
 )
@@ -28,12 +29,12 @@ type permissionEntry struct {
 	Token              *string `json:"token,omitempty"`
 	Descriptor         *string `json:"descriptor,omitempty"`
 	InheritPermissions *bool   `json:"inheritPermissions,omitempty"`
-	Allow              *string `json:"allow,omitempty"`
-	Deny               *string `json:"deny,omitempty"`
-	EffectiveAllow     *string `json:"effectiveAllow,omitempty"`
-	EffectiveDeny      *string `json:"effectiveDeny,omitempty"`
-	InheritedAllow     *string `json:"inheritedAllow,omitempty"`
-	InheritedDeny      *string `json:"inheritedDeny,omitempty"`
+	Allow              *int    `json:"allow,omitempty"`
+	Deny               *int    `json:"deny,omitempty"`
+	EffectiveAllow     *int    `json:"effectiveAllow,omitempty"`
+	EffectiveDeny      *int    `json:"effectiveDeny,omitempty"`
+	InheritedAllow     *int    `json:"inheritedAllow,omitempty"`
+	InheritedDeny      *int    `json:"inheritedDeny,omitempty"`
 }
 
 func NewCmd(ctx util.CmdContext) *cobra.Command {
@@ -41,27 +42,27 @@ func NewCmd(ctx util.CmdContext) *cobra.Command {
 
 	cmd := &cobra.Command{
 		Use:   "list [TARGET]",
-		Short: "List security ACLs for a namespace, optionally filtered by subject.",
+		Short: "List security ACEs for a namespace, optionally filtered by subject.",
 		Long: heredoc.Doc(`
 			List security access control entries (ACEs) for an Azure DevOps security namespace.
 
 			Accepted TARGET formats:
 			  - (empty)                        → use the default organization
-			  - ORGANIZATION                   → list all ACLs for the namespace in the organization
-			  - ORGANIZATION/SUBJECT           → list ACLs for the specified subject
-			  - ORGANIZATION/PROJECT/SUBJECT   → list ACLs for the subject scoped to the project
+			  - ORGANIZATION                   → list all ACEs for the namespace in the organization
+			  - ORGANIZATION/SUBJECT           → list ACEs for the specified subject
+			  - ORGANIZATION/PROJECT/SUBJECT   → list ACEs for the subject scoped to the project
 		`),
 		Example: heredoc.Doc(`
-			# List all ACLs for a namespace using the default organization
+			# List all ACEs for a namespace using the default organization
 			azdo security permission list --namespace-id 5a27515b-ccd7-42c9-84f1-54c998f03866
 
-			# List all ACLs for a namespace in an explicit organization
+			# List all ACEs for a namespace in an explicit organization
 			azdo security permission list fabrikam --namespace-id 5a27515b-ccd7-42c9-84f1-54c998f03866
 
 			# List all tokens for a specific user
 			azdo security permission list fabrikam/contoso@example.com --namespace-id 5a27515b-ccd7-42c9-84f1-54c998f03866
 
-			# List ACLs for a project-scoped group
+			# List ACEs for a project-scoped group
 			azdo security permission list fabrikam/ProjectAlpha/vssgp.Uy0xLTktMTIzNDU2 --namespace-id 5a27515b-ccd7-42c9-84f1-54c998f03866 --recurse
 		`),
 		Aliases: []string{
@@ -79,7 +80,7 @@ func NewCmd(ctx util.CmdContext) *cobra.Command {
 
 	cmd.Flags().StringVarP(&o.namespaceID, "namespace-id", "n", "", "ID of the security namespace to query (required).")
 	cmd.Flags().StringVar(&o.token, "token", "", "Security token to filter the results.")
-	cmd.Flags().BoolVar(&o.recurse, "recurse", false, "Include child ACLs for the specified token when supported.")
+	cmd.Flags().BoolVar(&o.recurse, "recurse", false, "Include child ACEs for the specified token when supported.")
 	util.AddJSONFlags(cmd, &o.exporter, []string{
 		"token",
 		"descriptor",
@@ -105,7 +106,7 @@ func runCommand(ctx util.CmdContext, o *opts) error {
 		return util.FlagErrorf("invalid namespace id %q: %v", o.namespaceID, err)
 	}
 
-	scope, subject, hasSubject, err := parseSubjectTarget(ctx, o.rawTarget)
+	scope, subject, hasSubject, err := shared.ParseSubjectTarget(ctx, o.rawTarget)
 	if err != nil {
 		return err
 	}
@@ -131,31 +132,53 @@ func runCommand(ctx util.CmdContext, o *opts) error {
 		return fmt.Errorf("failed to create security client: %w", err)
 	}
 
-	namespaceDetails, err := securityClient.QuerySecurityNamespaces(ctx.Context(), security.QuerySecurityNamespacesArgs{
-		SecurityNamespaceId: &namespaceUUID,
-	})
-	if err != nil {
-		return fmt.Errorf("failed to load namespace actions: %w", err)
-	}
-	actionDefinitions := permissionShared.ExtractNamespaceActions(namespaceDetails)
-
 	requestArgs := security.QueryAccessControlListsArgs{
 		SecurityNamespaceId: &namespaceUUID,
 		IncludeExtendedInfo: types.ToPtr(true),
 	}
 
-	var descriptor string
 	if hasSubject {
 		member, err := groupShared.ResolveMemberDescriptor(ctx, scope.Organization, subject)
 		if err != nil {
 			return fmt.Errorf("failed to resolve subject %q: %w", subject, err)
 		}
-		descriptor = strings.TrimSpace(types.GetValue(member.Descriptor, ""))
-		if descriptor == "" {
+
+		// The graph subject descriptor returned from ResolveMemberDescriptor may not
+		// be in the same form that the Security API expects for the `Descriptors`
+		// parameter. Resolve the identity via the Identity API and use the
+		// identity's `Descriptor` value (which matches ACL entries) when calling
+		// QueryAccessControlLists. This mirrors the approach used in the
+		// terraform-provider-azuredevops implementation.
+
+		identityClient, ierr := ctx.ClientFactory().Identity(ctx.Context(), scope.Organization)
+		if ierr != nil {
+			return fmt.Errorf("failed to create identity client: %w", ierr)
+		}
+
+		// Ask the Identity service for the identity matching the graph descriptor
+		subj := strings.TrimSpace(types.GetValue(member.Descriptor, ""))
+		if subj == "" {
 			return fmt.Errorf("resolved subject descriptor is empty")
 		}
-		zap.L().Sugar().Debugf("Resolved subject descriptor=%q", descriptor)
-		requestArgs.Descriptors = types.ToPtr(descriptor)
+
+		sd := subj
+		idents, err := identityClient.ReadIdentities(ctx.Context(), identity.ReadIdentitiesArgs{
+			SubjectDescriptors: &sd,
+		})
+		if err != nil {
+			return fmt.Errorf("failed to read identity information for %q: %w", subj, err)
+		}
+		if idents == nil || len(*idents) == 0 {
+			return fmt.Errorf("no identity returned for descriptor %q", subj)
+		}
+
+		// Use the identity's Descriptor (this is the form used in ACLs)
+		identityDescriptor := strings.TrimSpace(types.GetValue((*idents)[0].Descriptor, ""))
+		if identityDescriptor == "" {
+			return fmt.Errorf("identity for %q did not contain a descriptor", subj)
+		}
+		zap.L().Sugar().Debugf("Resolved subject descriptor (acl)=%q", identityDescriptor)
+		requestArgs.Descriptors = types.ToPtr(identityDescriptor)
 	}
 
 	if strings.TrimSpace(o.token) != "" {
@@ -166,14 +189,14 @@ func runCommand(ctx util.CmdContext, o *opts) error {
 		requestArgs.Recurse = types.ToPtr(true)
 	}
 
-	zap.L().Sugar().Debugf("Querying ACLs (token=%q recurse=%v subjectFilter=%v)", o.token, o.recurse, hasSubject)
+	zap.L().Sugar().Debugf("Querying ACEs (token=%q recurse=%v subjectFilter=%v)", o.token, o.recurse, hasSubject)
 
 	response, err := securityClient.QueryAccessControlLists(ctx.Context(), requestArgs)
 	if err != nil {
 		return fmt.Errorf("failed to query access control lists: %w", err)
 	}
 
-	entries := transformResponse(response, requestArgs.Descriptors, actionDefinitions)
+	entries := transformResponse(response, requestArgs.Descriptors)
 
 	ios.StopProgressIndicator()
 
@@ -186,7 +209,7 @@ func runCommand(ctx util.CmdContext, o *opts) error {
 		return nil
 	}
 
-	table, err := ctx.Printer("list")
+	table, err := ctx.Printer("table")
 	if err != nil {
 		return err
 	}
@@ -203,10 +226,10 @@ func runCommand(ctx util.CmdContext, o *opts) error {
 		if requestArgs.Descriptors == nil {
 			table.AddField(types.GetValue(entry.Descriptor, ""))
 		}
-		table.AddField(types.GetValue(entry.Allow, ""))
-		table.AddField(types.GetValue(entry.Deny, ""))
-		table.AddField(types.GetValue(entry.EffectiveAllow, ""))
-		table.AddField(types.GetValue(entry.EffectiveDeny, ""))
+		table.AddField(formatPermissionValue(entry.Allow))
+		table.AddField(formatPermissionValue(entry.Deny))
+		table.AddField(formatPermissionValue(entry.EffectiveAllow))
+		table.AddField(formatPermissionValue(entry.EffectiveDeny))
 		if types.GetValue(entry.InheritPermissions, false) {
 			table.AddField("Yes")
 		} else {
@@ -218,64 +241,7 @@ func runCommand(ctx util.CmdContext, o *opts) error {
 	return table.Render()
 }
 
-func parseSubjectTarget(ctx util.CmdContext, input string) (*util.Scope, string, bool, error) {
-	trimmed := strings.TrimSpace(input)
-	if trimmed == "" {
-		scope, err := util.ParseScope(ctx, "")
-		if err != nil {
-			return nil, "", false, err
-		}
-		return scope, "", false, nil
-	}
-
-	segments := strings.Split(trimmed, "/")
-	if len(segments) == 0 || len(segments) > 3 {
-		return nil, "", false, util.FlagErrorf("invalid target %q", input)
-	}
-
-	orgPart := strings.TrimSpace(segments[0])
-	if orgPart == "" {
-		return nil, "", false, util.FlagErrorf("organization must not be empty")
-	}
-
-	switch len(segments) {
-	case 1:
-		scope, err := util.ParseScope(ctx, orgPart)
-		if err != nil {
-			return nil, "", false, err
-		}
-		return scope, "", false, nil
-	case 2:
-		subject := strings.TrimSpace(segments[1])
-		if subject == "" {
-			return nil, "", false, util.FlagErrorf("subject must not be empty")
-		}
-		scope, err := util.ParseScope(ctx, orgPart)
-		if err != nil {
-			return nil, "", false, err
-		}
-		return scope, subject, true, nil
-	case 3:
-		project := strings.TrimSpace(segments[1])
-		subject := strings.TrimSpace(segments[2])
-		if project == "" {
-			return nil, "", false, util.FlagErrorf("project must not be empty")
-		}
-		if subject == "" {
-			return nil, "", false, util.FlagErrorf("subject must not be empty")
-		}
-		scopeInput := fmt.Sprintf("%s/%s", orgPart, project)
-		scope, err := util.ParseScope(ctx, scopeInput)
-		if err != nil {
-			return nil, "", false, err
-		}
-		return scope, subject, true, nil
-	default:
-		return nil, "", false, util.FlagErrorf("invalid target %q", input)
-	}
-}
-
-func transformResponse(response *[]security.AccessControlList, descriptor *string, actions []security.ActionDefinition) []permissionEntry {
+func transformResponse(response *[]security.AccessControlList, descriptor *string) []permissionEntry {
 	if response == nil {
 		return nil
 	}
@@ -292,7 +258,7 @@ func transformResponse(response *[]security.AccessControlList, descriptor *strin
 				zap.L().Sugar().Debugf("Skipping ACL for token=%q without matching descriptor", types.GetValue(acl.Token, ""))
 				continue
 			}
-			entry := buildPermissionEntry(acl, ace, descriptor, actions)
+			entry := buildPermissionEntry(acl, ace, descriptor)
 			results = append(results, entry)
 			continue
 		}
@@ -303,7 +269,7 @@ func transformResponse(response *[]security.AccessControlList, descriptor *strin
 				desc = strings.TrimSpace(*ace.Descriptor)
 			}
 			localDescriptor := desc
-			entry := buildPermissionEntry(acl, ace, &localDescriptor, actions)
+			entry := buildPermissionEntry(acl, ace, &localDescriptor)
 			results = append(results, entry)
 		}
 	}
@@ -311,24 +277,24 @@ func transformResponse(response *[]security.AccessControlList, descriptor *strin
 	return results
 }
 
-func buildPermissionEntry(acl security.AccessControlList, ace security.AccessControlEntry, descriptor *string, actions []security.ActionDefinition) permissionEntry {
+func buildPermissionEntry(acl security.AccessControlList, ace security.AccessControlEntry, descriptor *string) permissionEntry {
 	entry := permissionEntry{
 		Token:              acl.Token,
 		Descriptor:         descriptor,
 		InheritPermissions: acl.InheritPermissions,
-		Allow:              permissionShared.DescribeBitmask(actions, ace.Allow),
-		Deny:               permissionShared.DescribeBitmask(actions, ace.Deny),
-		EffectiveAllow:     permissionShared.DescribeBitmask(actions, extendedValue(ace.ExtendedInfo, func(info *security.AceExtendedInformation) *int { return info.EffectiveAllow })),
-		EffectiveDeny:      permissionShared.DescribeBitmask(actions, extendedValue(ace.ExtendedInfo, func(info *security.AceExtendedInformation) *int { return info.EffectiveDeny })),
-		InheritedAllow:     permissionShared.DescribeBitmask(actions, extendedValue(ace.ExtendedInfo, func(info *security.AceExtendedInformation) *int { return info.InheritedAllow })),
-		InheritedDeny:      permissionShared.DescribeBitmask(actions, extendedValue(ace.ExtendedInfo, func(info *security.AceExtendedInformation) *int { return info.InheritedDeny })),
+		Allow:              ace.Allow,
+		Deny:               ace.Deny,
+		EffectiveAllow:     ace.ExtendedInfo.EffectiveAllow,
+		EffectiveDeny:      ace.ExtendedInfo.EffectiveDeny,
+		InheritedAllow:     ace.ExtendedInfo.InheritedAllow,
+		InheritedDeny:      ace.ExtendedInfo.InheritedDeny,
 	}
 	return entry
 }
 
-func extendedValue(info *security.AceExtendedInformation, accessor func(*security.AceExtendedInformation) *int) *int {
-	if info == nil {
-		return nil
+func formatPermissionValue(value *int) string {
+	if value == nil {
+		return ""
 	}
-	return accessor(info)
+	return fmt.Sprintf("0x%X", *value)
 }
