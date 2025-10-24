@@ -38,7 +38,7 @@ List pull requests in a Azure DevOps repository or project.
 
 	Filter by label
 
-* `-L`, `--limit` `int`
+* `-L`, `--limit` `int` (default `30`)
 
 	Maximum number of items to fetch
 
@@ -50,7 +50,7 @@ List pull requests in a Azure DevOps repository or project.
 
 	Filter by reviewer
 
-* `-s`, `--state` `string`
+* `-s`, `--state` `string` (default `&#34;active&#34;`)
 
 	Filter by state: {abandoned|active|all|completed}
 
