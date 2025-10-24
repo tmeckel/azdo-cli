@@ -32,7 +32,7 @@ If the organization name is omitted from the project argument, the default confi
 
 	Output JSON with the specified fields. Prefix a field with &#39;-&#39; to exclude it.
 
-* `--max-wait` `int`
+* `--max-wait` `int` (default `3600`)
 
 	Maximum wait time in seconds
 
@@ -40,11 +40,11 @@ If the organization name is omitted from the project argument, the default confi
 
 	Do not wait for the project to be created
 
-* `-p`, `--process` `string`
+* `-p`, `--process` `string` (default `&#34;Agile&#34;`)
 
 	Process to use (e.g., Scrum, Agile, CMMI)
 
-* `-s`, `--source-control` `string`
+* `-s`, `--source-control` `string` (default `&#34;git&#34;`)
 
 	Source control type (git or tfvc)
 
@@ -52,7 +52,7 @@ If the organization name is omitted from the project argument, the default confi
 
 	Format JSON output using a Go template; see &#34;azdo help formatting&#34;
 
-* `--visibility` `string`
+* `--visibility` `string` (default `&#34;private&#34;`)
 
 	Project visibility (private or public)
 
