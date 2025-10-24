@@ -9,7 +9,7 @@ azdo repo list [organization/]<project> [flags]
 ### Options
 
 
-* `--format` `string`
+* `--format` `string` (default `&#34;table&#34;`)
 
 	Output format: {json}
 
@@ -17,7 +17,7 @@ azdo repo list [organization/]<project> [flags]
 
 	Include hidden repositories
 
-* `-L`, `--limit` `int`
+* `-L`, `--limit` `int` (default `30`)
 
 	Maximum number of repositories to list
 
