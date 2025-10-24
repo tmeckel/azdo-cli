@@ -120,23 +120,87 @@ func FuzzyAgo(a, b time.Time) string {
 	return RelativeTimeAgo(a, b)
 }
 
-// FormatSlice concatenates elements of the given string slice into a
-// well-formatted, possibly multiline, string with specific line length limit.
-// Elements can be optionally surrounded by custom strings (e.g., quotes or
-// brackets). If the lineLength argument is non-positive, no line length limit
-// will be applied.
-func FormatSlice(values []string, lineLength uint, indent uint, prependWith string, appendWith string, sort bool) string {
-	if lineLength <= 0 {
-		lineLength = math.MaxInt
+// FormatSliceBuilder provides a fluent API to format string slices.
+type FormatSliceBuilder struct {
+	items   []string
+	def     []string
+	lineLen int
+	indent  int
+	prepend string
+	append  string
+	sort    bool
+}
+
+// NewSliceFormatter constructs a builder for the provided items.
+func NewSliceFormatter(items []string) *FormatSliceBuilder {
+	return &FormatSliceBuilder{
+		items:   items,
+		def:     nil,
+		lineLen: math.MaxInt,
+		indent:  0,
+		prepend: "",
+		append:  "",
+		sort:    false,
+	}
+}
+
+// WithDefault sets the default slice to use when items is nil or empty.
+func (b *FormatSliceBuilder) WithDefault(d []string) *FormatSliceBuilder {
+	b.def = d
+	return b
+}
+
+// WithLineLength sets the maximum line length. Non-positive values disable wrapping.
+func (b *FormatSliceBuilder) WithLineLength(n int) *FormatSliceBuilder {
+	if n <= 0 {
+		b.lineLen = math.MaxInt
+	} else {
+		b.lineLen = n
+	}
+	return b
+}
+
+// WithIndent sets the number of spaces to indent the first column.
+func (b *FormatSliceBuilder) WithIndent(n int) *FormatSliceBuilder {
+	if n < 0 {
+		n = 0
+	}
+	b.indent = n
+	return b
+}
+
+// WithPrepend sets a string to place before each element.
+func (b *FormatSliceBuilder) WithPrepend(s string) *FormatSliceBuilder {
+	b.prepend = s
+	return b
+}
+
+// WithAppend sets a string to place after each element.
+func (b *FormatSliceBuilder) WithAppend(s string) *FormatSliceBuilder {
+	b.append = s
+	return b
+}
+
+// WithSort enables or disables sorting of the elements.
+func (b *FormatSliceBuilder) WithSort(yes bool) *FormatSliceBuilder {
+	b.sort = yes
+	return b
+}
+
+// String formats the slice according to the builder configuration.
+func (b *FormatSliceBuilder) String() string {
+	values := b.items
+	if len(values) == 0 && b.def != nil {
+		values = b.def
 	}
 
 	sortedValues := values
-	if sort {
+	if b.sort {
 		sortedValues = slices.Clone(values)
 		slices.Sort(sortedValues)
 	}
 
-	pre := strings.Repeat(" ", int(indent)) //nolint:gosec
+	pre := strings.Repeat(" ", b.indent) //nolint:gosec
 	if len(sortedValues) == 0 {
 		return pre
 	} else if len(sortedValues) == 1 {
@@ -149,7 +213,7 @@ func FormatSlice(values []string, lineLength uint, indent uint, prependWith stri
 	ws := " "
 
 	for i := 0; i < len(sortedValues); i++ {
-		v := prependWith + sortedValues[i] + appendWith
+		v := b.prepend + sortedValues[i] + b.append
 		isLast := i == -1+len(sortedValues)
 
 		if currentLineLength == 0 {
@@ -161,8 +225,8 @@ func FormatSlice(values []string, lineLength uint, indent uint, prependWith stri
 				currentLineLength += len(sep)
 			}
 		} else {
-			if !isLast && currentLineLength+len(ws)+len(v)+len(sep) > int(lineLength) || //nolint:gosec
-				isLast && currentLineLength+len(ws)+len(v) > int(lineLength) { //nolint:gosec
+			if !isLast && currentLineLength+len(ws)+len(v)+len(sep) > int(b.lineLen) || //nolint:gosec
+				isLast && currentLineLength+len(ws)+len(v) > int(b.lineLen) { //nolint:gosec
 				currentLineLength = 0
 				builder.WriteString("\n")
 				i--
