@@ -17,7 +17,7 @@ azdo security group membership list [ORGANIZATION/]GROUP | [ORGANIZATION/]PROJEC
 
 	Output JSON with the specified fields. Prefix a field with &#39;-&#39; to exclude it.
 
-* `-r`, `--relationship` `string`
+* `-r`, `--relationship` `string` (default `&#34;members&#34;`)
 
 	Relationship type: members or memberof: {members|memberof}
 
