@@ -1,6 +1,7 @@
-package shared
+package extensions
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"net/http"
@@ -10,7 +11,6 @@ import (
 	"github.com/microsoft/azure-devops-go-api/azuredevops/v7"
 	"github.com/microsoft/azure-devops-go-api/azuredevops/v7/graph"
 	"github.com/microsoft/azure-devops-go-api/azuredevops/v7/identity"
-	"github.com/tmeckel/azdo-cli/internal/cmd/util"
 	"github.com/tmeckel/azdo-cli/internal/types"
 	"go.uber.org/zap"
 )
@@ -18,13 +18,13 @@ import (
 var descriptorPattern = regexp.MustCompile(`^[^@\s]+\.[^@\s]+$`)
 
 // ResolveMemberDescriptor resolves a member identifier (descriptor, email, or principal name) into a graph subject descriptor.
-func ResolveMemberDescriptor(ctx util.CmdContext, organization, member string) (*graph.GraphSubject, error) {
+func (c *extensionClient) ResolveMemberDescriptor(ctx context.Context, member string) (*graph.GraphSubject, error) {
 	member = strings.TrimSpace(member)
 	if member == "" {
-		return nil, util.FlagErrorf("member must not be empty")
+		return nil, fmt.Errorf("member must not be empty")
 	}
 
-	graphClient, err := ctx.ClientFactory().Graph(ctx.Context(), organization)
+	graphClient, err := graph.NewClient(ctx, c.conn)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create graph client: %w", err)
 	}
@@ -42,7 +42,7 @@ func ResolveMemberDescriptor(ctx util.CmdContext, organization, member string) (
 		return subject, nil
 	}
 
-	identityClient, err := ctx.ClientFactory().Identity(ctx.Context(), organization)
+	identityClient, err := identity.NewClient(ctx, c.conn)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create identity client: %w", err)
 	}
@@ -60,7 +60,7 @@ func ResolveMemberDescriptor(ctx util.CmdContext, organization, member string) (
 		if resolvedIdentity.Id == nil {
 			return nil, fmt.Errorf("identity for %q is missing descriptor and storage key", member)
 		}
-		desc, derr := graphClient.GetDescriptor(ctx.Context(), graph.GetDescriptorArgs{
+		desc, derr := graphClient.GetDescriptor(ctx, graph.GetDescriptorArgs{
 			StorageKey: resolvedIdentity.Id,
 		})
 		if derr != nil {
@@ -90,7 +90,7 @@ func ResolveMemberDescriptor(ctx util.CmdContext, organization, member string) (
 	}, nil
 }
 
-func lookupGraphSubject(ctx util.CmdContext, client graph.Client, descriptor string) (*graph.GraphSubject, error) {
+func lookupGraphSubject(ctx context.Context, client graph.Client, descriptor string) (*graph.GraphSubject, error) {
 	if strings.TrimSpace(descriptor) == "" {
 		return nil, nil
 	}
@@ -102,7 +102,7 @@ func lookupGraphSubject(ctx util.CmdContext, client graph.Client, descriptor str
 		LookupKeys: &keys,
 	}
 
-	result, err := client.LookupSubjects(ctx.Context(), graph.LookupSubjectsArgs{
+	result, err := client.LookupSubjects(ctx, graph.LookupSubjectsArgs{
 		SubjectLookup: &subjectLookup,
 	})
 	if err != nil {
@@ -162,7 +162,6 @@ func determineIdentitySearchFilters(member string) []string {
 		filters = append(filters, "AccountName")
 	}
 
-	// Avoid duplicates if the heuristics add the same filter multiple times.
 	seen := make(map[string]struct{}, len(filters))
 	result := make([]string, 0, len(filters))
 	for _, f := range filters {
@@ -174,8 +173,6 @@ func determineIdentitySearchFilters(member string) []string {
 		result = append(result, f)
 	}
 
-	// When we suspect a local Azure DevOps group (display name without special characters),
-	// include LocalGroupName as a final attempt.
 	if !strings.Contains(memberLower, "@") && !strings.Contains(memberLower, "\\") {
 		if _, ok := seen["localgroupname"]; !ok {
 			seen["localgroupname"] = struct{}{}
@@ -193,13 +190,13 @@ func memberSubjectKind(identity identity.Identity) string {
 	return "User"
 }
 
-func resolveIdentity(ctx util.CmdContext, client identity.Client, member string) (*identity.Identity, error) {
+func resolveIdentity(ctx context.Context, client identity.Client, member string) (*identity.Identity, error) {
 	filters := determineIdentitySearchFilters(member)
 	for _, filter := range filters {
 		localFilter := filter
 		zap.L().Debug("resolving member via identity search", zap.String("filter", localFilter), zap.String("value", member))
 
-		identities, err := client.ReadIdentities(ctx.Context(), identity.ReadIdentitiesArgs{
+		identities, err := client.ReadIdentities(ctx, identity.ReadIdentitiesArgs{
 			SearchFilter:    &localFilter,
 			FilterValue:     &member,
 			QueryMembership: &identity.QueryMembershipValues.None,
