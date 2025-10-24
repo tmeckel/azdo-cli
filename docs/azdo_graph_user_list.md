@@ -28,7 +28,7 @@ prefix-based filtering on user display names.
 
 	Output JSON with the specified fields. Prefix a field with &#39;-&#39; to exclude it.
 
-* `-L`, `--limit` `int`
+* `-L`, `--limit` `int` (default `20`)
 
 	Maximum number of users to return (pagination client-side)
 
