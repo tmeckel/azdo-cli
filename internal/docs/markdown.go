@@ -22,7 +22,7 @@ func printJSONFields(w io.Writer, cmd *cobra.Command) {
 	}
 
 	fmt.Fprint(w, "### JSON Fields\n\n")
-	fmt.Fprint(w, text.FormatSlice(strings.Split(raw, ","), 0, 0, "`", "`", true))
+	fmt.Fprint(w, text.NewSliceFormatter(strings.Split(raw, ",")).WithPrepend("`").WithAppend("`").WithSort(true).String())
 	fmt.Fprint(w, "\n\n")
 }
 
@@ -75,20 +75,20 @@ var hiddenFlagDefaults = map[string]bool{
 	"0s":    true,
 }
 
-var defaultValFormats = map[string]string{
-	"string":   " (default \"%s\")",
-	"duration": " (default \"%s\")",
+var defaultValMarkdownFormats = map[string]string{
+	"string":   " (default `%q`)",
+	"duration": " (default `%q`)",
 }
 
-func getDefaultValueDisplayString(f *pflag.Flag) string {
+func getDefaultValueMarkdownDisplayString(f *pflag.Flag) string {
 	if hiddenFlagDefaults[f.DefValue] || hiddenFlagDefaults[f.Value.Type()] {
 		return ""
 	}
 
-	if dvf, found := defaultValFormats[f.Value.Type()]; found {
+	if dvf, found := defaultValMarkdownFormats[f.Value.Type()]; found {
 		return fmt.Sprintf(dvf, f.Value)
 	}
-	return fmt.Sprintf(" (default %s)", f.Value)
+	return fmt.Sprintf(" (default `%s`)", f.Value)
 }
 
 type flagView struct {
@@ -102,7 +102,7 @@ type flagView struct {
 var flagsMarkdownTemplate = `
 {{ range .Items }}
 * {{ if .Shorthand }}{{ $.BT }}-{{.Shorthand}}{{ $.BT }}, {{ end -}}
-		{{ $.BT }}--{{.Name}}{{ $.BT }}{{ if .Varname }} {{ $.BT }}{{.Varname}}{{ $.BT }}{{ end }}
+		{{ $.BT }}--{{.Name}}{{ $.BT }}{{ if .Varname }} {{ $.BT }}{{.Varname}}{{ $.BT }}{{ end }}{{.DefValue}}
 
 	{{.Usage}}
 {{ end }}
@@ -121,6 +121,7 @@ func printFlagsMarkdown(w io.Writer, fs *pflag.FlagSet) error {
 			Name:      f.Name,
 			Varname:   varname,
 			Shorthand: f.Shorthand,
+			DefValue:  getDefaultValueMarkdownDisplayString(f),
 			Usage:     usage,
 		})
 	})
