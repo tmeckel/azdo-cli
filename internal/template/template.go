@@ -76,20 +76,70 @@ func (t *Template) Parse(tmpl string) error {
 				markdown.WithWrap(t.width))
 		},
 		"pluck": pluckFunc,
-		"tablerender": func() error {
+		"tablerender": func() (string, error) {
 			// After rendering a table, prepare a new table printer incase user wants to output
 			// another table.
 			defer func() {
 				t.tp = tableprinter.New(t.output, true, t.width)
 			}()
-			return tableRenderFunc(t.tp)
+			if err := tableRenderFunc(t.tp); err != nil {
+				return "", err
+			}
+			return "", nil
 		},
 		"tablerow": func(fields ...any) (string, error) {
 			return tableRowFunc(t.tp, fields...)
 		},
-		"timeago": func(t time.Time) (string, error) {
-			return timeAgoFunc(now, t)
-		},
+        "timeago": func(v any) (string, error) {
+            switch tt := v.(type) {
+            case time.Time:
+                return timeAgoFunc(now, tt)
+            case *time.Time:
+                if tt == nil {
+                    return "", nil
+                }
+                return timeAgoFunc(now, *tt)
+            case string:
+                if tt == "" {
+                    return "", nil
+                }
+                if parsed, err := time.Parse(time.RFC3339, tt); err == nil {
+                    return timeAgoFunc(now, parsed)
+                }
+                if sec, err := strconv.ParseInt(tt, 10, 64); err == nil {
+                    return timeAgoFunc(now, time.Unix(sec, 0))
+                }
+                return "", fmt.Errorf("timeago: unsupported string format: %s", tt)
+            default:
+                return "", fmt.Errorf("timeago: unsupported type %T", v)
+            }
+        },
+        "timefmt": func(layout string, v any) (string, error) {
+            var t time.Time
+            switch tt := v.(type) {
+            case time.Time:
+                t = tt
+            case *time.Time:
+                if tt == nil {
+                    return "", nil
+                }
+                t = *tt
+            case string:
+                if tt == "" {
+                    return "", nil
+                }
+                if parsed, err := time.Parse(time.RFC3339, tt); err == nil {
+                    t = parsed
+                } else if sec, err := strconv.ParseInt(tt, 10, 64); err == nil {
+                    t = time.Unix(sec, 0)
+                } else {
+                    return "", fmt.Errorf("timefmt: unsupported string format: %s", tt)
+                }
+            default:
+                return "", fmt.Errorf("timefmt: unsupported type %T", v)
+            }
+            return t.Format(layout), nil
+        },
 		"timeparse":   timeParse,
 		"truncate":    truncateFunc,
 		"stripprefix": strings.TrimPrefix,
