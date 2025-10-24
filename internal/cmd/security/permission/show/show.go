@@ -11,7 +11,6 @@ import (
 	"github.com/spf13/cobra"
 	"go.uber.org/zap"
 
-	groupShared "github.com/tmeckel/azdo-cli/internal/cmd/security/group/shared"
 	"github.com/tmeckel/azdo-cli/internal/cmd/security/permission/shared"
 	"github.com/tmeckel/azdo-cli/internal/cmd/util"
 	"github.com/tmeckel/azdo-cli/internal/text"
@@ -88,19 +87,6 @@ func NewCmd(ctx util.CmdContext) *cobra.Command {
 }
 
 func runCommand(ctx util.CmdContext, o *opts) error {
-	namespaceUUID, err := uuid.Parse(strings.TrimSpace(o.namespaceID))
-	if err != nil {
-		return util.FlagErrorf("invalid namespace id %q: %v", o.namespaceID, err)
-	}
-
-	scope, subject, hasSubject, err := shared.ParseSubjectTarget(ctx, o.rawTarget)
-	if err != nil {
-		return err
-	}
-	if !hasSubject {
-		return util.FlagErrorf("a subject is required")
-	}
-
 	ios, err := ctx.IOStreams()
 	if err != nil {
 		return err
@@ -109,7 +95,23 @@ func runCommand(ctx util.CmdContext, o *opts) error {
 	ios.StartProgressIndicator()
 	defer ios.StopProgressIndicator()
 
-	zap.L().Sugar().Debugf("Resolved scope organization=%q project=%q subject=%q", scope.Organization, scope.Project, subject)
+	namespaceUUID, err := uuid.Parse(strings.TrimSpace(o.namespaceID))
+	if err != nil {
+		return util.FlagErrorf("invalid namespace id %q: %v", o.namespaceID, err)
+	}
+
+	scope, err := shared.ParseSubjectTarget(ctx, o.rawTarget)
+	if err != nil {
+		return err
+	}
+
+	zap.L().Sugar().Debugf("Resolved scope organization=%q project=%q subject=%q", scope.Organization, scope.Project, scope.Subject)
+
+	hasSubject := scope.Subject != ""
+
+	if !hasSubject {
+		return util.FlagErrorf("a subject is required")
+	}
 
 	if scope.Project != "" {
 		if _, _, err := util.ResolveScopeDescriptor(ctx, scope.Organization, scope.Project); err != nil {
@@ -130,9 +132,14 @@ func runCommand(ctx util.CmdContext, o *opts) error {
 	}
 	actionDefinitions := shared.ExtractNamespaceActions(namespaceDetails)
 
-	member, err := groupShared.ResolveMemberDescriptor(ctx, scope.Organization, subject)
+	extensionsClient, err := ctx.ClientFactory().Extensions(ctx.Context(), scope.Organization)
 	if err != nil {
-		return fmt.Errorf("failed to resolve subject %q: %w", subject, err)
+		return err
+	}
+
+	member, err := extensionsClient.ResolveMemberDescriptor(ctx.Context(), scope.Subject)
+	if err != nil {
+		return fmt.Errorf("failed to resolve subject %q: %w", scope.Subject, err)
 	}
 
 	// Resolve the identity descriptor form used by ACLs via the Identity API.
