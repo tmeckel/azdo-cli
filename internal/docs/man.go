@@ -139,6 +139,22 @@ func manPreamble(buf *bytes.Buffer, header *GenManHeader, cmd *cobra.Command, da
 	}
 }
 
+var defaultValManFormats = map[string]string{
+	"string":   " (default %q)",
+	"duration": " (default %q)",
+}
+
+func getDefaultValueManDisplayString(f *pflag.Flag) string {
+	if hiddenFlagDefaults[f.DefValue] || hiddenFlagDefaults[f.Value.Type()] {
+		return ""
+	}
+
+	if dvf, found := defaultValManFormats[f.Value.Type()]; found {
+		return fmt.Sprintf(dvf, f.Value)
+	}
+	return fmt.Sprintf(" (default %s)", f.Value)
+}
+
 func manPrintFlags(buf *bytes.Buffer, flags *pflag.FlagSet) {
 	flags.VisitAll(func(flag *pflag.Flag) {
 		if len(flag.Deprecated) > 0 || flag.Hidden || flag.Name == "help" {
@@ -151,7 +167,7 @@ func manPrintFlags(buf *bytes.Buffer, flags *pflag.FlagSet) {
 			fmt.Fprintf(buf, "`--%s`", flag.Name)
 		}
 
-		defval := getDefaultValueDisplayString(flag)
+		defval := getDefaultValueManDisplayString(flag)
 
 		if varname == "" && defval != "" {
 			fmt.Fprintf(buf, " `%s`\n", strings.TrimSpace(defval))
@@ -194,7 +210,7 @@ func manPrintJSONFields(buf *bytes.Buffer, command *cobra.Command) {
 	}
 
 	buf.WriteString("# JSON FIELDS\n")
-	buf.WriteString(text.FormatSlice(strings.Split(raw, ","), 0, 0, "`", "`", true))
+	buf.WriteString(text.NewSliceFormatter(strings.Split(raw, ",")).WithPrepend("`").WithAppend("`").WithSort(true).String())
 	buf.WriteString("\n")
 }
 
