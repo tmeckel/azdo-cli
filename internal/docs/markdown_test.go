@@ -133,7 +133,7 @@ func BenchmarkGenMarkdownToFile(b *testing.B) {
 	}
 }
 
-func TestPrintFlagsHTMLShowsDefaultValues(t *testing.T) {
+func TestPrintFlagsMarkdownShowsDefaultValues(t *testing.T) {
 	type TestOptions struct {
 		Limit     int
 		Template  string
@@ -150,12 +150,12 @@ func TestPrintFlagsHTMLShowsDefaultValues(t *testing.T) {
 	buf := new(bytes.Buffer)
 	flags.SetOutput(buf)
 
-	if err := printFlagsHTML(buf, flags); err != nil {
-		t.Fatalf("printFlagsHTML failed: %s", err.Error())
+	if err := printFlagsMarkdown(buf, flags); err != nil {
+		t.Fatalf("printFlagsMarkdown failed: %s", err.Error())
 	}
 	output := buf.String()
 
-	checkStringContains(t, output, "(default 30)")
+	checkStringContains(t, output, "(default `30`)")
 
 	// Bool flag should hide it if default is false
 	c = &cobra.Command{}
@@ -165,8 +165,8 @@ func TestPrintFlagsHTMLShowsDefaultValues(t *testing.T) {
 	buf = new(bytes.Buffer)
 	flags.SetOutput(buf)
 
-	if err := printFlagsHTML(buf, flags); err != nil {
-		t.Fatalf("printFlagsHTML failed: %s", err.Error())
+	if err := printFlagsMarkdown(buf, flags); err != nil {
+		t.Fatalf("printFlagsMarkdown failed: %s", err.Error())
 	}
 	output = buf.String()
 
@@ -179,12 +179,12 @@ func TestPrintFlagsHTMLShowsDefaultValues(t *testing.T) {
 	buf = new(bytes.Buffer)
 	flags.SetOutput(buf)
 
-	if err := printFlagsHTML(buf, flags); err != nil {
-		t.Fatalf("printFlagsHTML failed: %s", err.Error())
+	if err := printFlagsMarkdown(buf, flags); err != nil {
+		t.Fatalf("printFlagsMarkdown failed: %s", err.Error())
 	}
 	output = buf.String()
 
-	checkStringContains(t, output, "(default true)")
+	checkStringContains(t, output, "(default `true`)")
 
 	// String flag should show it if default is not an empty string
 	c = &cobra.Command{}
@@ -193,12 +193,12 @@ func TestPrintFlagsHTMLShowsDefaultValues(t *testing.T) {
 	buf = new(bytes.Buffer)
 	flags.SetOutput(buf)
 
-	if err := printFlagsHTML(buf, flags); err != nil {
-		t.Fatalf("printFlagsHTML failed: %s", err.Error())
+	if err := printFlagsMarkdown(buf, flags); err != nil {
+		t.Fatalf("printFlagsMarkdown failed: %s", err.Error())
 	}
 	output = buf.String()
 
-	checkStringContains(t, output, "(default &#34;T1&#34;)")
+	checkStringContains(t, output, "(default `&#34;T1&#34;`)")
 
 	// String flag should hide it if default is an empty string
 	c = &cobra.Command{}
@@ -208,8 +208,8 @@ func TestPrintFlagsHTMLShowsDefaultValues(t *testing.T) {
 	buf = new(bytes.Buffer)
 	flags.SetOutput(buf)
 
-	if err := printFlagsHTML(buf, flags); err != nil {
-		t.Fatalf("printFlagsHTML failed: %s", err.Error())
+	if err := printFlagsMarkdown(buf, flags); err != nil {
+		t.Fatalf("printFlagsMarkdown failed: %s", err.Error())
 	}
 	output = buf.String()
 
@@ -222,8 +222,8 @@ func TestPrintFlagsHTMLShowsDefaultValues(t *testing.T) {
 	buf = new(bytes.Buffer)
 	flags.SetOutput(buf)
 
-	if err := printFlagsHTML(buf, flags); err != nil {
-		t.Fatalf("printFlagsHTML failed: %s", err.Error())
+	if err := printFlagsMarkdown(buf, flags); err != nil {
+		t.Fatalf("printFlagsMarkdown failed: %s", err.Error())
 	}
 	output = buf.String()
 
@@ -236,10 +236,10 @@ func TestPrintFlagsHTMLShowsDefaultValues(t *testing.T) {
 	buf = new(bytes.Buffer)
 	flags.SetOutput(buf)
 
-	if err := printFlagsHTML(buf, flags); err != nil {
+	if err := printFlagsMarkdown(buf, flags); err != nil {
 		t.Fatalf("printFlagsHTML failed: %s", err.Error())
 	}
 	output = buf.String()
 
-	checkStringContains(t, output, "(default [apples,oranges])")
+	checkStringContains(t, output, "(default `[apples,oranges]`)")
 }
