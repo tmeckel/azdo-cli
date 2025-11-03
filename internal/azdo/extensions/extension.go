@@ -10,6 +10,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/microsoft/azure-devops-go-api/azuredevops/v7"
 	"github.com/microsoft/azure-devops-go-api/azuredevops/v7/graph"
+	"github.com/microsoft/azure-devops-go-api/azuredevops/v7/identity"
 	"github.com/tmeckel/azdo-cli/internal/types"
 )
 
@@ -22,8 +23,9 @@ type Client interface {
 	// FindGroupsByDisplayName locates Azure DevOps security groups that match the provided display name,
 	// optionally scoped to a project descriptor, and returns their full details.
 	FindGroupsByDisplayName(ctx context.Context, displayName string, scopeDescriptor *string) ([]*graph.GraphGroup, error)
-	// ResolveMemberDescriptor resolves a member identifier (descriptor, email, or principal name) into a graph subject descriptor.
-	ResolveMemberDescriptor(ctx context.Context, member string) (*graph.GraphSubject, error)
+	// ResolveSubject resolves a member identifier (descriptor, email, or principal name) into a graph subject descriptor.
+	ResolveSubject(ctx context.Context, member string) (*graph.GraphSubject, error)
+	ResolveIdentity(ctx context.Context, member string) (*identity.Identity, error)
 }
 
 type extensionClient struct {
