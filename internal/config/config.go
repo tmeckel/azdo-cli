@@ -1,6 +1,9 @@
 package config
 
-import "go.uber.org/zap"
+import (
+	"github.com/tmeckel/azdo-cli/internal/yamlmap"
+	"go.uber.org/zap"
+)
 
 const (
 	Aliases       = "aliases"
@@ -10,8 +13,6 @@ const (
 )
 
 // This interface describes interacting with some persistent configuration for azdo.
-//
-//go:generate moq -rm -out config_mock.go . Config
 type Config interface {
 	Keys([]string) ([]string, error)
 	Get([]string) (string, error)
@@ -23,6 +24,18 @@ type Config interface {
 	Aliases() AliasConfig
 }
 
+type ConfigReader interface {
+	Read() (*yamlmap.Map, error)
+}
+
+type defaultConfigReader struct{}
+
+func (cr *defaultConfigReader) Read() (*yamlmap.Map, error) {
+	return Read()
+}
+
+var defCfgRdr = &defaultConfigReader{}
+
 // Implements Config interface
 type cfg struct {
 	cfg      *configData
@@ -31,12 +44,18 @@ type cfg struct {
 }
 
 func NewConfig() (Config, error) {
-	c, err := Read()
+	return NewConfigWithReader(defCfgRdr)
+}
+
+func NewConfigWithReader(rd ConfigReader) (Config, error) {
+	c, err := rd.Read()
 	if err != nil {
 		return nil, err
 	}
 	cfg := &cfg{
-		cfg: c,
+		cfg: &configData{
+			entries: c,
+		},
 	}
 	cfg.authCfg = &authConfig{
 		cfg: cfg,
