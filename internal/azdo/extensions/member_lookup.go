@@ -5,20 +5,18 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
-	"regexp"
 	"strings"
 
 	"github.com/microsoft/azure-devops-go-api/azuredevops/v7"
 	"github.com/microsoft/azure-devops-go-api/azuredevops/v7/graph"
 	"github.com/microsoft/azure-devops-go-api/azuredevops/v7/identity"
+	"github.com/tmeckel/azdo-cli/internal/azdo/util"
 	"github.com/tmeckel/azdo-cli/internal/types"
 	"go.uber.org/zap"
 )
 
-var descriptorPattern = regexp.MustCompile(`^[^@\s]+\.[^@\s]+$`)
-
-// ResolveMemberDescriptor resolves a member identifier (descriptor, email, or principal name) into a graph subject descriptor.
-func (c *extensionClient) ResolveMemberDescriptor(ctx context.Context, member string) (*graph.GraphSubject, error) {
+// ResolveSubject resolves a member identifier (descriptor, email, or principal name) into a graph subject descriptor.
+func (c *extensionClient) ResolveSubject(ctx context.Context, member string) (*graph.GraphSubject, error) {
 	member = strings.TrimSpace(member)
 	if member == "" {
 		return nil, fmt.Errorf("member must not be empty")
@@ -29,7 +27,7 @@ func (c *extensionClient) ResolveMemberDescriptor(ctx context.Context, member st
 		return nil, fmt.Errorf("failed to create graph client: %w", err)
 	}
 
-	if isDescriptor(member) {
+	if util.IsDescriptor(member) {
 		zap.L().Debug("attempting graph subject lookup for descriptor", zap.String("descriptor", member))
 		subject, err := lookupGraphSubject(ctx, graphClient, member)
 		if err != nil {
@@ -38,7 +36,13 @@ func (c *extensionClient) ResolveMemberDescriptor(ctx context.Context, member st
 		if subject == nil {
 			return nil, fmt.Errorf("descriptor %q was not found", member)
 		}
-		zap.L().Debug("resolved member via graph descriptor lookup", zap.String("descriptor", member))
+		zap.L().Debug("resolved member via graph descriptor lookup",
+			zap.String("descriptor", member),
+			zap.String("displayName",
+				types.GetValue(subject.DisplayName, "")),
+			zap.String("subjectKind", types.GetValue(subject.SubjectKind, "")),
+			zap.String("legacyDescriptor", types.GetValue(subject.LegacyDescriptor, "")),
+		)
 		return subject, nil
 	}
 
@@ -90,13 +94,29 @@ func (c *extensionClient) ResolveMemberDescriptor(ctx context.Context, member st
 	}, nil
 }
 
+func (c *extensionClient) ResolveIdentity(ctx context.Context, member string) (*identity.Identity, error) {
+	member = strings.TrimSpace(member)
+	if member == "" {
+		return nil, fmt.Errorf("member must not be empty")
+	}
+
+	identityClient, err := identity.NewClient(ctx, c.conn)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create identity client: %w", err)
+	}
+
+	return resolveIdentity(ctx, identityClient, member)
+}
+
 func lookupGraphSubject(ctx context.Context, client graph.Client, descriptor string) (*graph.GraphSubject, error) {
 	if strings.TrimSpace(descriptor) == "" {
 		return nil, nil
 	}
 
 	keys := []graph.GraphSubjectLookupKey{
-		{Descriptor: types.ToPtr(descriptor)},
+		{
+			Descriptor: types.ToPtr(descriptor),
+		},
 	}
 	subjectLookup := graph.GraphSubjectLookup{
 		LookupKeys: &keys,
@@ -137,14 +157,6 @@ func lookupGraphSubject(ctx context.Context, client graph.Client, descriptor str
 	}
 
 	return nil, nil
-}
-
-func isDescriptor(value string) bool {
-	value = strings.TrimSpace(value)
-	if value == "" {
-		return false
-	}
-	return descriptorPattern.MatchString(value)
 }
 
 func determineIdentitySearchFilters(member string) []string {
@@ -191,15 +203,58 @@ func memberSubjectKind(identity identity.Identity) string {
 }
 
 func resolveIdentity(ctx context.Context, client identity.Client, member string) (*identity.Identity, error) {
+	if util.IsSecurityIdentifier(member) {
+		zap.L().Debug("member is a SID", zap.String("member", member))
+		descriptor := member
+		if !strings.Contains(member, ";") {
+			descriptor = "Microsoft.TeamFoundation.Identity;" + member
+		}
+		identities, err := client.ReadIdentities(ctx, identity.ReadIdentitiesArgs{
+			Descriptors:     &descriptor,
+			QueryMembership: &identity.QueryMembershipValues.None,
+		})
+		if err != nil {
+			return nil, fmt.Errorf("failed to resolve member %q: %w", member, err)
+		}
+		if identities == nil || len(*identities) == 0 {
+			return nil, fmt.Errorf("identity %q not found", member)
+		}
+		if len(*identities) > 1 {
+			return nil, fmt.Errorf("multiple identities found for %q; specify a more specific identifier", member)
+		}
+
+		return &(*identities)[0], nil
+	}
+
+	if util.IsDescriptor(member) {
+		zap.L().Debug("member is a subject descriptor", zap.String("member", member))
+		identities, err := client.ReadIdentities(ctx, identity.ReadIdentitiesArgs{
+			SubjectDescriptors: &member,
+			QueryMembership:    &identity.QueryMembershipValues.None,
+		})
+		if err != nil {
+			return nil, fmt.Errorf("failed to resolve member %q: %w", member, err)
+		}
+		if identities == nil || len(*identities) == 0 {
+			return nil, fmt.Errorf("identity %q not found", member)
+		}
+		if len(*identities) > 1 {
+			return nil, fmt.Errorf("multiple identities found for %q; specify a more specific identifier", member)
+		}
+
+		return &(*identities)[0], nil
+	}
+
 	filters := determineIdentitySearchFilters(member)
 	for _, filter := range filters {
 		localFilter := filter
 		zap.L().Debug("resolving member via identity search", zap.String("filter", localFilter), zap.String("value", member))
 
 		identities, err := client.ReadIdentities(ctx, identity.ReadIdentitiesArgs{
-			SearchFilter:    &localFilter,
-			FilterValue:     &member,
-			QueryMembership: &identity.QueryMembershipValues.None,
+			SearchFilter:                &localFilter,
+			FilterValue:                 &member,
+			QueryMembership:             &identity.QueryMembershipValues.None,
+			IncludeRestrictedVisibility: types.ToPtr(true),
 		})
 		if err != nil {
 			return nil, fmt.Errorf("failed to resolve member %q: %w", member, err)
@@ -211,8 +266,7 @@ func resolveIdentity(ctx context.Context, client identity.Client, member string)
 			return nil, fmt.Errorf("multiple identities found for %q; specify a more specific identifier", member)
 		}
 
-		identityResult := (*identities)[0]
-		return &identityResult, nil
+		return &(*identities)[0], nil
 	}
 
 	return nil, nil
