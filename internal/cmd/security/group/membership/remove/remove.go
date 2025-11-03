@@ -140,7 +140,7 @@ func runRemove(ctx util.CmdContext, o *opts) error {
 			return util.FlagErrorf("member value must not be empty")
 		}
 
-		memberSubject, err := extensionsClient.ResolveMemberDescriptor(ctx.Context(), memberInput)
+		memberSubject, err := extensionsClient.ResolveSubject(ctx.Context(), memberInput)
 		if err != nil {
 			return err
 		}
