@@ -225,8 +225,8 @@ func (b *FormatSliceBuilder) String() string {
 				currentLineLength += len(sep)
 			}
 		} else {
-			if !isLast && currentLineLength+len(ws)+len(v)+len(sep) > int(b.lineLen) || //nolint:gosec
-				isLast && currentLineLength+len(ws)+len(v) > int(b.lineLen) { //nolint:gosec
+			if !isLast && currentLineLength+len(ws)+len(v)+len(sep) > b.lineLen || //nolint:gosec
+				isLast && currentLineLength+len(ws)+len(v) > b.lineLen { //nolint:gosec
 				currentLineLength = 0
 				builder.WriteString("\n")
 				i--
