@@ -15,6 +15,7 @@ import (
 
 	uuid "github.com/google/uuid"
 	graph "github.com/microsoft/azure-devops-go-api/azuredevops/v7/graph"
+	identity "github.com/microsoft/azure-devops-go-api/azuredevops/v7/identity"
 	gomock "go.uber.org/mock/gomock"
 )
 
@@ -85,4 +86,34 @@ func (m *MockAzDOExtension) GetSubjectID(ctx context.Context, subject string) (u
 func (mr *MockAzDOExtensionMockRecorder) GetSubjectID(ctx, subject any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetSubjectID", reflect.TypeOf((*MockAzDOExtension)(nil).GetSubjectID), ctx, subject)
+}
+
+// ResolveIdentity mocks base method.
+func (m *MockAzDOExtension) ResolveIdentity(ctx context.Context, member string) (*identity.Identity, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ResolveIdentity", ctx, member)
+	ret0, _ := ret[0].(*identity.Identity)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ResolveIdentity indicates an expected call of ResolveIdentity.
+func (mr *MockAzDOExtensionMockRecorder) ResolveIdentity(ctx, member any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ResolveIdentity", reflect.TypeOf((*MockAzDOExtension)(nil).ResolveIdentity), ctx, member)
+}
+
+// ResolveSubject mocks base method.
+func (m *MockAzDOExtension) ResolveSubject(ctx context.Context, member string) (*graph.GraphSubject, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ResolveSubject", ctx, member)
+	ret0, _ := ret[0].(*graph.GraphSubject)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ResolveSubject indicates an expected call of ResolveSubject.
+func (mr *MockAzDOExtensionMockRecorder) ResolveSubject(ctx, member any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ResolveSubject", reflect.TypeOf((*MockAzDOExtension)(nil).ResolveSubject), ctx, member)
 }

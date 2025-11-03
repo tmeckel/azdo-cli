@@ -13,6 +13,7 @@ import (
 	reflect "reflect"
 
 	config "github.com/tmeckel/azdo-cli/internal/config"
+	yamlmap "github.com/tmeckel/azdo-cli/internal/yamlmap"
 	gomock "go.uber.org/mock/gomock"
 )
 
@@ -151,4 +152,43 @@ func (m *MockConfig) Write() error {
 func (mr *MockConfigMockRecorder) Write() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Write", reflect.TypeOf((*MockConfig)(nil).Write))
+}
+
+// MockConfigReader is a mock of ConfigReader interface.
+type MockConfigReader struct {
+	ctrl     *gomock.Controller
+	recorder *MockConfigReaderMockRecorder
+	isgomock struct{}
+}
+
+// MockConfigReaderMockRecorder is the mock recorder for MockConfigReader.
+type MockConfigReaderMockRecorder struct {
+	mock *MockConfigReader
+}
+
+// NewMockConfigReader creates a new mock instance.
+func NewMockConfigReader(ctrl *gomock.Controller) *MockConfigReader {
+	mock := &MockConfigReader{ctrl: ctrl}
+	mock.recorder = &MockConfigReaderMockRecorder{mock}
+	return mock
+}
+
+// EXPECT returns an object that allows the caller to indicate expected use.
+func (m *MockConfigReader) EXPECT() *MockConfigReaderMockRecorder {
+	return m.recorder
+}
+
+// Read mocks base method.
+func (m *MockConfigReader) Read() (*yamlmap.Map, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Read")
+	ret0, _ := ret[0].(*yamlmap.Map)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// Read indicates an expected call of Read.
+func (mr *MockConfigReaderMockRecorder) Read() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Read", reflect.TypeOf((*MockConfigReader)(nil).Read))
 }
