@@ -5,6 +5,7 @@ import (
 	"github.com/tmeckel/azdo-cli/internal/cmd/security/permission/list"
 	"github.com/tmeckel/azdo-cli/internal/cmd/security/permission/namespace"
 	"github.com/tmeckel/azdo-cli/internal/cmd/security/permission/show"
+	"github.com/tmeckel/azdo-cli/internal/cmd/security/permission/update"
 	"github.com/tmeckel/azdo-cli/internal/cmd/util"
 )
 
@@ -22,6 +23,7 @@ func NewCmd(ctx util.CmdContext) *cobra.Command {
 	cmd.AddCommand(list.NewCmd(ctx))
 	cmd.AddCommand(namespace.NewCmd(ctx))
 	cmd.AddCommand(show.NewCmd(ctx))
+	cmd.AddCommand(update.NewCmd(ctx))
 
 	return cmd
 }
