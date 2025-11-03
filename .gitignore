@@ -27,3 +27,4 @@ bin/
 /azdo.exe
 
 **/*.local.*
+**/.env*
