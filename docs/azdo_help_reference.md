@@ -653,6 +653,22 @@ Aliases
 p, perm, permissions
 ```
 
+#### `azdo security permission delete <TARGET> [flags]`
+
+Delete permissions for a user or group.
+
+```
+-n, --namespace-id string   ID of the security namespace to modify (required).
+    --token string          Security token to delete (required).
+-y, --yes                   Do not prompt for confirmation.
+```
+
+Aliases
+
+```
+d, del, rm
+```
+
 #### `azdo security permission list [TARGET] [flags]`
 
 List security ACEs for a namespace, optionally filtered by subject.
