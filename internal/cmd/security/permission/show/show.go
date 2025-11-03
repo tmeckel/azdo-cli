@@ -110,7 +110,7 @@ func runCommand(ctx util.CmdContext, o *opts) error {
 	hasSubject := scope.Subject != ""
 
 	if !hasSubject {
-		return util.FlagErrorf("a subject is required")
+		return util.FlagErrorf("a subject is required; org: %q", scope.Organization)
 	}
 
 	if scope.Project != "" {
@@ -137,7 +137,7 @@ func runCommand(ctx util.CmdContext, o *opts) error {
 		return err
 	}
 
-	member, err := extensionsClient.ResolveMemberDescriptor(ctx.Context(), scope.Subject)
+	member, err := extensionsClient.ResolveSubject(ctx.Context(), scope.Subject)
 	if err != nil {
 		return fmt.Errorf("failed to resolve subject %q: %w", scope.Subject, err)
 	}
@@ -158,12 +158,21 @@ func runCommand(ctx util.CmdContext, o *opts) error {
 	if err != nil {
 		return fmt.Errorf("failed to read identity information for %q: %w", subj, err)
 	}
-	if idents == nil || len(*idents) == 0 {
-		return fmt.Errorf("no identity returned for descriptor %q", subj)
+
+	descriptor := subj
+	if idents != nil && len(*idents) > 0 {
+		candidate := strings.TrimSpace(types.GetValue((*idents)[0].Descriptor, ""))
+		if candidate != "" {
+			descriptor = candidate
+		} else {
+			zap.L().Sugar().Debugf("Identity lookup returned empty descriptor for %q; falling back to subject descriptor", subj)
+		}
+	} else {
+		zap.L().Sugar().Debugf("Identity lookup returned no entries for %q; using subject descriptor directly", subj)
 	}
-	descriptor := strings.TrimSpace(types.GetValue((*idents)[0].Descriptor, ""))
+
 	if descriptor == "" {
-		return fmt.Errorf("identity for %q did not contain a descriptor", subj)
+		return fmt.Errorf("unable to resolve descriptor for %q", subj)
 	}
 	zap.L().Sugar().Debugf("Resolved subject descriptor (acl)=%q", descriptor)
 
@@ -182,7 +191,7 @@ func runCommand(ctx util.CmdContext, o *opts) error {
 		return fmt.Errorf("failed to query access control lists: %w", err)
 	}
 
-	entry := transformResponse(response, &descriptor, actionDefinitions)
+	entry := transformResponse(response, actionDefinitions)
 
 	ios.StopProgressIndicator()
 
@@ -220,8 +229,9 @@ func runCommand(ctx util.CmdContext, o *opts) error {
 	return table.Render()
 }
 
-func transformResponse(response *[]security.AccessControlList, descriptor *string, actions []security.ActionDefinition) *permissionEntry {
+func transformResponse(response *[]security.AccessControlList, actions []security.ActionDefinition) *permissionEntry {
 	if response == nil || len(*response) == 0 {
+		zap.L().Debug("array security.AccessControlList empty or nil")
 		return nil
 	}
 
@@ -230,8 +240,12 @@ func transformResponse(response *[]security.AccessControlList, descriptor *strin
 			continue
 		}
 
-		if ace, ok := (*acl.AcesDictionary)[*descriptor]; ok {
-			entry := buildPermissionEntry(acl, ace, descriptor, actions)
+		for key, ace := range *acl.AcesDictionary {
+			desc := key
+			if ace.Descriptor != nil && strings.TrimSpace(*ace.Descriptor) != "" {
+				desc = strings.TrimSpace(*ace.Descriptor)
+			}
+			entry := buildPermissionEntry(acl, ace, &desc, actions)
 			return &entry
 		}
 	}
