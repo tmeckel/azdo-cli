@@ -23,12 +23,6 @@ const (
 	xdgStateHome  = "XDG_STATE_HOME"
 )
 
-var (
-	instance *configData
-	once     sync.Once
-	errLoad  error
-)
-
 // configData is a in memory representation of the azdo configuration files.
 // It can be thought of as map where entries consist of a key that
 // correspond to either a string value or a map value, allowing for
@@ -133,9 +127,15 @@ func (c *configData) Set(keys []string, value string) {
 	m.SetEntry(keys[len(keys)-1], yamlmap.StringValue(value))
 }
 
+var (
+	instance *yamlmap.Map
+	once     sync.Once
+	errLoad  error
+)
+
 // Read azdo configuration files from the local file system and
 // return a configData.
-var Read = func() (*configData, error) {
+func Read() (*yamlmap.Map, error) {
 	once.Do(func() {
 		instance, errLoad = load(generalConfigFile(), organizationsConfigFile())
 	})
@@ -145,12 +145,33 @@ var Read = func() (*configData, error) {
 // ReadFromString takes a yaml string and returns a configData.
 // Note: This is only used for testing, and should not be
 // relied upon in production.
-func ReadFromString(str string) *configData { //nolint:golint,revive
-	m, _ := mapFromString(str)
+func ReadFromString(str string) (*yamlmap.Map, error) { //nolint:golint,revive
+	m, err := mapFromString(str)
+	if err != nil {
+		return nil, err
+	}
 	if m == nil {
 		m = yamlmap.MapValue()
 	}
-	return &configData{entries: m}
+	return m, nil
+}
+
+type stringConfigReader struct {
+	m *yamlmap.Map
+}
+
+func NewStringConfigReader(str string) (ConfigReader, error) {
+	m, err := ReadFromString(str)
+	if err != nil {
+		return nil, err
+	}
+	return &stringConfigReader{
+		m: m,
+	}, nil
+}
+
+func (scr *stringConfigReader) Read() (*yamlmap.Map, error) {
+	return scr.m, nil
 }
 
 // Write azdo configuration files to the local file system.
@@ -188,7 +209,7 @@ func Write(c *configData) error {
 	return nil
 }
 
-func load(generalFilePath, organizationsFilePath string) (*configData, error) {
+func load(generalFilePath, organizationsFilePath string) (*yamlmap.Map, error) {
 	generalMap, err := mapFromFile(generalFilePath)
 	if err != nil && !os.IsNotExist(err) {
 		if errors.Is(err, yamlmap.ErrInvalidYaml) ||
@@ -215,7 +236,7 @@ func load(generalFilePath, organizationsFilePath string) (*configData, error) {
 		generalMap.AddEntry(Organizations, organizationsMap)
 	}
 
-	return &configData{entries: generalMap}, nil
+	return generalMap, nil
 }
 
 func generalConfigFile() string {
