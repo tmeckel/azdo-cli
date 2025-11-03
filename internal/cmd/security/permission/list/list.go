@@ -6,7 +6,6 @@ import (
 
 	"github.com/MakeNowJust/heredoc"
 	"github.com/google/uuid"
-	"github.com/microsoft/azure-devops-go-api/azuredevops/v7/identity"
 	"github.com/microsoft/azure-devops-go-api/azuredevops/v7/security"
 	"github.com/spf13/cobra"
 	"go.uber.org/zap"
@@ -143,47 +142,17 @@ func runCommand(ctx util.CmdContext, o *opts) error {
 			return err
 		}
 
-		member, err := extensionsClient.ResolveMemberDescriptor(ctx.Context(), scope.Subject)
+		member, err := extensionsClient.ResolveIdentity(ctx.Context(), scope.Subject)
 		if err != nil {
 			return fmt.Errorf("failed to resolve subject %q: %w", scope.Subject, err)
 		}
 
-		// The graph subject descriptor returned from ResolveMemberDescriptor may not
-		// be in the same form that the Security API expects for the `Descriptors`
-		// parameter. Resolve the identity via the Identity API and use the
-		// identity's `Descriptor` value (which matches ACL entries) when calling
-		// QueryAccessControlLists. This mirrors the approach used in the
-		// terraform-provider-azuredevops implementation.
-
-		identityClient, ierr := ctx.ClientFactory().Identity(ctx.Context(), scope.Organization)
-		if ierr != nil {
-			return fmt.Errorf("failed to create identity client: %w", ierr)
-		}
-
-		// Ask the Identity service for the identity matching the graph descriptor
 		subj := strings.TrimSpace(types.GetValue(member.Descriptor, ""))
 		if subj == "" {
 			return fmt.Errorf("resolved subject descriptor is empty")
 		}
 
-		sd := subj
-		idents, err := identityClient.ReadIdentities(ctx.Context(), identity.ReadIdentitiesArgs{
-			SubjectDescriptors: &sd,
-		})
-		if err != nil {
-			return fmt.Errorf("failed to read identity information for %q: %w", subj, err)
-		}
-		if idents == nil || len(*idents) == 0 {
-			return fmt.Errorf("no identity returned for descriptor %q", subj)
-		}
-
-		// Use the identity's Descriptor (this is the form used in ACLs)
-		identityDescriptor := strings.TrimSpace(types.GetValue((*idents)[0].Descriptor, ""))
-		if identityDescriptor == "" {
-			return fmt.Errorf("identity for %q did not contain a descriptor", subj)
-		}
-		zap.L().Sugar().Debugf("Resolved subject descriptor (acl)=%q", identityDescriptor)
-		requestArgs.Descriptors = types.ToPtr(identityDescriptor)
+		requestArgs.Descriptors = &subj
 	}
 
 	if strings.TrimSpace(o.token) != "" {
@@ -194,14 +163,14 @@ func runCommand(ctx util.CmdContext, o *opts) error {
 		requestArgs.Recurse = types.ToPtr(true)
 	}
 
-	zap.L().Sugar().Debugf("Querying ACEs (token=%q recurse=%v subjectFilter=%v)", o.token, o.recurse, hasSubject)
+	zap.L().Sugar().Debugf("Querying ACEs (token=%q recurse=%v subjectFilter=%q)", o.token, o.recurse, scope.Subject)
 
 	response, err := securityClient.QueryAccessControlLists(ctx.Context(), requestArgs)
 	if err != nil {
 		return fmt.Errorf("failed to query access control lists: %w", err)
 	}
 
-	entries := transformResponse(response, requestArgs.Descriptors)
+	entries := transformResponse(response)
 
 	ios.StopProgressIndicator()
 
@@ -246,7 +215,7 @@ func runCommand(ctx util.CmdContext, o *opts) error {
 	return table.Render()
 }
 
-func transformResponse(response *[]security.AccessControlList, descriptor *string) []permissionEntry {
+func transformResponse(response *[]security.AccessControlList) []permissionEntry {
 	if response == nil {
 		return nil
 	}
@@ -257,24 +226,12 @@ func transformResponse(response *[]security.AccessControlList, descriptor *strin
 			continue
 		}
 
-		if descriptor != nil && strings.TrimSpace(*descriptor) != "" {
-			ace, ok := (*acl.AcesDictionary)[*descriptor]
-			if !ok {
-				zap.L().Sugar().Debugf("Skipping ACL for token=%q without matching descriptor", types.GetValue(acl.Token, ""))
-				continue
-			}
-			entry := buildPermissionEntry(acl, ace, descriptor)
-			results = append(results, entry)
-			continue
-		}
-
 		for key, ace := range *acl.AcesDictionary {
 			desc := key
 			if ace.Descriptor != nil && strings.TrimSpace(*ace.Descriptor) != "" {
 				desc = strings.TrimSpace(*ace.Descriptor)
 			}
-			localDescriptor := desc
-			entry := buildPermissionEntry(acl, ace, &localDescriptor)
+			entry := buildPermissionEntry(acl, ace, &desc)
 			results = append(results, entry)
 		}
 	}
