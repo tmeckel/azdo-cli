@@ -733,6 +733,25 @@ Aliases
 s
 ```
 
+#### `azdo security permission update <TARGET> [flags]`
+
+Update or create permissions for a user or group.
+
+```
+    --allow-bit strings     Permission bit or comma-separated bits to allow.
+    --deny-bit strings      Permission bit or comma-separated bits to deny.
+    --merge                 Merge incoming ACEs with existing entries or replace the permissions. If provided without value true is implied.
+-n, --namespace-id string   ID of the security namespace to modify (required).
+    --token string          Security token for the resource (required).
+-y, --yes                   Do not prompt for confirmation.
+```
+
+Aliases
+
+```
+create, u, new
+```
+
 
 
 ### See also
