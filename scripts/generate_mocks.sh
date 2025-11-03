@@ -47,6 +47,12 @@ mockgen \
   -mock_names Client=MockIdentityClient \
   github.com/microsoft/azure-devops-go-api/azuredevops/v7/identity Client
 
+echo "Generating Azure DevOps Security client mock..."
+mockgen \
+  -package=mocks -destination internal/mocks/security_client_mock.go \
+  -mock_names Client=MockSecurityClient \
+  github.com/microsoft/azure-devops-go-api/azuredevops/v7/security Client
+
 echo "Generating Repository mock..."
 mockgen -source internal/azdo/repo.go \
   -package=mocks -destination internal/mocks/repository_mock.go
