@@ -78,7 +78,8 @@ func ParseSubjectTarget(ctx util.CmdContext, input string) (*SubjectTarget, erro
 			return nil, err
 		}
 		return &SubjectTarget{
-			Scope: *scope,
+			Scope:   *scope,
+			Subject: subject,
 		}, nil
 	default:
 		return nil, util.FlagErrorf("invalid target %q", input)
