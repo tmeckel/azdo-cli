@@ -2,6 +2,7 @@ package permission
 
 import (
 	"github.com/spf13/cobra"
+	"github.com/tmeckel/azdo-cli/internal/cmd/security/permission/delete"
 	"github.com/tmeckel/azdo-cli/internal/cmd/security/permission/list"
 	"github.com/tmeckel/azdo-cli/internal/cmd/security/permission/namespace"
 	"github.com/tmeckel/azdo-cli/internal/cmd/security/permission/show"
@@ -20,6 +21,7 @@ func NewCmd(ctx util.CmdContext) *cobra.Command {
 		},
 	}
 
+	cmd.AddCommand(delete.NewCmd(ctx))
 	cmd.AddCommand(list.NewCmd(ctx))
 	cmd.AddCommand(namespace.NewCmd(ctx))
 	cmd.AddCommand(show.NewCmd(ctx))
