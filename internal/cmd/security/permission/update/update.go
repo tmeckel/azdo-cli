@@ -2,7 +2,6 @@ package update
 
 import (
 	"fmt"
-	"strconv"
 	"strings"
 
 	"github.com/MakeNowJust/heredoc"
@@ -13,7 +12,6 @@ import (
 
 	"github.com/tmeckel/azdo-cli/internal/cmd/security/permission/shared"
 	"github.com/tmeckel/azdo-cli/internal/cmd/util"
-	"github.com/tmeckel/azdo-cli/internal/types"
 )
 
 type opts struct {
@@ -172,14 +170,14 @@ func runCommand(ctx util.CmdContext, o *opts) error {
 	var allowVal *int
 	var denyVal *int
 	if len(o.allowBits) > 0 {
-		v, err := parseBits(actions, o.allowBits)
+		v, err := shared.ParsePermissionBits(actions, o.allowBits)
 		if err != nil {
 			return err
 		}
 		allowVal = &v
 	}
 	if len(o.denyBits) > 0 {
-		v, err := parseBits(actions, o.denyBits)
+		v, err := shared.ParsePermissionBits(actions, o.denyBits)
 		if err != nil {
 			return err
 		}
@@ -211,80 +209,4 @@ func runCommand(ctx util.CmdContext, o *opts) error {
 	ios.StopProgressIndicator()
 	fmt.Fprintln(ios.Out, "Permissions updated.")
 	return nil
-}
-
-func parseBits(actions []security.ActionDefinition, parts []string) (int, error) {
-	var val int
-
-	// Build a map for quick name->bit lookup (case-insensitive) and track all allowed bits.
-	nameMap := make(map[string]int)
-	var allowedMask int
-	for _, a := range actions {
-		bit := types.GetValue(a.Bit, 0)
-		if bit == 0 {
-			continue
-		}
-
-		allowedMask |= bit
-
-		if n := strings.TrimSpace(types.GetValue(a.Name, "")); n != "" {
-			nameMap[strings.ToLower(n)] = bit
-		}
-		if dn := strings.TrimSpace(types.GetValue(a.DisplayName, "")); dn != "" {
-			nameMap[strings.ToLower(dn)] = bit
-		}
-		nameMap[strings.ToLower(fmt.Sprintf("bit %d", bit))] = bit
-	}
-
-	checkAllowed := func(bitVal int) error {
-		if bitVal == 0 {
-			return fmt.Errorf("permission bit value cannot be zero")
-		}
-		if allowedMask != 0 && bitVal&^allowedMask != 0 {
-			return fmt.Errorf("permission bit value %d is not defined for this namespace", bitVal)
-		}
-		return nil
-	}
-
-	for _, p := range parts {
-		p = strings.TrimSpace(p)
-		if p == "" {
-			continue
-		}
-
-		// numeric hex: 0x prefix
-		if strings.HasPrefix(p, "0x") || strings.HasPrefix(p, "0X") {
-			v, err := strconv.ParseInt(p[2:], 16, 32)
-			if err != nil {
-				return 0, fmt.Errorf("invalid bit value %q: %w", p, err)
-			}
-			candidate := int(v)
-			if err := checkAllowed(candidate); err != nil {
-				return 0, err
-			}
-			val |= candidate
-			continue
-		}
-
-		// numeric decimal
-		if d, err := strconv.ParseInt(p, 10, 32); err == nil {
-			candidate := int(d)
-			if err := checkAllowed(candidate); err != nil {
-				return 0, err
-			}
-			val |= candidate
-			continue
-		}
-
-		// textual name match (case-insensitive)
-		l := strings.ToLower(p)
-		if bit, ok := nameMap[l]; ok {
-			val |= bit
-			continue
-		}
-
-		return 0, fmt.Errorf("unrecognized permission token %q", p)
-	}
-
-	return val, nil
 }
