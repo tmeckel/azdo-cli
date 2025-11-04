@@ -731,6 +731,26 @@ Aliases
 s
 ```
 
+#### `azdo security permission reset <TARGET> [flags]`
+
+Reset explicit permission bits for a user or group.
+
+```
+-q, --jq expression            Filter JSON output using a jq expression
+    --json fields[=*]          Output JSON with the specified fields. Prefix a field with '-' to exclude it.
+-n, --namespace-id string      ID of the security namespace to modify (required).
+    --permission-bit strings   Permission bit or comma-separated bits to reset (required).
+-t, --template string          Format JSON output using a Go template; see "azdo help formatting"
+    --token string             Security token for the resource (required).
+-y, --yes                      Do not prompt for confirmation.
+```
+
+Aliases
+
+```
+r
+```
+
 #### `azdo security permission show <TARGET> [flags]`
 
 Show permissions for a user or group.
