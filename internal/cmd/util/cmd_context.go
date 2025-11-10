@@ -2,6 +2,7 @@ package util
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net/url"
 	"os"
@@ -170,7 +171,15 @@ func (c *cmdContext) Remotes() (remotes azdo.RemoteSet, err error) {
 	if err != nil {
 		return remotes, err
 	}
-	remotes = azdo.TranslateRemotes(remoteSet, azdo.NewIdentityTranslator())
+	if len(remoteSet) == 0 {
+		return remotes, fmt.Errorf("current repository has no defined remotes")
+	}
+	remotes, err = azdo.TranslateRemotes(remoteSet, azdo.NewIdentityTranslator())
+	if err != nil && errors.Is(err, config.ErrURLNotFoundForOrganization) {
+		err = fmt.Errorf("none of the remotes configured in the current repository could be mapped to an organization. Check the organizations configuration or the remotes: %w", err)
+	}
+	zap.L().Debug("found the following remotes", zap.Array("remotes", remotes))
+
 	return remotes, err
 }
 
