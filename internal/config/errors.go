@@ -32,7 +32,8 @@ func (e *KeyNotFoundError) Error() string {
 	return fmt.Sprintf("could not find key %q", e.Key)
 }
 
-func (e *KeyNotFoundError) Is(err error) bool {
-	keyNotFoundError := new(KeyNotFoundError)
-	return errors.As(err, &keyNotFoundError)
-}
+var (
+	ErrURLNotFoundForOrganization = errors.New("failed to get URL for organization")
+	ErrOrganizationNotFound       = errors.New("organization not found")
+	ErrDefaultOrganizationNotSet  = errors.New("no default organization defined")
+)
