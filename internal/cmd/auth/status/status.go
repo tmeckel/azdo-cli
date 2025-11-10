@@ -2,12 +2,16 @@ package status
 
 import (
 	"fmt"
+	"net/url"
+	"strings"
+	"sync"
 
 	"github.com/MakeNowJust/heredoc"
 	"github.com/google/uuid"
 	"github.com/microsoft/azure-devops-go-api/azuredevops/v7/security"
 	"github.com/samber/lo"
 	"github.com/spf13/cobra"
+	"github.com/tmeckel/azdo-cli/internal/azdo"
 	"github.com/tmeckel/azdo-cli/internal/cmd/util"
 )
 
@@ -46,28 +50,87 @@ type organizationStatus struct {
 func fetchOrganizationStates(ctx util.CmdContext, organizationsToCheck []string) (<-chan organizationStatus, error) {
 	statusChannel := make(chan organizationStatus)
 
-	go func(channel chan<- organizationStatus) error {
-		for _, organizationName := range organizationsToCheck {
-			client, err := ctx.ClientFactory().Security(ctx.Context(), organizationName)
-			if err != nil {
-				return err
-			}
+	// Pre-parse constant values and validate config before launching goroutines.
+	secNS := uuid.MustParse("5a27515b-ccd7-42c9-84f1-54c998f03866")
 
-			_, err = client.QuerySecurityNamespaces(ctx.Context(), security.QuerySecurityNamespacesArgs{SecurityNamespaceId: lo.ToPtr(uuid.MustParse("5a27515b-ccd7-42c9-84f1-54c998f03866"))})
+	cfg, err := ctx.Config()
+	if err != nil {
+		return nil, err
+	}
+
+	// Launch one goroutine per organization to perform checks concurrently.
+	var wg sync.WaitGroup
+	wg.Add(len(organizationsToCheck))
+
+	for _, organizationName := range organizationsToCheck {
+		organizationName := organizationName // capture
+		go func(org string) {
+			defer wg.Done()
 
 			status := organizationStatus{
-				organizationName: organizationName,
+				organizationName: org,
 			}
+
+			// Respect context cancellation early.
+			select {
+			case <-ctx.Context().Done():
+				status.err = ctx.Context().Err()
+				statusChannel <- status
+				return
+			default:
+			}
+
+			szUrl, err := cfg.Authentication().GetURL(org)
+			if err != nil {
+				status.err = err
+				statusChannel <- status
+				return
+			}
+
+			parsedURL, err := url.Parse(szUrl)
+			if err != nil {
+				status.err = err
+				statusChannel <- status
+				return
+			}
+
+			urlOrgName, err := azdo.OrganizationFromURL(parsedURL)
+			if err != nil {
+				status.err = fmt.Errorf("invalid AzDO url %q for organization %q: %w", szUrl, org, err)
+				statusChannel <- status
+				return
+			}
+			if !strings.EqualFold(urlOrgName, org) {
+				status.err = fmt.Errorf("url %q of organization %q does not match organization name from URL (%s)", szUrl, org, urlOrgName)
+				statusChannel <- status
+				return
+			}
+
+			// Create client and query a known security namespace to validate auth.
+			client, err := ctx.ClientFactory().Security(ctx.Context(), org)
+			if err != nil {
+				status.err = err
+				statusChannel <- status
+				return
+			}
+
+			// Call the API; if context is cancelled this will return promptly.
+			_, err = client.QuerySecurityNamespaces(ctx.Context(), security.QuerySecurityNamespacesArgs{
+				SecurityNamespaceId: lo.ToPtr(secNS),
+			})
 			if err != nil {
 				status.err = err
 			}
 
-			channel <- status
-		}
+			statusChannel <- status
+		}(organizationName)
+	}
 
+	// Close the status channel once all workers are done.
+	go func() {
+		wg.Wait()
 		close(statusChannel)
-		return nil
-	}(statusChannel) //nolint:golint,errcheck
+	}()
 
 	return statusChannel, nil
 }
@@ -134,7 +197,7 @@ func statusRun(ctx util.CmdContext, opts *statusOptions) (err error) {
 	for _, v := range organizationStatusResults {
 		if v.err != nil {
 			fmt.Fprintf(iostrms.Out,
-				"%s %s: failed to check authentication status\n", cs.Red("X"), cs.Bold(v.organizationName))
+				"%s %s: failed to check authentication status: %s\n", cs.Red("X"), cs.Bold(v.organizationName), v.err.Error())
 		} else {
 			fmt.Fprintf(iostrms.Out,
 				"%s %s: successfully checked authentication status\n", cs.GreenBold("X"), cs.Bold(v.organizationName))
