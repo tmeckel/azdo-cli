@@ -16,6 +16,8 @@ func NewCmd(ctx util.CmdContext) *cobra.Command {
 		`),
 		Aliases: []string{
 			"service-endpoints",
+			"serviceendpoint",
+			"serviceendpoints",
 			"se",
 			"sep",
 		},
