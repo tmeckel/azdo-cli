@@ -14,6 +14,7 @@ import (
 	"github.com/tmeckel/azdo-cli/internal/cmd/project"
 	"github.com/tmeckel/azdo-cli/internal/cmd/repo"
 	"github.com/tmeckel/azdo-cli/internal/cmd/security"
+	"github.com/tmeckel/azdo-cli/internal/cmd/serviceendpoint"
 	"github.com/tmeckel/azdo-cli/internal/cmd/util"
 	versionCmd "github.com/tmeckel/azdo-cli/internal/cmd/version"
 	"github.com/tmeckel/azdo-cli/internal/validation"
@@ -91,6 +92,7 @@ func NewCmdRoot(ctx util.CmdContext, version, buildDate string) (*cobra.Command,
 	cmd.AddCommand(pr.NewCmdPR(ctx))
 	cmd.AddCommand(graph.NewCmdGraph(ctx))
 	cmd.AddCommand(security.NewCmd(ctx))
+	cmd.AddCommand(serviceendpoint.NewCmd(ctx))
 
 	// Help topics
 	var referenceCmd *cobra.Command
