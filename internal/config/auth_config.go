@@ -2,7 +2,6 @@ package config
 
 import (
 	"errors"
-	"fmt"
 	"os"
 	"runtime"
 	"strings"
@@ -65,7 +64,8 @@ func (c *authConfig) GetToken(organizationName string) (token string, err error)
 	logger.Debugf("getting token for organization %s", organizationName)
 	token, err = c.GetTokenFromEnvOrConfig(organizationName)
 	if err != nil {
-		if errors.Is(err, new(KeyNotFoundError)) {
+		var keyNotFoundError *KeyNotFoundError
+		if errors.As(err, &keyNotFoundError) {
 			logger.Debug("detected KeyNotFoundError trying to get token from keyring")
 			token, err = c.GetTokenFromKeyring(organizationName)
 		}
@@ -110,7 +110,12 @@ func (c *authConfig) GetTokenFromKeyring(organizationName string) (token string,
 // GetUrl will retrieve the url for the Azure DevOps organization
 func (c *authConfig) GetURL(organizationName string) (string, error) {
 	organizationName = strings.ToLower(organizationName)
-	return c.cfg.Get([]string{Organizations, organizationName, "url"})
+	zap.L().Debug("getting url for organization", zap.String("organization", organizationName))
+	u, err := c.cfg.Get([]string{Organizations, organizationName, "url"})
+	if err != nil {
+		return "", ErrURLNotFoundForOrganization
+	}
+	return u, nil
 }
 
 // GetGitProtocol will retrieve the git protocol for the logged in user at the given organizationName.
@@ -135,7 +140,8 @@ func (c *authConfig) GetDefaultOrganization() (organizationName string, err erro
 			key := "default_organization"
 			organizationName, err = c.cfg.Get([]string{key})
 			if err != nil {
-				if !errors.Is(err, &KeyNotFoundError{}) {
+				var keyNotFoundError *KeyNotFoundError
+				if !errors.As(err, &keyNotFoundError) {
 					return organizationName, err
 				}
 			}
@@ -145,7 +151,7 @@ func (c *authConfig) GetDefaultOrganization() (organizationName string, err erro
 	}
 	organizationName = strings.TrimSpace(organizationName)
 	if organizationName == "" {
-		return "", fmt.Errorf("no default organization defined")
+		return "", ErrDefaultOrganizationNotSet
 	}
 	organizationName = strings.ToLower(organizationName)
 	return organizationName, err
@@ -165,8 +171,7 @@ func (c *authConfig) SetDefaultOrganization(organizationName string) (err error)
 			goto found
 		}
 	}
-	err = fmt.Errorf("organization not found %s", organizationName)
-	return err
+	return ErrOrganizationNotFound
 
 found:
 	c.cfg.Set([]string{key}, organizationName)
