@@ -795,7 +795,7 @@ Work with Azure DevOps service connections.
 Aliases
 
 ```
-service-endpoints, se, sep
+service-endpoints, serviceendpoint, serviceendpoints, se, sep
 ```
 
 ### `azdo service-endpoint list [ORGANIZATION/]PROJECT [flags]`
