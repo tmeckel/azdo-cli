@@ -39,6 +39,13 @@ jobs:
         with:
           go-version: ${{ env.GO_VERSION }}
 
+      - name: Run tests (only for pull requests)
+        if: ${{ github.event_name == 'pull_request' }}
+        run: |
+          set -e
+          echo "Running unit tests..."
+          go test ./...
+
       - name: GoReleaser
         uses: goreleaser/goreleaser-action@v6.4.0
         with:
