@@ -10,6 +10,8 @@ Manage Azure DevOps service endpoints (service connections) for projects.
 ### ALIASES
 
 - `service-endpoints`
+- `serviceendpoint`
+- `serviceendpoints`
 - `se`
 - `sep`
 
