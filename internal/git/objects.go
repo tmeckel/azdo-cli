@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"net/url"
 	"strings"
+
+	"go.uber.org/zap/zapcore"
 )
 
 // RemoteSet is a slice of git remotes.
@@ -13,6 +15,13 @@ func (r RemoteSet) Len() int      { return len(r) }
 func (r RemoteSet) Swap(i, j int) { r[i], r[j] = r[j], r[i] }
 func (r RemoteSet) Less(i, j int) bool {
 	return remoteNameSortScore(r[i].Name) > remoteNameSortScore(r[j].Name)
+}
+
+func (r RemoteSet) MarshalLogArray(enc zapcore.ArrayEncoder) error {
+	for _, remote := range r {
+		enc.AppendObject(remote)
+	}
+	return nil
 }
 
 func remoteNameSortScore(name string) int {
@@ -38,6 +47,22 @@ type Remote struct {
 
 func (r *Remote) String() string {
 	return r.Name
+}
+
+func (r *Remote) MarshalLogObject(enc zapcore.ObjectEncoder) error {
+	enc.AddString("Name", r.Name)
+	enc.AddString("Resolved", r.Resolved)
+	if r.FetchURL != nil {
+		enc.AddString("FetchURL", r.FetchURL.String())
+	} else {
+		enc.AddString("FetchURL", "")
+	}
+	if r.PushURL != nil {
+		enc.AddString("PushURL", r.PushURL.String())
+	} else {
+		enc.AddString("PushURL", "")
+	}
+	return nil
 }
 
 func NewRemote(name string, u string) (*Remote, error) {
