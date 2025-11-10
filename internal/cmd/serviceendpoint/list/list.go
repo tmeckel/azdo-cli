@@ -4,11 +4,11 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
-	"slices"
 	"sort"
 	"strings"
 
 	"github.com/MakeNowJust/heredoc"
+	"github.com/emirpasic/gods/sets/hashset"
 	"github.com/google/uuid"
 	"github.com/microsoft/azure-devops-go-api/azuredevops/v7"
 	"github.com/microsoft/azure-devops-go-api/azuredevops/v7/serviceendpoint"
@@ -102,12 +102,12 @@ func NewCmd(ctx util.CmdContext) *cobra.Command {
 
 	cmd.Flags().StringVar(&opts.typeFilter, "type", "", "Filter by service endpoint type (e.g., AzureRM, GitHub, Generic).")
 	cmd.Flags().StringVar(&opts.owner, "owner", "", "Filter by service endpoint owner (e.g., Library, AgentCloud).")
-	cmd.Flags().StringSliceVar(&opts.authSchemes, "auth-scheme", nil, "Filter by authorization scheme. Repeat to specify multiple values.")
-	cmd.Flags().StringSliceVar(&opts.endpointIDValues, "endpoint-id", nil, "Filter by endpoint ID (UUID). Repeat to provide multiple endpoints.")
+	cmd.Flags().StringSliceVar(&opts.authSchemes, "auth-scheme", nil, "Filter by authorization scheme. Repeat to specify multiple values or separate multiple values by comma ','.")
+	cmd.Flags().StringSliceVar(&opts.endpointIDValues, "endpoint-id", nil, "Filter by endpoint ID (UUID). Repeat to specify multiple values or separate multiple values by comma ','.")
 	cmd.Flags().StringVar(&opts.actionFilter, "action-filter", "", "Filter endpoints by caller permissions (manage, use, view, none).")
 	cmd.Flags().BoolVar(&opts.includeFailed, "include-failed", false, "Include endpoints that are in a failed state.")
 	cmd.Flags().BoolVar(&opts.includeDetails, "include-details", false, "Request additional authorization metadata when available.")
-	cmd.Flags().StringSliceVar(&opts.nameFilters, "name", nil, "Filter by endpoint display name. Repeat to specify multiple values.")
+	cmd.Flags().StringSliceVar(&opts.nameFilters, "name", nil, "Filter by endpoint display name. Repeat to specify multiple values or separate multiple values by comma ','.")
 	util.StringEnumFlag(cmd, &opts.outputFormat, "output-format", "", "table", []string{"table", "ids"}, "Select non-JSON output format")
 	util.AddJSONFlags(cmd, &opts.exporter, []string{
 		"id",
@@ -451,9 +451,13 @@ func intersectByID(endpoints []serviceendpoint.ServiceEndpoint, ids []uuid.UUID)
 	if len(ids) == 0 {
 		return endpoints
 	}
-	filtered := make([]serviceendpoint.ServiceEndpoint, 0)
+	idSet := hashset.New(ids)
+	filtered := make([]serviceendpoint.ServiceEndpoint, 0, len(endpoints))
 	for _, ep := range endpoints {
-		if ep.Id != nil && slices.Contains(ids, *ep.Id) {
+		if ep.Id == nil {
+			continue
+		}
+		if ok := idSet.Contains(*ep.Id); ok {
 			filtered = append(filtered, ep)
 		}
 	}
