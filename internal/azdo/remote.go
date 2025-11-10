@@ -1,12 +1,15 @@
 package azdo
 
 import (
+	"errors"
 	"fmt"
 	"net/url"
 	"strings"
 
 	"github.com/tmeckel/azdo-cli/internal/git"
+	"github.com/tmeckel/azdo-cli/internal/types"
 	"go.uber.org/zap"
+	"go.uber.org/zap/zapcore"
 )
 
 // RemoteSet represents a set of git remotes which point to an AzDO endpoint
@@ -22,6 +25,13 @@ func (r RemoteSet) FindByName(names ...string) (*Remote, error) {
 		}
 	}
 	return nil, fmt.Errorf("no matching remote found")
+}
+
+func (rs RemoteSet) MarshalLogArray(enc zapcore.ArrayEncoder) error {
+	for _, remote := range rs {
+		enc.AppendObject(remote)
+	}
+	return nil
 }
 
 // FindByRepo returns the first Remote that points to a specific Azure DevOps repository
@@ -118,20 +128,29 @@ func NewIdentityTranslator() Translator {
 	return identityTranslator{}
 }
 
-func TranslateRemotes(gitRemotes git.RemoteSet, translator Translator) (remotes RemoteSet) {
+func TranslateRemotes(gitRemotes git.RemoteSet, translator Translator) (remotes RemoteSet, err error) {
+	zap.L().Debug("translating to following git remotes", zap.Array("remotes", gitRemotes))
+	var errs []error
 	for _, r := range gitRemotes {
 		var repo Repository
 		if r.FetchURL != nil {
 			if isOk, _ := IsAzDORemoteURL(r.FetchURL); !isOk {
+				errs = append(errs, err)
 				continue
 			}
-			repo, _ = RepositoryFromURL(translator.Translate(r.FetchURL))
+			repo, err = RepositoryFromURL(translator.Translate(r.FetchURL))
+			if err != nil {
+				errs = append(errs, err)
+			}
 		}
 		if r.PushURL != nil && repo == nil {
 			if isOk, _ := IsAzDORemoteURL(r.PushURL); !isOk {
 				continue
 			}
-			repo, _ = RepositoryFromURL(translator.Translate(r.PushURL))
+			repo, err = RepositoryFromURL(translator.Translate(r.PushURL))
+			if err != nil {
+				errs = append(errs, err)
+			}
 		}
 		if repo == nil {
 			continue
@@ -141,5 +160,8 @@ func TranslateRemotes(gitRemotes git.RemoteSet, translator Translator) (remotes 
 			repo:   repo,
 		})
 	}
-	return remotes
+	if len(remotes) > 0 {
+		return remotes, nil
+	}
+	return remotes, errors.Join(types.UniqueErrors(errs)...)
 }
