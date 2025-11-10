@@ -804,13 +804,13 @@ List service endpoints in a project.
 
 ```
     --action-filter string   Filter endpoints by caller permissions (manage, use, view, none).
-    --auth-scheme strings    Filter by authorization scheme. Repeat to specify multiple values.
-    --endpoint-id strings    Filter by endpoint ID (UUID). Repeat to provide multiple endpoints.
+    --auth-scheme strings    Filter by authorization scheme. Repeat to specify multiple values or separate multiple values by comma ','.
+    --endpoint-id strings    Filter by endpoint ID (UUID). Repeat to specify multiple values or separate multiple values by comma ','.
     --include-details        Request additional authorization metadata when available.
     --include-failed         Include endpoints that are in a failed state.
 -q, --jq expression          Filter JSON output using a jq expression
     --json fields[=*]        Output JSON with the specified fields. Prefix a field with '-' to exclude it.
-    --name strings           Filter by endpoint display name. Repeat to specify multiple values.
+    --name strings           Filter by endpoint display name. Repeat to specify multiple values or separate multiple values by comma ','.
     --output-format string   Select non-JSON output format: {table|ids} (default "table")
     --owner string           Filter by service endpoint owner (e.g., Library, AgentCloud).
 -t, --template string        Format JSON output using a Go template; see "azdo help formatting"

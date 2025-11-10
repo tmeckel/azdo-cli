@@ -19,11 +19,11 @@ segment is omitted the default organization from configuration is used.
 
 * `--auth-scheme` `strings`
 
-	Filter by authorization scheme. Repeat to specify multiple values.
+	Filter by authorization scheme. Repeat to specify multiple values or separate multiple values by comma &#39;,&#39;.
 
 * `--endpoint-id` `strings`
 
-	Filter by endpoint ID (UUID). Repeat to provide multiple endpoints.
+	Filter by endpoint ID (UUID). Repeat to specify multiple values or separate multiple values by comma &#39;,&#39;.
 
 * `--include-details`
 
@@ -43,7 +43,7 @@ segment is omitted the default organization from configuration is used.
 
 * `--name` `strings`
 
-	Filter by endpoint display name. Repeat to specify multiple values.
+	Filter by endpoint display name. Repeat to specify multiple values or separate multiple values by comma &#39;,&#39;.
 
 * `--output-format` `string` (default `&#34;table&#34;`)
 
