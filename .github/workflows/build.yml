@@ -39,7 +39,7 @@ jobs:
         with:
           go-version: ${{ env.GO_VERSION }}
 
-      - name: Run tests (only for pull requests)
+      - name: Run tests
         if: ${{ github.event_name == 'pull_request' }}
         run: |
           set -e
