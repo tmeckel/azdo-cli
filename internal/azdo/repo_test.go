@@ -157,6 +157,71 @@ func Test_repoFromURL(t *testing.T) {
 	}
 }
 
+func TestOrganizationFromURL(t *testing.T) {
+	t.Setenv("AZDO_CONFIG_DIR", "./testdata/config")
+
+	tests := []struct {
+		name  string
+		input string
+		want  string
+		err   error
+	}{
+		{
+			name:  "dev.azure.com https",
+			input: "https://dev.azure.com/defaultorg/monalisa/_git/octo-cat",
+			want:  "defaultorg",
+		},
+		{
+			name:  "visualstudio.com https",
+			input: "https://vsorg.visualstudio.com/monalisa/_git/octo-cat",
+			want:  "vsorg",
+		},
+		{
+			name:  "ssh URL",
+			input: "ssh://ssh.dev.azure.com/v3/defaultorg/monalisa/octo-cat",
+			want:  "defaultorg",
+		},
+		{
+			name:  "invalid path",
+			input: "https://dev.azure.com/",
+			err:   errors.New(`invalid path "/"`),
+		},
+		{
+			name:  "non AzDO URL",
+			input: "https://github.com/owner/repo.git",
+			err:   errors.New("url https://github.com/owner/repo.git is not a valid AzDO remote URL"),
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			u, err := url.Parse(tt.input)
+			if err != nil {
+				t.Fatalf("got parse error %q", err)
+			}
+
+			got, err := OrganizationFromURL(u)
+			if tt.err != nil {
+				if err == nil {
+					t.Fatalf("expected error %q, got nil", tt.err)
+				}
+				if err.Error() != tt.err.Error() {
+					t.Fatalf("expected error %q, got %q", tt.err, err)
+				}
+				return
+			}
+
+			if err != nil {
+				t.Fatalf("unexpected error %q", err)
+			}
+
+			if got != tt.want {
+				t.Fatalf("expected %q, got %q", tt.want, got)
+			}
+		})
+	}
+}
+
 func TestFromFullName(t *testing.T) {
 	tests := []struct {
 		name             string
