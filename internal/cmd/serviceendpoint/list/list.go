@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"slices"
 	"sort"
 	"strings"
 
@@ -450,16 +451,9 @@ func intersectByID(endpoints []serviceendpoint.ServiceEndpoint, ids []uuid.UUID)
 	if len(ids) == 0 {
 		return endpoints
 	}
-	idSet := make(map[uuid.UUID]struct{}, len(ids))
-	for _, id := range ids {
-		idSet[id] = struct{}{}
-	}
-	filtered := make([]serviceendpoint.ServiceEndpoint, 0, len(endpoints))
+	filtered := make([]serviceendpoint.ServiceEndpoint, 0)
 	for _, ep := range endpoints {
-		if ep.Id == nil {
-			continue
-		}
-		if _, ok := idSet[*ep.Id]; ok {
+		if ep.Id != nil && slices.Contains(ids, *ep.Id) {
 			filtered = append(filtered, ep)
 		}
 	}
