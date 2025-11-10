@@ -8,6 +8,7 @@ import (
 	"github.com/google/shlex"
 	"github.com/spf13/cobra"
 	"github.com/tmeckel/azdo-cli/internal/cmd/auth"
+	"github.com/tmeckel/azdo-cli/internal/cmd/boards"
 	"github.com/tmeckel/azdo-cli/internal/cmd/config"
 	"github.com/tmeckel/azdo-cli/internal/cmd/graph"
 	"github.com/tmeckel/azdo-cli/internal/cmd/pr"
@@ -93,6 +94,7 @@ func NewCmdRoot(ctx util.CmdContext, version, buildDate string) (*cobra.Command,
 	cmd.AddCommand(graph.NewCmdGraph(ctx))
 	cmd.AddCommand(security.NewCmd(ctx))
 	cmd.AddCommand(serviceendpoint.NewCmd(ctx))
+	cmd.AddCommand(boards.NewCmd(ctx))
 
 	// Help topics
 	var referenceCmd *cobra.Command
