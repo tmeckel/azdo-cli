@@ -24,6 +24,7 @@ import (
 	identity "github.com/microsoft/azure-devops-go-api/azuredevops/v7/identity"
 	operations "github.com/microsoft/azure-devops-go-api/azuredevops/v7/operations"
 	security "github.com/microsoft/azure-devops-go-api/azuredevops/v7/security"
+	serviceendpoint "github.com/microsoft/azure-devops-go-api/azuredevops/v7/serviceendpoint"
 	azdo "github.com/tmeckel/azdo-cli/internal/azdo"
 	extensions "github.com/tmeckel/azdo-cli/internal/azdo/extensions"
 	gomock "go.uber.org/mock/gomock"
@@ -416,4 +417,19 @@ func (m *MockClientFactory) Security(ctx context.Context, organization string) (
 func (mr *MockClientFactoryMockRecorder) Security(ctx, organization any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Security", reflect.TypeOf((*MockClientFactory)(nil).Security), ctx, organization)
+}
+
+// ServiceEndpoint mocks base method.
+func (m *MockClientFactory) ServiceEndpoint(ctx context.Context, organization string) (serviceendpoint.Client, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ServiceEndpoint", ctx, organization)
+	ret0, _ := ret[0].(serviceendpoint.Client)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ServiceEndpoint indicates an expected call of ServiceEndpoint.
+func (mr *MockClientFactoryMockRecorder) ServiceEndpoint(ctx, organization any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ServiceEndpoint", reflect.TypeOf((*MockClientFactory)(nil).ServiceEndpoint), ctx, organization)
 }

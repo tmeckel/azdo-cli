@@ -138,6 +138,8 @@ github.com/microcosm-cc/bluemonday/css
 github.com/microsoft/azure-devops-go-api/azuredevops/v7
 github.com/microsoft/azure-devops-go-api/azuredevops/v7/core
 github.com/microsoft/azure-devops-go-api/azuredevops/v7/delegatedauthorization
+github.com/microsoft/azure-devops-go-api/azuredevops/v7/distributedtaskcommon
+github.com/microsoft/azure-devops-go-api/azuredevops/v7/forminput
 github.com/microsoft/azure-devops-go-api/azuredevops/v7/git
 github.com/microsoft/azure-devops-go-api/azuredevops/v7/graph
 github.com/microsoft/azure-devops-go-api/azuredevops/v7/identity
@@ -145,6 +147,7 @@ github.com/microsoft/azure-devops-go-api/azuredevops/v7/operations
 github.com/microsoft/azure-devops-go-api/azuredevops/v7/policy
 github.com/microsoft/azure-devops-go-api/azuredevops/v7/profile
 github.com/microsoft/azure-devops-go-api/azuredevops/v7/security
+github.com/microsoft/azure-devops-go-api/azuredevops/v7/serviceendpoint
 github.com/microsoft/azure-devops-go-api/azuredevops/v7/system
 github.com/microsoft/azure-devops-go-api/azuredevops/v7/webapi
 # github.com/muesli/reflow v0.3.0

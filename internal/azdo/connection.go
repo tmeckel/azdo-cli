@@ -14,6 +14,7 @@ import (
 	"github.com/microsoft/azure-devops-go-api/azuredevops/v7/identity"
 	"github.com/microsoft/azure-devops-go-api/azuredevops/v7/operations"
 	"github.com/microsoft/azure-devops-go-api/azuredevops/v7/security"
+	"github.com/microsoft/azure-devops-go-api/azuredevops/v7/serviceendpoint"
 	"github.com/tmeckel/azdo-cli/internal/azdo/extensions"
 )
 
@@ -48,6 +49,7 @@ type ClientFactory interface {
 	Graph(ctx context.Context, organization string) (graph.Client, error)
 	Core(ctx context.Context, organization string) (core.Client, error)
 	Operations(ctx context.Context, organization string) (operations.Client, error)
+	ServiceEndpoint(ctx context.Context, organization string) (serviceendpoint.Client, error)
 	Security(ctx context.Context, organization string) (security.Client, error)
 	Extensions(ctx context.Context, organization string) (extensions.Client, error)
 }
