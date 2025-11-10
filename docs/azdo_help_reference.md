@@ -33,6 +33,54 @@ Setup git with AzDO CLI
 
 View authentication status
 
+## `azdo boards <command>`
+
+Work with Azure Boards resources.
+
+Aliases
+
+```
+b
+```
+
+### `azdo boards area <command>`
+
+Manage area paths used by Azure Boards.
+
+Aliases
+
+```
+a
+```
+
+#### `azdo boards area project <command>`
+
+Manage area paths scoped to a project.
+
+Aliases
+
+```
+prj, p
+```
+
+##### `azdo boards area project list [ORGANIZATION/]PROJECT [flags]`
+
+List area paths defined for a project.
+
+```
+    --depth int         Depth of child nodes to include (use 0 to omit child nodes). (default 1)
+-q, --jq expression     Filter JSON output using a jq expression
+    --json fields[=*]   Output JSON with the specified fields. Prefix a field with '-' to exclude it.
+    --path string       Restrict results to a specific area path (relative paths like "Payments" or "Payments/Sub" are resolved under <project>/Area).
+-t, --template string   Format JSON output using a Go template; see "azdo help formatting"
+```
+
+Aliases
+
+```
+ls, l
+```
+
 ## `azdo co`
 
 Alias for "pr checkout"
