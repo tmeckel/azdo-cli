@@ -5,6 +5,7 @@ Work seamlessly with Azure DevOps from the command line.
 ### Core commands
 
 * [azdo auth](./azdo_auth.md)
+* [azdo boards](./azdo_boards.md)
 * [azdo graph](./azdo_graph.md)
 * [azdo pr](./azdo_pr.md)
 * [azdo project](./azdo_project.md)
