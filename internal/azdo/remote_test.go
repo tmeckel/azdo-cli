@@ -81,7 +81,8 @@ func Test_TranslateRemotes(t *testing.T) {
 		},
 	}
 
-	result := TranslateRemotes(gitRemotes, NewIdentityTranslator())
+	result, err := TranslateRemotes(gitRemotes, NewIdentityTranslator())
+	assert.NoError(t, err)
 
 	if len(result) != 1 {
 		t.Fatalf("got %d results", len(result))
