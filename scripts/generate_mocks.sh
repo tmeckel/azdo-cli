@@ -53,6 +53,12 @@ mockgen \
   -mock_names Client=MockSecurityClient \
   github.com/microsoft/azure-devops-go-api/azuredevops/v7/security Client
 
+echo "Generating Azure DevOps WorkItemTracking client mock..."
+mockgen \
+  -package=mocks -destination internal/mocks/workitemtracking_client_mock.go \
+  -mock_names Client=MockWorkItemTrackingClient \
+  github.com/microsoft/azure-devops-go-api/azuredevops/v7/workitemtracking Client
+
 echo "Generating Repository mock..."
 mockgen -source internal/azdo/repo.go \
   -package=mocks -destination internal/mocks/repository_mock.go
