@@ -11,6 +11,7 @@ import (
 	"github.com/microsoft/azure-devops-go-api/azuredevops/v7/operations"
 	"github.com/microsoft/azure-devops-go-api/azuredevops/v7/security"
 	"github.com/microsoft/azure-devops-go-api/azuredevops/v7/serviceendpoint"
+	"github.com/microsoft/azure-devops-go-api/azuredevops/v7/workitemtracking"
 	"github.com/tmeckel/azdo-cli/internal/azdo/extensions"
 	"github.com/tmeckel/azdo-cli/internal/config"
 )
@@ -114,4 +115,12 @@ func (c *clientFactory) Extensions(ctx context.Context, org string) (extensions.
 		return nil, err
 	}
 	return extensions.NewClient(ctx, conn.(*connectionAdapter).conn), nil
+}
+
+func (c *clientFactory) WorkItemTracking(ctx context.Context, org string) (workitemtracking.Client, error) {
+	conn, err := c.factory.Connection(org)
+	if err != nil {
+		return nil, err
+	}
+	return workitemtracking.NewClient(ctx, conn.(*connectionAdapter).conn)
 }
