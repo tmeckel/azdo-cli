@@ -94,16 +94,11 @@ func runList(ctx util.CmdContext, opts *listOptions) error {
 	}
 
 	ios.StartProgressIndicator()
-	progressStopped := false
-	defer func() {
-		if !progressStopped {
-			ios.StopProgressIndicator()
-		}
-	}()
+	defer ios.StopProgressIndicator()
 
-	org, project, err := resolveProjectScope(ctx, opts.scopeArg)
+	scope, err := util.ParseProjectScope(ctx, opts.scopeArg)
 	if err != nil {
-		return err
+		return util.FlagErrorWrap(err)
 	}
 
 	cfg, err := ctx.Config()
@@ -111,17 +106,17 @@ func runList(ctx util.CmdContext, opts *listOptions) error {
 		return fmt.Errorf("failed to load configuration: %w", err)
 	}
 
-	orgURL, err := cfg.Authentication().GetURL(org)
+	orgURL, err := cfg.Authentication().GetURL(scope.Organization)
 	if err != nil {
 		return fmt.Errorf("failed to resolve organization URL: %w", err)
 	}
 
-	conn, err := ctx.ConnectionFactory().Connection(org)
+	conn, err := ctx.ConnectionFactory().Connection(scope.Organization)
 	if err != nil {
 		return fmt.Errorf("failed to create connection: %w", err)
 	}
 
-	endpoint, err := buildAreaEndpoint(strings.TrimRight(orgURL, "/"), project, opts.path)
+	endpoint, err := buildAreaEndpoint(strings.TrimRight(orgURL, "/"), scope.Project, opts.path)
 	if err != nil {
 		return err
 	}
@@ -143,8 +138,8 @@ func runList(ctx util.CmdContext, opts *listOptions) error {
 	}
 
 	zap.L().Debug("listing project area paths",
-		zap.String("organization", org),
-		zap.String("project", project),
+		zap.String("organization", scope.Organization),
+		zap.String("project", scope.Project),
 		zap.String("path", strings.TrimSpace(opts.path)),
 		zap.Int("depth", opts.depth),
 		zap.String("endpoint", reqURL.String()),
@@ -174,17 +169,13 @@ func runList(ctx util.CmdContext, opts *listOptions) error {
 
 	if opts.exporter != nil {
 		ios.StopProgressIndicator()
-		progressStopped = true
 		return opts.exporter.Write(ios, nodes)
 	}
 
-	tp, err := ctx.Printer("list")
+	tp, err := ctx.Printer("table")
 	if err != nil {
 		return err
 	}
-
-	ios.StopProgressIndicator()
-	progressStopped = true
 
 	tp.AddColumns("Name", "Path", "HasChildren")
 	for _, n := range nodes {
@@ -198,36 +189,9 @@ func runList(ctx util.CmdContext, opts *listOptions) error {
 		tp.EndRow()
 	}
 
-	return tp.Render()
-}
+	ios.StopProgressIndicator()
 
-func resolveProjectScope(ctx util.CmdContext, arg string) (string, string, error) {
-	parts := strings.Split(strings.TrimSpace(arg), "/")
-	switch len(parts) {
-	case 1:
-		project := strings.TrimSpace(parts[0])
-		if project == "" {
-			return "", "", util.FlagErrorf("project argument cannot be empty")
-		}
-		cfg, err := ctx.Config()
-		if err != nil {
-			return "", "", fmt.Errorf("failed to read configuration: %w", err)
-		}
-		org, err := cfg.Authentication().GetDefaultOrganization()
-		if err != nil || strings.TrimSpace(org) == "" {
-			return "", "", util.FlagErrorf("no organization specified and no default organization configured")
-		}
-		return strings.TrimSpace(org), project, nil
-	case 2:
-		org := strings.TrimSpace(parts[0])
-		project := strings.TrimSpace(parts[1])
-		if org == "" || project == "" {
-			return "", "", util.FlagErrorf("invalid project argument %q; expected format ORGANIZATION/PROJECT", arg)
-		}
-		return org, project, nil
-	default:
-		return "", "", util.FlagErrorf("invalid project argument %q; expected format ORGANIZATION/PROJECT", arg)
-	}
+	return tp.Render()
 }
 
 func buildAreaEndpoint(baseURL, project, path string) (string, error) {
