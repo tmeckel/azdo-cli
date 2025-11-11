@@ -25,6 +25,7 @@ Developer: # Repository Guidelines
 - **CLI Flags:** Use kebab-case (e.g., `--organization-url`).
 - **Logging:** Use `zap.L()` with structured messages; prefer `%w` for wrapping errors.
 - **Variables:** Variable names must never collide with any imports or name of GO packages
+- **Indentation During Drafts:** Cosmetic indentation mismatches are acceptable while implementing changes. Final formatting is applied with `gofumpt` after coding is complete, so focus on correctness first.
 
 ## Testing Guidelines
 
@@ -60,6 +61,19 @@ For a complete guidance on how to implement tests refer to [TESTING.md](./TESTIN
     - **CRITICAL: Verify Data Types:** Before using API response data, always inspect the struct definitions in the `vendor/github.com/microsoft/azure-devops-go-api/azuredevops/v7/` directory. Mismatched types (e.g., `int64` vs `uint64`) between the API struct and your command's structs will cause compilation errors.
 - **Output:** Use `ctx.Printer(format)` and repository’s standard `printer` helpers to format output in table or JSON, following patterns from existing commands. For commands that make API calls, always wrap the logic with `ios.StartProgressIndicator()` and `defer ios.StopProgressIndicator()` to provide feedback to the user. When not outputting JSON, provide a clean, human-readable table using the `ctx.Printer("list")` helper for list-like output. Choose the most relevant columns to display. Always call `ios.StopProgressIndicator()` **before** creating any output on the command line.
 - **Testing:** Create mocks for the relevant client interface methods under `internal/mocks` and write hermetic, table-driven tests alongside the command.
+
+### Handling Missing Azure DevOps SDK Clients
+
+When a required Azure DevOps client is not available in the vendored Go SDK:
+
+1. Confirm the absence by searching the upstream SDK using the GitHub MCP server (`https://github.com/microsoft/azure-devops-go-api/blob/dev/azuredevops/v7`).
+2. Extend `type ClientFactory interface` in `internal/azdo/connection.go` with the new client method signature.
+3. Ask the user to run `go mod tidy` followed by `go mod vendor` after the interface additions (the sandbox cannot do this automatically).
+4. Add a matching mock generation entry to `scripts/generate_mocks.sh`.
+5. Let the user run `bash ./scripts/generate_mocks.sh`
+6. Implement the factory method in `internal/azdo/factory.go` so the new client can be constructed via existing connection plumbing.
+
+Do not hand-roll HTTP calls if an SDK client can be introduced through this process.
 
 ### Implementing Commands with JSON and Table/Plain Output
 
