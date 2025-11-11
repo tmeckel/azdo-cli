@@ -5,6 +5,7 @@ Work with Azure Boards resources.
 ### Available commands
 
 * [azdo boards area](./azdo_boards_area.md)
+* [azdo boards iteration](./azdo_boards_iteration.md)
 
 ### ALIASES
 
