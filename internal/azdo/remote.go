@@ -29,7 +29,10 @@ func (r RemoteSet) FindByName(names ...string) (*Remote, error) {
 
 func (rs RemoteSet) MarshalLogArray(enc zapcore.ArrayEncoder) error {
 	for _, remote := range rs {
-		enc.AppendObject(remote)
+		err := enc.AppendObject(remote)
+		if err != nil {
+			return err
+		}
 	}
 	return nil
 }
