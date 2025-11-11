@@ -77,33 +77,33 @@ func TestPollTimeout(t *testing.T) {
 }
 
 func TestPollBinaryExponentialBackoff(t *testing.T) {
-    // Expected waits: 2s, 4s, 8s (formula: 2^i * 2s)
-    expectedDurations := []time.Duration{2 * time.Second, 4 * time.Second, 8 * time.Second}
-    var lastCall time.Time
-    var callIndex int
+	// Expected waits: 2s, 4s, 8s (formula: 2^i * 2s)
+	expectedDurations := []time.Duration{2 * time.Second, 4 * time.Second, 8 * time.Second}
+	var lastCall time.Time
+	var callIndex int
 
-    err := Poll(func() error {
-        now := time.Now()
-        if callIndex > 0 {
-            elapsed := now.Sub(lastCall)
-            expected := expectedDurations[callIndex-1]
+	err := Poll(func() error {
+		now := time.Now()
+		if callIndex > 0 {
+			elapsed := now.Sub(lastCall)
+			expected := expectedDurations[callIndex-1]
 
-            // Allow ±10% margin for scheduler jitter
-            min := expected - expected/10
-            max := expected + expected/10
-            if elapsed < min || elapsed > max {
-                t.Fatalf("Call %d: expected ~%v wait, got %v", callIndex, expected, elapsed)
-            }
-        }
-        if callIndex >= len(expectedDurations) {
-            return nil // succeed after verifying waits
-        }
-        lastCall = now
-        callIndex++
-        return errors.New("simulated failure")
-    }, PollOptions{
-        Tries: len(expectedDurations) + 1, // enough tries to verify all intervals
-    }) // Delay left at zero
+			// Allow ±10% margin for scheduler jitter
+			min := expected - expected/10
+			max := expected + expected/10
+			if elapsed < min || elapsed > max {
+				t.Fatalf("Call %d: expected ~%v wait, got %v", callIndex, expected, elapsed)
+			}
+		}
+		if callIndex >= len(expectedDurations) {
+			return nil // succeed after verifying waits
+		}
+		lastCall = now
+		callIndex++
+		return errors.New("simulated failure")
+	}, PollOptions{
+		Tries: len(expectedDurations) + 1, // enough tries to verify all intervals
+	}) // Delay left at zero
 
-    require.NoError(t, err)
+	require.NoError(t, err)
 }
