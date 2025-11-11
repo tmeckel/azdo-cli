@@ -19,7 +19,10 @@ func (r RemoteSet) Less(i, j int) bool {
 
 func (r RemoteSet) MarshalLogArray(enc zapcore.ArrayEncoder) error {
 	for _, remote := range r {
-		enc.AppendObject(remote)
+		err := enc.AppendObject(remote)
+		if err != nil {
+			return err
+		}
 	}
 	return nil
 }
