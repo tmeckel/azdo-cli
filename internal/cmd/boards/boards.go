@@ -4,6 +4,7 @@ import (
 	"github.com/MakeNowJust/heredoc"
 	"github.com/spf13/cobra"
 	"github.com/tmeckel/azdo-cli/internal/cmd/boards/area"
+	"github.com/tmeckel/azdo-cli/internal/cmd/boards/iteration"
 	"github.com/tmeckel/azdo-cli/internal/cmd/util"
 )
 
@@ -23,6 +24,7 @@ func NewCmd(ctx util.CmdContext) *cobra.Command {
 	}
 
 	cmd.AddCommand(area.NewCmd(ctx))
+	cmd.AddCommand(iteration.NewCmd(ctx))
 
 	return cmd
 }
