@@ -81,6 +81,47 @@ Aliases
 ls, l
 ```
 
+### `azdo boards iteration <command>`
+
+Work with iteration/classification nodes.
+
+Aliases
+
+```
+it, i
+```
+
+#### `azdo boards iteration project <command>`
+
+Project-scoped iteration commands.
+
+Aliases
+
+```
+prj, p
+```
+
+##### `azdo boards iteration project list [ORGANIZATION/]PROJECT [flags]`
+
+List iteration hierarchy for a project.
+
+```
+-d, --depth int            Depth to fetch (1-10) (default 3)
+    --finish-date string   Apply a comparison filter to iteration finish dates; supports operators like <= and special value "today" (e.g., "<=today")
+    --include-dates        Include iteration start and finish dates
+-q, --jq expression        Filter JSON output using a jq expression
+    --json fields[=*]      Output JSON with the specified fields. Prefix a field with '-' to exclude it.
+-p, --path string          Iteration path relative to project root
+    --start-date string    Apply a comparison filter to iteration start dates; supports operators like >= and special value "today" (e.g., ">=today")
+-t, --template string      Format JSON output using a Go template; see "azdo help formatting"
+```
+
+Aliases
+
+```
+ls, l
+```
+
 ## `azdo co`
 
 Alias for "pr checkout"
