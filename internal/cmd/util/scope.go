@@ -59,6 +59,41 @@ func ParseScope(ctx CmdContext, scope string) (*Scope, error) {
 	return result, nil
 }
 
+// ParseProjectScope parses arguments in the form [ORGANIZATION/]PROJECT. When the organization
+// segment is omitted the default organization from the user's configuration is used. The function
+// trims whitespace around individual segments and ensures the resulting values are non-empty.
+func ParseProjectScope(ctx CmdContext, arg string) (*Scope, error) {
+	result := &Scope{}
+	parts := strings.Split(strings.TrimSpace(arg), "/")
+	switch len(parts) {
+	case 1:
+		result.Project = strings.TrimSpace(parts[0])
+		if result.Project == "" {
+			return nil, fmt.Errorf("project argument cannot be empty")
+		}
+		cfg, err := ctx.Config()
+		if err != nil {
+			return nil, fmt.Errorf("failed to read configuration: %w", err)
+		}
+		org, err := cfg.Authentication().GetDefaultOrganization()
+		org = strings.TrimSpace(org)
+		if err != nil || org == "" {
+			return nil, fmt.Errorf("no organization specified and no default organization configured")
+		}
+		result.Organization = org
+		return result, nil
+	case 2:
+		result.Organization = strings.TrimSpace(parts[0])
+		result.Project = strings.TrimSpace(parts[1])
+		if result.Organization == "" || result.Project == "" {
+			return nil, fmt.Errorf("invalid project argument %q; expected format ORGANIZATION/PROJECT", arg)
+		}
+		return result, nil
+	default:
+		return nil, fmt.Errorf("invalid project argument %q; expected format ORGANIZATION/PROJECT", arg)
+	}
+}
+
 // ResolveScopeDescriptor fetches the descriptor representing the project scope when a project is supplied.
 // It returns the descriptor value along with the project ID string to support callers that need to distinguish
 // between identically named groups scoped to different projects.
