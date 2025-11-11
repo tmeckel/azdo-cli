@@ -16,12 +16,12 @@ import (
 )
 
 type opts struct {
-	rawTarget    string
-	namespaceID  string
-	token        string
-	permission   []string
-	yes          bool
-	exporter     util.Exporter
+	rawTarget   string
+	namespaceID string
+	token       string
+	permission  []string
+	yes         bool
+	exporter    util.Exporter
 }
 
 type permissionResult struct {
