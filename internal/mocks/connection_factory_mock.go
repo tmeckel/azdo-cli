@@ -25,6 +25,7 @@ import (
 	operations "github.com/microsoft/azure-devops-go-api/azuredevops/v7/operations"
 	security "github.com/microsoft/azure-devops-go-api/azuredevops/v7/security"
 	serviceendpoint "github.com/microsoft/azure-devops-go-api/azuredevops/v7/serviceendpoint"
+	workitemtracking "github.com/microsoft/azure-devops-go-api/azuredevops/v7/workitemtracking"
 	azdo "github.com/tmeckel/azdo-cli/internal/azdo"
 	extensions "github.com/tmeckel/azdo-cli/internal/azdo/extensions"
 	gomock "go.uber.org/mock/gomock"
@@ -432,4 +433,19 @@ func (m *MockClientFactory) ServiceEndpoint(ctx context.Context, organization st
 func (mr *MockClientFactoryMockRecorder) ServiceEndpoint(ctx, organization any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ServiceEndpoint", reflect.TypeOf((*MockClientFactory)(nil).ServiceEndpoint), ctx, organization)
+}
+
+// WorkItemTracking mocks base method.
+func (m *MockClientFactory) WorkItemTracking(ctx context.Context, organization string) (workitemtracking.Client, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "WorkItemTracking", ctx, organization)
+	ret0, _ := ret[0].(workitemtracking.Client)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// WorkItemTracking indicates an expected call of WorkItemTracking.
+func (mr *MockClientFactoryMockRecorder) WorkItemTracking(ctx, organization any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "WorkItemTracking", reflect.TypeOf((*MockClientFactory)(nil).WorkItemTracking), ctx, organization)
 }
