@@ -150,6 +150,7 @@ github.com/microsoft/azure-devops-go-api/azuredevops/v7/security
 github.com/microsoft/azure-devops-go-api/azuredevops/v7/serviceendpoint
 github.com/microsoft/azure-devops-go-api/azuredevops/v7/system
 github.com/microsoft/azure-devops-go-api/azuredevops/v7/webapi
+github.com/microsoft/azure-devops-go-api/azuredevops/v7/workitemtracking
 # github.com/muesli/reflow v0.3.0
 ## explicit; go 1.13
 github.com/muesli/reflow/ansi
