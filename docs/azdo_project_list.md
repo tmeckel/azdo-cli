@@ -34,7 +34,7 @@ azdo project list [organization] [flags]
 azdo project list
 
 # list the projects for an Azure DevOps organization including closed projects
-azdo project list --organization myorg --closed
+azdo project list myorg
 ```
 
 ### See also
