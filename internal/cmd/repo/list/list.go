@@ -44,17 +44,13 @@ func NewCmdRepoList(ctx util.CmdContext) *cobra.Command {
 				return util.FlagErrorf("invalid limit: %v", opts.limit)
 			}
 
-			n := strings.Split(args[0], "/")
-			switch len(n) {
-			case 1:
-				opts.project = n[0]
-			case 2:
-				opts.organizationName = n[0]
-				opts.project = n[1]
-			default:
-				return util.FlagErrorf("invalid project name %q", args[0])
+			scope, err := util.ParseProjectScope(ctx, args[0])
+			if err != nil {
+				return util.FlagErrorf("invalid project scope: %w", err)
 			}
 
+			opts.organizationName = scope.Organization
+			opts.project = scope.Project
 			return runList(ctx, opts)
 		},
 	}
@@ -76,26 +72,15 @@ func runList(ctx util.CmdContext, opts *listOptions) (err error) {
 	iostreams.StartProgressIndicator()
 	defer iostreams.StopProgressIndicator()
 
-	cfg, err := ctx.Config()
-	if err != nil {
-		return util.FlagErrorf("error getting io configuration: %w", err)
-	}
-
-	var organizationName string
-	if opts.organizationName != "" {
-		organizationName = opts.organizationName
-	} else {
-		organizationName, _ = cfg.Authentication().GetDefaultOrganization()
-	}
-	if organizationName == "" {
+	if opts.organizationName == "" {
 		return util.FlagErrorf("no organization specified or no default organization set")
 	}
-	_, err = ctx.ConnectionFactory().Connection(organizationName)
+	_, err = ctx.ConnectionFactory().Connection(opts.organizationName)
 	if err != nil {
 		return err
 	}
 
-	repoClient, err := ctx.ClientFactory().Git(ctx.Context(), organizationName)
+	repoClient, err := ctx.ClientFactory().Git(ctx.Context(), opts.organizationName)
 	if err != nil {
 		return err
 	}
@@ -109,7 +94,7 @@ func runList(ctx util.CmdContext, opts *listOptions) (err error) {
 	}
 
 	if res == nil || len(*res) == 0 {
-		return util.NewNoResultsError(fmt.Sprintf("No repositories found for project %s and organization %s", opts.project, organizationName))
+		return util.NewNoResultsError(fmt.Sprintf("No repositories found for project %s and organization %s", opts.project, opts.organizationName))
 	}
 
 	tp, err := ctx.Printer(opts.format)
