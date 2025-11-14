@@ -8,8 +8,10 @@ import (
 	"github.com/MakeNowJust/heredoc"
 	"github.com/microsoft/azure-devops-go-api/azuredevops/v7/core"
 	"github.com/spf13/cobra"
+	"github.com/tmeckel/azdo-cli/internal/azdo"
 	"github.com/tmeckel/azdo-cli/internal/cmd/util"
 	"github.com/tmeckel/azdo-cli/internal/printer"
+	"github.com/tmeckel/azdo-cli/internal/types"
 )
 
 type listOptions struct {
@@ -30,7 +32,7 @@ func NewCmdProjectList(ctx util.CmdContext) *cobra.Command {
 			azdo project list
 
 			# list the projects for an Azure DevOps organization including closed projects
-			azdo project list --organization myorg --closed
+			azdo project list myorg
 		`),
 		Args: cobra.MaximumNArgs(1),
 		Aliases: []string{
@@ -38,9 +40,11 @@ func NewCmdProjectList(ctx util.CmdContext) *cobra.Command {
 			"l",
 		},
 		RunE: func(cmd *cobra.Command, args []string) error {
-			if len(args) > 0 {
-				opts.organizationName = args[0]
+			org, err := util.ParseOrganizationArg(ctx, types.GetValueOrDefault(args, 0, ""))
+			if err != nil {
+				return util.FlagErrorf("invalid organization scope: %w", err)
 			}
+			opts.organizationName = org
 			return runList(ctx, opts)
 		},
 	}
@@ -70,22 +74,11 @@ func runList(ctx util.CmdContext, opts *listOptions) (err error) {
 	iostreams.StartProgressIndicator()
 	defer iostreams.StopProgressIndicator()
 
-	cfg, err := ctx.Config()
-	if err != nil {
-		return util.FlagErrorf("error getting io configuration: %w", err)
-	}
-
-	var organizationName string
-	if opts.organizationName != "" {
-		organizationName = opts.organizationName
-	} else {
-		organizationName, _ = cfg.Authentication().GetDefaultOrganization()
-	}
-	if organizationName == "" {
+	if opts.organizationName == "" {
 		return util.FlagErrorf("no organization specified")
 	}
 
-	orgClient, err := ctx.ClientFactory().Core(ctx.Context(), organizationName)
+	coreClient, err := ctx.ClientFactory().Core(ctx.Context(), opts.organizationName)
 	if err != nil {
 		return err
 	}
@@ -95,12 +88,12 @@ func runList(ctx util.CmdContext, opts *listOptions) (err error) {
 		state := core.ProjectState(opts.state)
 		args.StateFilter = &state
 	}
-	res, err := orgClient.GetProjects(ctx.Context(), args)
+	res, err := azdo.GetProjects(ctx.Context(), coreClient, args)
 	if err != nil {
 		return err
 	}
-	if len(res.Value) == 0 {
-		return util.NewNoResultsError(fmt.Sprintf("No projects found for organization %s", organizationName))
+	if len(res) == 0 {
+		return util.NewNoResultsError(fmt.Sprintf("No projects found for organization %s", opts.organizationName))
 	}
 
 	tp, err := ctx.Printer(opts.format)
@@ -108,14 +101,14 @@ func runList(ctx util.CmdContext, opts *listOptions) (err error) {
 		return err
 	}
 
-	sort.Slice(res.Value, func(i, j int) bool {
-		return strings.ToLower(*(res.Value[i].Name)) < strings.ToLower(*(res.Value[j].Name))
+	sort.Slice(res, func(i, j int) bool {
+		return strings.ToLower(*(res[i].Name)) < strings.ToLower(*(res[j].Name))
 	})
 
 	iostreams.StopProgressIndicator()
 
 	tp.AddColumns("ID", "Name", "State")
-	for _, p := range res.Value {
+	for _, p := range res {
 		tp.AddField(p.Id.String(), printer.WithTruncate(nil))
 		tp.AddField(*p.Name)
 		tp.AddField(string(*p.State))
