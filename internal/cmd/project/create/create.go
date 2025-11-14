@@ -101,9 +101,9 @@ func NewCmd(ctx util.CmdContext) *cobra.Command {
 }
 
 func runCommand(ctx util.CmdContext, o *opts) error {
-	prj, err := azdo.ProjectFromName(o.project)
+	scope, err := util.ParseProjectScope(ctx, o.project)
 	if err != nil {
-		return err
+		return util.FlagErrorWrap(err)
 	}
 
 	ios, err := ctx.IOStreams()
@@ -114,13 +114,13 @@ func runCommand(ctx util.CmdContext, o *opts) error {
 	ios.StartProgressIndicator()
 	defer ios.StopProgressIndicator()
 
-	coreClient, err := ctx.ClientFactory().Core(ctx.Context(), prj.Organization())
+	coreClient, err := ctx.ClientFactory().Core(ctx.Context(), scope.Organization)
 	if err != nil {
 		return err
 	}
 
 	teamProject := &core.TeamProject{
-		Name: types.ToPtr(prj.Project()),
+		Name: types.ToPtr(scope.Project),
 	}
 
 	if o.description != "" {
@@ -207,7 +207,7 @@ func runCommand(ctx util.CmdContext, o *opts) error {
 		return tp.Render()
 	}
 
-	operationsClient, err := ctx.ClientFactory().Operations(ctx.Context(), prj.Organization())
+	operationsClient, err := ctx.ClientFactory().Operations(ctx.Context(), scope.Organization)
 	if err != nil {
 		return err
 	}
@@ -221,7 +221,7 @@ func runCommand(ctx util.CmdContext, o *opts) error {
 	ios.StopProgressIndicator()
 
 	project, err := coreClient.GetProject(ctx.Context(), core.GetProjectArgs{
-		ProjectId:           types.ToPtr(prj.Project()),
+		ProjectId:           types.ToPtr(scope.Project),
 		IncludeCapabilities: types.ToPtr(true),
 	})
 	if err != nil {
