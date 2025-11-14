@@ -166,5 +166,7 @@ func TranslateRemotes(gitRemotes git.RemoteSet, translator Translator) (remotes 
 	if len(remotes) > 0 {
 		return remotes, nil
 	}
-	return remotes, errors.Join(types.UniqueErrors(errs)...)
+	return remotes, errors.Join(types.UniqueFunc(errs, func(e1 error, e2 error) bool {
+		return e1.Error() == e2.Error()
+	})...)
 }
