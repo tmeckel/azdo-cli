@@ -74,15 +74,10 @@ func runCommand(ctx util.CmdContext, o *opts) error {
 	ios.StartProgressIndicator()
 	defer ios.StopProgressIndicator()
 
-	scope, err := util.ParseScope(ctx, o.target)
+	organization, err := util.ParseOrganizationArg(ctx, o.target)
 	if err != nil {
-		return err
+		return util.FlagErrorWrap(err)
 	}
-	if scope.Project != "" {
-		return util.FlagErrorf("project scope is not supported for this command")
-	}
-
-	organization := scope.Organization
 	zap.L().Sugar().Debugf("Listing security namespaces for organization %q (localOnly=%v)", organization, o.localOnly)
 
 	securityClient, err := ctx.ClientFactory().Security(ctx.Context(), organization)
