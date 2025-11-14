@@ -3,12 +3,9 @@ package list
 import (
 	"fmt"
 	"sort"
-	"strconv"
 	"strings"
 
 	"github.com/MakeNowJust/heredoc"
-	"github.com/google/uuid"
-	"github.com/microsoft/azure-devops-go-api/azuredevops/v7/core"
 	"github.com/microsoft/azure-devops-go-api/azuredevops/v7/graph"
 	"github.com/spf13/cobra"
 	"github.com/tmeckel/azdo-cli/internal/cmd/util"
@@ -89,83 +86,39 @@ func runCmd(ctx util.CmdContext, opts *usersListOptions) error {
 	io.StartProgressIndicator()
 	defer io.StopProgressIndicator()
 
-	cfg, err := ctx.Config()
-	if err != nil {
-		return err
-	}
-
-	var organizationName string
-	if opts.organizationName != "" {
-		organizationName = opts.organizationName
-	} else {
-		organizationName, err = cfg.Authentication().GetDefaultOrganization()
-		if err != nil {
-			return err
+	var scope *util.Scope
+	switch {
+	case opts.projectName != "" && opts.organizationName != "":
+		scope, err = util.ParseProjectScope(ctx, fmt.Sprintf("%s/%s", opts.organizationName, opts.projectName))
+	case opts.projectName != "":
+		scope, err = util.ParseProjectScope(ctx, opts.projectName)
+	default:
+		org, parseErr := util.ParseOrganizationArg(ctx, opts.organizationName)
+		if parseErr != nil {
+			return parseErr
 		}
+		scope = &util.Scope{Organization: org}
 	}
-	if organizationName == "" {
-		return util.FlagErrorf("no organization specified")
+	if err != nil {
+		return util.FlagErrorWrap(err)
 	}
 
 	clientFactory := ctx.ClientFactory()
-	client, err := clientFactory.Graph(ctx.Context(), organizationName)
+	client, err := clientFactory.Graph(ctx.Context(), scope.Organization)
 	if err != nil {
 		return err
 	}
 
 	// If a project name is provided, look up its ID, then resolve scopeDescriptor via Graph.Descriptors
 	var scopeDescriptor string
-	var cont *string
-	if opts.projectName != "" {
-		coreClient, err := clientFactory.Core(ctx.Context(), organizationName)
+	if scope.Project != "" {
+		descriptor, _, err := util.ResolveScopeDescriptor(ctx, scope.Organization, scope.Project)
 		if err != nil {
 			return err
 		}
-
-		found := false
-		var pid uuid.UUID
-		for !found {
-			args := core.GetProjectsArgs{}
-			if cont != nil {
-				n, err := strconv.Atoi(*cont)
-				if err != nil {
-					return fmt.Errorf("failed to parse continuation token %q to list projects: %w", *cont, err)
-				}
-				args.ContinuationToken = &n
-			}
-			res, err := coreClient.GetProjects(ctx.Context(), args)
-			if err != nil {
-				return err
-			}
-			if res == nil || res.Value == nil || len(res.Value) == 0 {
-				break
-			}
-			for _, p := range res.Value {
-				if p.Name != nil && strings.EqualFold(*p.Name, opts.projectName) {
-					pid = *p.Id
-					found = true
-					break
-				}
-			}
-			// Determine next continuation token
-			if res.ContinuationToken == "" {
-				break
-			}
-			cont = &res.ContinuationToken
+		if descriptor != nil {
+			scopeDescriptor = *descriptor
 		}
-		if !found {
-			return fmt.Errorf("project %q not found in organization %q", opts.projectName, organizationName)
-		}
-
-		// Resolve descriptor
-		desc, err := client.GetDescriptor(ctx.Context(), graph.GetDescriptorArgs{StorageKey: &pid})
-		if err != nil {
-			return fmt.Errorf("failed to resolve project scope descriptor: %w", err)
-		}
-		if desc == nil || desc.Value == nil || *desc.Value == "" {
-			return fmt.Errorf("no scope descriptor for project %q", opts.projectName)
-		}
-		scopeDescriptor = *desc.Value
 	}
 
 	// Build subject types
@@ -199,7 +152,7 @@ func runCmd(ctx util.CmdContext, opts *usersListOptions) error {
 			}
 		}
 	} else {
-		cont = nil
+		cont := types.ToPtr("")
 		for len(users) < opts.top {
 			res, err := client.ListUsers(ctx.Context(), graph.ListUsersArgs{
 				SubjectTypes:      &opts.subjectTypes,
