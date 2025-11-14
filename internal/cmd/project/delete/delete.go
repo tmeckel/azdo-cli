@@ -65,14 +65,14 @@ func runDelete(ctx util.CmdContext, opts *deleteOptions) error {
 		return err
 	}
 
-	r, err := azdo.ProjectFromName(opts.project)
+	scope, err := util.ParseProjectScope(ctx, opts.project)
 	if err != nil {
-		return err
+		return util.FlagErrorWrap(err)
 	}
 
 	// Confirm
 	if !opts.yes {
-		confirmed, err := p.Confirm(fmt.Sprintf("Delete project %s?", cs.Bold(r.FullName())), false)
+		confirmed, err := p.Confirm(fmt.Sprintf("Delete project %s?", cs.Bold(fmt.Sprintf("%s/%s", scope.Organization, scope.Project))), false)
 		if err != nil {
 			return err
 		}
@@ -85,13 +85,13 @@ func runDelete(ctx util.CmdContext, opts *deleteOptions) error {
 	defer ios.StopProgressIndicator()
 
 	// Get project details to resolve name to ID
-	coreClient, err := ctx.ClientFactory().Core(ctx.Context(), r.Organization())
+	coreClient, err := ctx.ClientFactory().Core(ctx.Context(), scope.Organization)
 	if err != nil {
 		return err
 	}
 
 	projectDetails, err := coreClient.GetProject(ctx.Context(), core.GetProjectArgs{
-		ProjectId: types.ToPtr(r.Project()),
+		ProjectId: types.ToPtr(scope.Project),
 	})
 	if err != nil {
 		return err
@@ -122,13 +122,13 @@ func runDelete(ctx util.CmdContext, opts *deleteOptions) error {
 		}
 
 		// Plain output
-		fmt.Fprintf(ios.Out, "%s Project %s deletion queued. Operation ID: %s\n", cs.SuccessIcon(), cs.Bold(r.FullName()), op.Id.String())
+		fmt.Fprintf(ios.Out, "%s Project %s deletion queued. Operation ID: %s\n", cs.SuccessIcon(), cs.Bold(fmt.Sprintf("%s/%s", scope.Organization, scope.Project)), op.Id.String())
 
 		return nil
 	}
 
 	// Wait for completion
-	operationsClient, err := ctx.ClientFactory().Operations(ctx.Context(), r.Organization())
+	operationsClient, err := ctx.ClientFactory().Operations(ctx.Context(), scope.Organization)
 	if err != nil {
 		return err
 	}
@@ -155,7 +155,7 @@ func runDelete(ctx util.CmdContext, opts *deleteOptions) error {
 	}
 
 	// Plain output
-	fmt.Fprintf(ios.Out, "%s Project %s deleted successfully.\n", cs.SuccessIcon(), cs.Bold(r.FullName()))
+	fmt.Fprintf(ios.Out, "%s Project %s deleted successfully.\n", cs.SuccessIcon(), cs.Bold(fmt.Sprintf("%s/%s", scope.Organization, scope.Project)))
 
 	return nil
 }
