@@ -159,40 +159,34 @@ func lookupGraphSubject(ctx context.Context, client graph.Client, descriptor str
 	return nil, nil
 }
 
+/**
+ * The Identities REST API allows filtering a serach request by the following string values.
+ * The values can be concatenated by using a CSV list
+ *
+ * - "AccountName"
+ * - "DisplayName"
+ * - "AdministratorsGroup"
+ * - "Identifier"
+ * - "MailAddress"
+ * - "General"
+ * - "Alias"
+ * - "DirectoryAlias"
+ * - "TeamGroupName"
+ * - "LocalGroupName"
+ */
 func determineIdentitySearchFilters(member string) []string {
-	member = strings.TrimSpace(member)
-	memberLower := strings.ToLower(member)
-
 	var filters []string
-	if strings.Contains(member, " ") || strings.Contains(member, "@") {
-		filters = append(filters, "General", "DirectoryAlias")
-	} else {
-		filters = append(filters, "DirectoryAlias", "General")
+	if strings.Contains(member, "@") {
+		filters = append(filters, "MailAddress", "AccountName")
 	}
-	filters = append(filters, "MailAddress")
 	if strings.Contains(member, "\\") {
 		filters = append(filters, "AccountName")
 	}
-
-	seen := make(map[string]struct{}, len(filters))
-	result := make([]string, 0, len(filters))
-	for _, f := range filters {
-		fl := strings.ToLower(f)
-		if _, ok := seen[fl]; ok {
-			continue
-		}
-		seen[fl] = struct{}{}
-		result = append(result, f)
+	if len(filters) == 0 {
+		filters = append(filters, "General", "AccountName", "DirectoryAlias", "LocalGroupName")
 	}
 
-	if !strings.Contains(memberLower, "@") && !strings.Contains(memberLower, "\\") {
-		if _, ok := seen["localgroupname"]; !ok {
-			seen["localgroupname"] = struct{}{}
-			result = append(result, "LocalGroupName")
-		}
-	}
-
-	return result
+	return types.UniqueComparable(filters, strings.ToLower)
 }
 
 func memberSubjectKind(identity identity.Identity) string {
