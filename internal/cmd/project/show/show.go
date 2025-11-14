@@ -6,7 +6,6 @@ import (
 	"github.com/MakeNowJust/heredoc"
 	"github.com/microsoft/azure-devops-go-api/azuredevops/v7/core"
 	"github.com/spf13/cobra"
-	"github.com/tmeckel/azdo-cli/internal/azdo"
 	"github.com/tmeckel/azdo-cli/internal/cmd/util"
 	"github.com/tmeckel/azdo-cli/internal/types"
 )
@@ -64,9 +63,9 @@ func NewCmd(ctx util.CmdContext) *cobra.Command {
 }
 
 func runCommand(ctx util.CmdContext, o *opts) error {
-	prj, err := azdo.ProjectFromName(o.project)
+	scope, err := util.ParseProjectScope(ctx, o.project)
 	if err != nil {
-		return err
+		return util.FlagErrorWrap(err)
 	}
 
 	ios, err := ctx.IOStreams()
@@ -77,13 +76,13 @@ func runCommand(ctx util.CmdContext, o *opts) error {
 	ios.StartProgressIndicator()
 	defer ios.StopProgressIndicator()
 
-	coreClient, err := ctx.ClientFactory().Core(ctx.Context(), prj.Organization())
+	coreClient, err := ctx.ClientFactory().Core(ctx.Context(), scope.Organization)
 	if err != nil {
 		return err
 	}
 
 	project, err := coreClient.GetProject(ctx.Context(), core.GetProjectArgs{
-		ProjectId:           types.ToPtr(prj.Project()),
+		ProjectId:           types.ToPtr(scope.Project),
 		IncludeCapabilities: types.ToPtr(true),
 	})
 	if err != nil {
