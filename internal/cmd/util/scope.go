@@ -59,6 +59,19 @@ func ParseScope(ctx CmdContext, scope string) (*Scope, error) {
 	return result, nil
 }
 
+// ParseOrganizationArg resolves the organization from an input argument of the form "[ORGANIZATION]".
+// When the input is empty, the default organization from the user configuration is returned.
+func ParseOrganizationArg(ctx CmdContext, arg string) (string, error) {
+	scope, err := ParseScope(ctx, arg)
+	if err != nil {
+		return "", err
+	}
+	if scope.Project != "" {
+		return "", FlagErrorf("project scope not allowed for this command")
+	}
+	return scope.Organization, nil
+}
+
 // ParseProjectScope parses arguments in the form [ORGANIZATION/]PROJECT. When the organization
 // segment is omitted the default organization from the user's configuration is used. The function
 // trims whitespace around individual segments and ensures the resulting values are non-empty.
