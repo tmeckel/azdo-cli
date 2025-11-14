@@ -138,12 +138,12 @@ func runList(ctx util.CmdContext, opts *listOptions) error {
 		}
 	}()
 
-	org, project, err := resolveScope(ctx, opts.scopeArg)
+	scope, err := util.ParseProjectScope(ctx, opts.scopeArg)
 	if err != nil {
-		return err
+		return util.FlagErrorWrap(err)
 	}
-	opts.organization = org
-	opts.project = project
+	opts.organization = scope.Organization
+	opts.project = scope.Project
 
 	authSchemes := normalizeSlice(opts.authSchemes)
 	names := normalizeSlice(opts.nameFilters)
@@ -416,35 +416,6 @@ func parseUUIDs(raw []string) ([]uuid.UUID, error) {
 		out = append(out, parsed)
 	}
 	return out, nil
-}
-
-func resolveScope(ctx util.CmdContext, arg string) (string, string, error) {
-	parts := strings.Split(strings.TrimSpace(arg), "/")
-	switch len(parts) {
-	case 1:
-		project := strings.TrimSpace(parts[0])
-		if project == "" {
-			return "", "", util.FlagErrorf("project cannot be empty")
-		}
-		cfg, err := ctx.Config()
-		if err != nil {
-			return "", "", fmt.Errorf("failed to read configuration: %w", err)
-		}
-		org, err := cfg.Authentication().GetDefaultOrganization()
-		if err != nil || strings.TrimSpace(org) == "" {
-			return "", "", util.FlagErrorf("no organization specified and no default organization configured")
-		}
-		return strings.TrimSpace(org), project, nil
-	case 2:
-		org := strings.TrimSpace(parts[0])
-		project := strings.TrimSpace(parts[1])
-		if org == "" || project == "" {
-			return "", "", util.FlagErrorf("invalid project argument %q; expected format ORGANIZATION/PROJECT", arg)
-		}
-		return org, project, nil
-	default:
-		return "", "", util.FlagErrorf("invalid project argument %q; expected format ORGANIZATION/PROJECT", arg)
-	}
 }
 
 func intersectByID(endpoints []serviceendpoint.ServiceEndpoint, ids []uuid.UUID) []serviceendpoint.ServiceEndpoint {
