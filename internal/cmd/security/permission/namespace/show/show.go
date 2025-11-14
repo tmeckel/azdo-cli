@@ -194,11 +194,11 @@ func parseNamespaceTarget(ctx util.CmdContext, input string) (*util.Scope, strin
 		return scope, strings.TrimSpace(parts[1]), nil
 	}
 
-	scope, err := util.ParseScope(ctx, "")
+	organization, err := util.ParseOrganizationArg(ctx, "")
 	if err != nil {
 		return nil, "", err
 	}
-	return scope, trimmed, nil
+	return &util.Scope{Organization: organization}, trimmed, nil
 }
 
 func namespaceMatches(ns security.SecurityNamespaceDescription, identifier string) bool {
