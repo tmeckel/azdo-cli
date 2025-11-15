@@ -16,6 +16,8 @@ import (
 	uuid "github.com/google/uuid"
 	graph "github.com/microsoft/azure-devops-go-api/azuredevops/v7/graph"
 	identity "github.com/microsoft/azure-devops-go-api/azuredevops/v7/identity"
+	taskagent "github.com/microsoft/azure-devops-go-api/azuredevops/v7/taskagent"
+	extensions "github.com/tmeckel/azdo-cli/internal/azdo/extensions"
 	gomock "go.uber.org/mock/gomock"
 )
 
@@ -86,6 +88,21 @@ func (m *MockAzDOExtension) GetSubjectID(ctx context.Context, subject string) (u
 func (mr *MockAzDOExtensionMockRecorder) GetSubjectID(ctx, subject any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetSubjectID", reflect.TypeOf((*MockAzDOExtension)(nil).GetSubjectID), ctx, subject)
+}
+
+// GetVariableGroups mocks base method.
+func (m *MockAzDOExtension) GetVariableGroups(ctx context.Context, args taskagent.GetVariableGroupsArgs) (*extensions.VariableGroupsResponse, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetVariableGroups", ctx, args)
+	ret0, _ := ret[0].(*extensions.VariableGroupsResponse)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetVariableGroups indicates an expected call of GetVariableGroups.
+func (mr *MockAzDOExtensionMockRecorder) GetVariableGroups(ctx, args any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetVariableGroups", reflect.TypeOf((*MockAzDOExtension)(nil).GetVariableGroups), ctx, args)
 }
 
 // ResolveIdentity mocks base method.

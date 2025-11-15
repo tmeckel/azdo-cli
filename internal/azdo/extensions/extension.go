@@ -11,6 +11,7 @@ import (
 	"github.com/microsoft/azure-devops-go-api/azuredevops/v7"
 	"github.com/microsoft/azure-devops-go-api/azuredevops/v7/graph"
 	"github.com/microsoft/azure-devops-go-api/azuredevops/v7/identity"
+	"github.com/microsoft/azure-devops-go-api/azuredevops/v7/taskagent"
 	"github.com/tmeckel/azdo-cli/internal/types"
 )
 
@@ -20,6 +21,8 @@ type Client interface {
 	GetSelfID(ctx context.Context) (uuid.UUID, error)
 	// GetSubjectID resolves the storage key (UUID) for a given subject (user) name within the organization.
 	GetSubjectID(ctx context.Context, subject string) (uuid.UUID, error)
+	// GetVariableGroups fetches variable groups using the raw REST API, returning the continuation token with the response.
+	GetVariableGroups(ctx context.Context, args taskagent.GetVariableGroupsArgs) (*VariableGroupsResponse, error)
 	// FindGroupsByDisplayName locates Azure DevOps security groups that match the provided display name,
 	// optionally scoped to a project descriptor, and returns their full details.
 	FindGroupsByDisplayName(ctx context.Context, displayName string, scopeDescriptor *string) ([]*graph.GraphGroup, error)
