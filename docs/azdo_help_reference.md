@@ -190,6 +190,46 @@ Aliases
 ls
 ```
 
+## `azdo pipelines`
+
+Manage Azure DevOps pipelines
+
+Aliases
+
+```
+p
+```
+
+### `azdo pipelines variable-groups`
+
+Manage Azure DevOps variable groups
+
+Aliases
+
+```
+variable-groups, variablegroups, vg
+```
+
+#### `azdo pipelines variable-groups list [ORGANIZATION/]PROJECT [flags]`
+
+List variable groups
+
+```
+    --action string     Action filter string (e.g., 'manage', 'use'): {none|manage|use}
+-q, --jq expression     Filter JSON output using a jq expression
+    --json fields[=*]   Output JSON with the specified fields. Prefix a field with '-' to exclude it.
+    --max-items int     Optional client-side cap on results; stop fetching once reached
+    --order string      Order of variable groups (asc, desc): {desc|asc} (default "desc")
+-t, --template string   Format JSON output using a Go template; see "azdo help formatting"
+    --top int           Server-side page size hint (positive integer)
+```
+
+Aliases
+
+```
+ls, l
+```
+
 ## `azdo pr <command> [flags]`
 
 Manage pull requests
