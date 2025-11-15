@@ -23,6 +23,7 @@ Work seamlessly with Azure DevOps from the command line.
 ### Additional commands
 
 * [azdo config](./azdo_config.md)
+* [azdo pipelines](./azdo_pipelines.md)
 
 ### Options
 
