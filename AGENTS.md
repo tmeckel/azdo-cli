@@ -78,12 +78,13 @@ Do not hand-roll HTTP calls if an SDK client can be introduced through this proc
 ### Implementing Commands with JSON and Table/Plain Output
 
 - **JSON and Table/Plain output are handled via separate code paths.**
-- Use `util.AddJSONFlags(cmd, &opts.exporter, ...)` in `NewCmd` to register JSON-related flags (`--json`, `--jq`, `--template`). This populates the `opts.exporter` field when a user specifies one of those flags.
+- Use `util.AddJSONFlags(cmd, &opts.exporter, ...)` in `NewCmd` to register JSON-related flags (`--json`, `--jq`, `--template`). This populates the `opts.exporter` field when a user specifies one of those flags. The string slice you pass **must** list every JSON field you expose (matching the struct tag names) so users can filter output predictably.
 
 - **JSON Output Logic:**
   - In the command's `run...` function, check if `opts.exporter != nil`.
   - If true, this indicates the user wants JSON output.
-  - Create and populate a struct (either named or anonymous) with the data to be exported. This struct should have `json:"..."` tags.
+  - Define a dedicated view struct (or slice of structs) that represents the JSON surface you intend to support. Field names must match the strings you register with `util.AddJSONFlags` and every optional field should use a pointer type with `json:"...,omitempty"` so unset values disappear from the payload.
+  - Populate that view struct from the SDK model (write small helper functions when mapping requires normalization—e.g., formatting `azuredevops.Time`, collapsing identities, adding derived counts). Avoid returning the raw SDK types directly; surface only the columns you are committed to supporting.
   - Call `opts.exporter.Write(ios, result)` to serialize the struct and print it.
 
 - **Table/Plain Output Logic:**
@@ -176,12 +177,12 @@ Do not hand-roll HTTP calls if an SDK client can be introduced through this proc
 ### Implementing Commands with JSON and Table/Plain Output
 
 - **JSON and Table/Plain output are handled via separate code paths.**
-- Use `util.AddJSONFlags(cmd, &opts.exporter, ...)` in `NewCmd` to register JSON-related flags (`--json`, `--jq`, `--template`). This populates the `opts.exporter` field when a user specifies one of those flags.
+- Use `util.AddJSONFlags(cmd, &opts.exporter, ...)` in `NewCmd` to register JSON-related flags (`--json`, `--jq`, `--template`). This populates the `opts.exporter` field when a user specifies one of those flags, and the provided slice must enumerate every JSON field (matching the struct tags) that the command supports so consumers can filter reliably.
 
 - **JSON Output Logic:**
   - In the command's `run...` function, check if `opts.exporter != nil`.
   - If true, this indicates the user wants JSON output.
-  - Create and populate a struct (either named or anonymous) with the data to be exported. This struct should have `json:"..."` tags. If there are optional fields in the struct use a pointer type and add `omitempty` to the JSON tag.
+  - Define a dedicated view struct (or slice of structs) with explicit `json:"..."` tags and register the matching field names with `util.AddJSONFlags`. Use pointer types plus `omitempty` for optional fields so unset data is omitted, and map values from the SDK into this view (formatting times, flattening identities, computing derived helpers). Do not expose raw SDK structs in the JSON response.
   - Call `opts.exporter.Write(ios, result)` to serialize the struct and print it.
 
 - **Table/Plain Output Logic:**
