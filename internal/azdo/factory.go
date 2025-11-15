@@ -11,6 +11,7 @@ import (
 	"github.com/microsoft/azure-devops-go-api/azuredevops/v7/operations"
 	"github.com/microsoft/azure-devops-go-api/azuredevops/v7/security"
 	"github.com/microsoft/azure-devops-go-api/azuredevops/v7/serviceendpoint"
+	"github.com/microsoft/azure-devops-go-api/azuredevops/v7/taskagent"
 	"github.com/microsoft/azure-devops-go-api/azuredevops/v7/workitemtracking"
 	"github.com/tmeckel/azdo-cli/internal/azdo/extensions"
 	"github.com/tmeckel/azdo-cli/internal/config"
@@ -23,9 +24,10 @@ type connectionFactory struct {
 
 func NewConnectionFactory(cfg config.Config, auth Authenticator) (ConnectionFactory, error) {
 	return &connectionFactory{
-		cfg:  cfg,
-		auth: auth,
-	}, nil
+			cfg:  cfg,
+			auth: auth,
+		},
+		nil
 }
 
 func (c *connectionFactory) Connection(organization string) (client Connection, err error) {
@@ -49,8 +51,9 @@ type clientFactory struct {
 
 func NewClientFactory(factory ConnectionFactory) (ClientFactory, error) {
 	return &clientFactory{
-		factory: factory,
-	}, nil
+			factory: factory,
+		},
+		nil
 }
 
 func (c *clientFactory) Git(ctx context.Context, org string) (git.Client, error) {
@@ -107,6 +110,14 @@ func (c *clientFactory) Security(ctx context.Context, org string) (security.Clie
 		return nil, err
 	}
 	return security.NewClient(ctx, conn.(*connectionAdapter).conn), nil
+}
+
+func (c *clientFactory) TaskAgent(ctx context.Context, org string) (taskagent.Client, error) {
+	conn, err := c.factory.Connection(org)
+	if err != nil {
+		return nil, err
+	}
+	return taskagent.NewClient(ctx, conn.(*connectionAdapter).conn)
 }
 
 func (c *clientFactory) Extensions(ctx context.Context, org string) (extensions.Client, error) {
