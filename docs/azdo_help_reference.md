@@ -230,6 +230,26 @@ Aliases
 ls, l
 ```
 
+#### `azdo pipelines variable-groups variable`
+
+Manage variables in a variable group
+
+Aliases
+
+```
+var
+```
+
+##### `azdo pipelines variable-groups variable list [ORGANIZATION/]PROJECT/VARIABLEGROUP [flags]`
+
+List variables in a variable group
+
+```
+-q, --jq expression     Filter JSON output using a jq expression
+    --json fields[=*]   Output JSON with the specified fields. Prefix a field with '-' to exclude it.
+-t, --template string   Format JSON output using a Go template; see "azdo help formatting"
+```
+
 ## `azdo pr <command> [flags]`
 
 Manage pull requests
@@ -362,17 +382,6 @@ Reopen a pull request
 
 ```
 -c, --comment string   Add a reopening comment
-```
-
-### `azdo pr status [flags]`
-
-Show status of relevant pull requests
-
-```
--c, --conflict-status   Display the merge conflict status of each pull request
--q, --jq expression     Filter JSON output using a jq expression
-    --json fields[=*]   Output JSON with the specified fields. Prefix a field with '-' to exclude it.
--t, --template string   Format JSON output using a Go template; see "azdo help formatting"
 ```
 
 ### `azdo pr view [<number> | <branch> | <url>] [flags]`
