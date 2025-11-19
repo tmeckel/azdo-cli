@@ -71,14 +71,14 @@ func runCommand(ctx util.CmdContext, o *opts) error {
 	ios.StartProgressIndicator()
 	defer ios.StopProgressIndicator()
 
-	target, err := shared.ParseTarget(o.target)
+	target, err := util.ParseTarget(o.target)
 	if err != nil {
 		return err
 	}
 
-	zap.L().Sugar().Debugw("Resolved target for show command", "organization", target.Organization, "project", target.Project, "group", target.GroupName)
+	zap.L().Sugar().Debugw("Resolved target for show command", "organization", target.Organization, "project", target.Project, "group", target.Target)
 
-	groupDetailsResult, err := shared.FindGroupByName(ctx, target.Organization, target.Project, target.GroupName, "")
+	groupDetailsResult, err := shared.FindGroupByName(ctx, target.Organization, target.Project, target.Target, "")
 	if err != nil {
 		return err
 	}

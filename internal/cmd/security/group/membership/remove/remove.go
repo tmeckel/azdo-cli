@@ -92,7 +92,7 @@ func runRemove(ctx util.CmdContext, o *opts) error {
 	ios.StartProgressIndicator()
 	defer ios.StopProgressIndicator()
 
-	target, err := shared.ParseTargetWithDefault(ctx, o.scope)
+	target, err := util.ParseTargetWithDefaultOrganization(ctx, o.scope)
 	if err != nil {
 		return err
 	}
@@ -102,10 +102,10 @@ func runRemove(ctx util.CmdContext, o *opts) error {
 	zap.L().Debug("resolving group for membership removal",
 		zap.String("organization", organization),
 		zap.String("project", project),
-		zap.String("group", target.GroupName),
+		zap.String("group", target.Target),
 	)
 
-	group, err := shared.FindGroupByName(ctx, organization, project, target.GroupName, "")
+	group, err := shared.FindGroupByName(ctx, organization, project, target.Target, "")
 	if err != nil {
 		return err
 	}
@@ -206,9 +206,9 @@ func runRemove(ctx util.CmdContext, o *opts) error {
 					break
 				}
 			}
-			prompt = fmt.Sprintf("Remove %q from group %q?", name, target.GroupName)
+			prompt = fmt.Sprintf("Remove %q from group %q?", name, target.Target)
 		} else {
-			prompt = fmt.Sprintf("Remove %d members from group %q?", removable, target.GroupName)
+			prompt = fmt.Sprintf("Remove %d members from group %q?", removable, target.Target)
 		}
 
 		confirmed, err := p.Confirm(prompt, false)
@@ -262,7 +262,7 @@ func runRemove(ctx util.CmdContext, o *opts) error {
 
 		results = append(results, removeResult{
 			GroupDescriptor:     types.GetValue(group.Descriptor, ""),
-			GroupDisplayName:    types.GetValue(group.DisplayName, target.GroupName),
+			GroupDisplayName:    types.GetValue(group.DisplayName, target.Target),
 			MemberDescriptor:    c.descriptor,
 			MemberDisplayName:   c.displayName,
 			MemberSubjectKind:   types.GetValue(c.subject.SubjectKind, ""),

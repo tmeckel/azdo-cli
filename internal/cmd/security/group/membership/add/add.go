@@ -95,7 +95,7 @@ func runAdd(ctx util.CmdContext, o *opts) error {
 	ios.StartProgressIndicator()
 	defer ios.StopProgressIndicator()
 
-	target, err := shared.ParseTargetWithDefault(ctx, o.scope)
+	target, err := util.ParseTargetWithDefaultOrganization(ctx, o.scope)
 	if err != nil {
 		return err
 	}
@@ -105,10 +105,10 @@ func runAdd(ctx util.CmdContext, o *opts) error {
 	zap.L().Debug("resolving group for membership add",
 		zap.String("organization", organization),
 		zap.String("project", project),
-		zap.String("group", target.GroupName),
+		zap.String("group", target.Target),
 	)
 
-	group, err := shared.FindGroupByName(ctx, organization, project, target.GroupName, "")
+	group, err := shared.FindGroupByName(ctx, organization, project, target.Target, "")
 	if err != nil {
 		return err
 	}
@@ -156,7 +156,7 @@ func runAdd(ctx util.CmdContext, o *opts) error {
 		if err == nil {
 			results = append(results, addResult{
 				GroupDescriptor:     types.GetValue(group.Descriptor, ""),
-				GroupDisplayName:    types.GetValue(group.DisplayName, target.GroupName),
+				GroupDisplayName:    types.GetValue(group.DisplayName, target.Target),
 				MemberDescriptor:    memberDescriptor,
 				MemberDisplayName:   types.GetValue(memberSubject.DisplayName, ""),
 				MemberSubjectKind:   types.GetValue(memberSubject.SubjectKind, ""),
@@ -188,7 +188,7 @@ func runAdd(ctx util.CmdContext, o *opts) error {
 			if errors.As(err, &addErr) && addErr != nil && addErr.StatusCode != nil && *addErr.StatusCode == http.StatusConflict {
 				results = append(results, addResult{
 					GroupDescriptor:     types.GetValue(group.Descriptor, ""),
-					GroupDisplayName:    types.GetValue(group.DisplayName, target.GroupName),
+					GroupDisplayName:    types.GetValue(group.DisplayName, target.Target),
 					MemberDescriptor:    memberDescriptor,
 					MemberDisplayName:   types.GetValue(memberSubject.DisplayName, ""),
 					MemberSubjectKind:   types.GetValue(memberSubject.SubjectKind, ""),
@@ -204,7 +204,7 @@ func runAdd(ctx util.CmdContext, o *opts) error {
 
 		results = append(results, addResult{
 			GroupDescriptor:     types.GetValue(group.Descriptor, ""),
-			GroupDisplayName:    types.GetValue(group.DisplayName, target.GroupName),
+			GroupDisplayName:    types.GetValue(group.DisplayName, target.Target),
 			MemberDescriptor:    types.GetValue(membership.MemberDescriptor, memberDescriptor),
 			MemberDisplayName:   types.GetValue(memberSubject.DisplayName, ""),
 			MemberSubjectKind:   types.GetValue(memberSubject.SubjectKind, ""),

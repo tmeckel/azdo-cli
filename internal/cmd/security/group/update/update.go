@@ -81,7 +81,7 @@ func run(ctx util.CmdContext, o *opts) error {
 	ios.StartProgressIndicator()
 	defer ios.StopProgressIndicator()
 
-	target, err := shared.ParseTarget(o.target)
+	target, err := util.ParseTarget(o.target)
 	if err != nil {
 		return err
 	}
@@ -91,7 +91,7 @@ func run(ctx util.CmdContext, o *opts) error {
 		return err
 	}
 
-	group, err := shared.FindGroupByName(ctx, target.Organization, target.Project, target.GroupName, o.descriptor)
+	group, err := shared.FindGroupByName(ctx, target.Organization, target.Project, target.Target, o.descriptor)
 	if err != nil {
 		return err
 	}
