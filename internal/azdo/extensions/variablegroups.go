@@ -20,6 +20,45 @@ type VariableGroupsResponse struct {
 	Value             []taskagent.VariableGroup `json:"value,omitempty"`
 }
 
+type VariableValue struct {
+	Name     string `json:"name"`
+	Value    any    `json:"value,omitempty"`
+	IsSecret bool   `json:"secret"`
+}
+
+// ToVariableValues converts a map of raw variable data into a slice of VariableValue structs.
+func ToVariableValues(vars *map[string]interface{}) []VariableValue {
+	if vars == nil {
+		return nil
+	}
+	variables := make([]VariableValue, 0, len(*vars))
+	for name, val := range *vars {
+		v := VariableValue{Name: name}
+		if varMap, ok := val.(map[string]interface{}); ok {
+			if isSecret, ok := varMap["isSecret"].(bool); ok {
+				v.IsSecret = isSecret
+			}
+			if value, ok := varMap["value"]; ok {
+				v.Value = value
+			}
+		}
+		variables = append(variables, v)
+	}
+	return variables
+}
+
+// FromVariableValues converts a slice of VariableValue structs back into a map for API consumption.
+func FromVariableValues(variables []VariableValue) *map[string]interface{} {
+	vars := make(map[string]interface{})
+	for _, v := range variables {
+		vars[v.Name] = map[string]interface{}{
+			"value":    v.Value,
+			"isSecret": v.IsSecret,
+		}
+	}
+	return &vars
+}
+
 // GetVariableGroups issues a raw REST request that mirrors the Azure DevOps GetVariableGroups
 // endpoint. The SDK's 7.1 wrapper currently mis-shapes the response body, so we decode the REST
 // payload directly and hand the caller the continuation token alongside the variable groups.
