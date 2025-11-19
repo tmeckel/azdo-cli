@@ -41,19 +41,19 @@ func ParseScope(ctx CmdContext, scope string) (*Scope, error) {
 	case 1:
 		org := strings.TrimSpace(parts[0])
 		if org == "" {
-			return nil, FlagErrorf("invalid scope format: %s", scope)
+			return nil, fmt.Errorf("invalid scope format: %s", scope)
 		}
 		result.Organization = org
 	case 2:
 		org := strings.TrimSpace(parts[0])
 		project := strings.TrimSpace(parts[1])
 		if org == "" || project == "" {
-			return nil, FlagErrorf("invalid scope format: %s", scope)
+			return nil, fmt.Errorf("invalid scope format: %s", scope)
 		}
 		result.Organization = org
 		result.Project = project
 	default:
-		return nil, FlagErrorf("invalid scope format: %s", scope)
+		return nil, fmt.Errorf("invalid scope format: %s", scope)
 	}
 
 	return result, nil
@@ -67,7 +67,7 @@ func ParseOrganizationArg(ctx CmdContext, arg string) (string, error) {
 		return "", err
 	}
 	if scope.Project != "" {
-		return "", FlagErrorf("project scope not allowed for this command")
+		return "", fmt.Errorf("project scope not allowed for this command")
 	}
 	return scope.Organization, nil
 }
@@ -152,4 +152,99 @@ func ResolveScopeDescriptor(ctx CmdContext, organization, project string) (*stri
 	}
 
 	return descriptor.Value, projectID, nil
+}
+
+type Target struct {
+	Organization string
+	Project      string
+	Target       string
+}
+
+// ParseTarget validates and parses a target argument of form ORGANIZATION/TARGET or ORGANIZATION/PROJECT/TARGET.
+func ParseTarget(target string) (*Target, error) {
+	if strings.TrimSpace(target) == "" {
+		return nil, fmt.Errorf("target must not be empty")
+	}
+
+	parts := strings.Split(target, "/")
+	switch len(parts) {
+	case 2:
+		org := strings.TrimSpace(parts[0])
+		groupName := strings.TrimSpace(parts[1])
+		if org == "" || groupName == "" {
+			return nil, fmt.Errorf("invalid target format: %s", target)
+		}
+		return &Target{
+			Organization: org,
+			Target:       groupName,
+		}, nil
+	case 3:
+		org := strings.TrimSpace(parts[0])
+		project := strings.TrimSpace(parts[1])
+		groupName := strings.TrimSpace(parts[2])
+		if org == "" || project == "" || groupName == "" {
+			return nil, fmt.Errorf("invalid target format: %s", target)
+		}
+		return &Target{
+			Organization: org,
+			Project:      project,
+			Target:       groupName,
+		}, nil
+	default:
+		return nil, fmt.Errorf("invalid target format: %s", target)
+	}
+}
+
+// ParseTargetWithDefaultOrganization resolves a target argument that allows an implicit organization by falling
+// back to the configured default. The accepted formats are:
+func ParseTargetWithDefaultOrganization(ctx CmdContext, target string) (*Target, error) {
+	if strings.TrimSpace(target) == "" {
+		return nil, fmt.Errorf("target must not be empty")
+	}
+
+	parts := strings.Split(target, "/")
+	switch len(parts) {
+	case 1:
+		target := strings.TrimSpace(parts[0])
+		if target == "" {
+			return nil, fmt.Errorf("invalid target format: %s", target)
+		}
+		cfg, err := ctx.Config()
+		if err != nil {
+			return nil, err
+		}
+		org, err := cfg.Authentication().GetDefaultOrganization()
+		if err != nil {
+			return nil, err
+		}
+
+		return &Target{
+			Organization: org,
+			Target:       target,
+		}, nil
+	case 2:
+		org := strings.TrimSpace(parts[0])
+		target := strings.TrimSpace(parts[1])
+		if org == "" || target == "" {
+			return nil, fmt.Errorf("invalid target format: %s", target)
+		}
+		return &Target{
+			Organization: org,
+			Target:       target,
+		}, nil
+	case 3:
+		org := strings.TrimSpace(parts[0])
+		project := strings.TrimSpace(parts[1])
+		target := strings.TrimSpace(parts[2])
+		if org == "" || project == "" || target == "" {
+			return nil, fmt.Errorf("invalid target format: %s", target)
+		}
+		return &Target{
+			Organization: org,
+			Project:      project,
+			Target:       target,
+		}, nil
+	default:
+		return nil, fmt.Errorf("invalid target format: %s", target)
+	}
 }
