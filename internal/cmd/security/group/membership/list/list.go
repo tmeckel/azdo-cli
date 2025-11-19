@@ -7,7 +7,6 @@ import (
 	"github.com/microsoft/azure-devops-go-api/azuredevops/v7/graph"
 	"github.com/microsoft/azure-devops-go-api/azuredevops/v7/identity"
 	"github.com/spf13/cobra"
-	"github.com/tmeckel/azdo-cli/internal/cmd/security/group/shared"
 	"github.com/tmeckel/azdo-cli/internal/cmd/util"
 	"github.com/tmeckel/azdo-cli/internal/types"
 	"go.uber.org/zap"
@@ -58,13 +57,13 @@ func runList(ctx util.CmdContext, o *opts) error {
 	ios.StartProgressIndicator()
 	defer ios.StopProgressIndicator()
 
-	target, err := shared.ParseTargetWithDefault(ctx, o.scope)
+	target, err := util.ParseTargetWithDefaultOrganization(ctx, o.scope)
 	if err != nil {
 		return err
 	}
 	organization := target.Organization
 	project := target.Project
-	group := target.GroupName
+	group := target.Target
 
 	graphClient, err := ctx.ClientFactory().Graph(ctx.Context(), organization)
 	if err != nil {
