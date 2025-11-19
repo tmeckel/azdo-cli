@@ -6,7 +6,6 @@ Work with Azure DevOps pull requests.
 
 * [azdo pr create](./azdo_pr_create.md)
 * [azdo pr list](./azdo_pr_list.md)
-* [azdo pr status](./azdo_pr_status.md)
 
 ### Targeted commands
 
