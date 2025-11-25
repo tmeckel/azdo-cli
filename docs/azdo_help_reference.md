@@ -933,7 +933,36 @@ Work with Azure DevOps service connections.
 Aliases
 
 ```
-service-endpoints, serviceendpoint, serviceendpoints, se, sep
+service-endpoints, serviceendpoints, se
+```
+
+### `azdo service-endpoint create`
+
+Create service connections
+
+#### `azdo service-endpoint create azurerm [ORGANIZATION/]PROJECT --name <name> --authentication-scheme <scheme> [flags]`
+
+Create an Azure Resource Manager service connection
+
+```
+    --authentication-scheme string   Authentication scheme: {ServicePrincipal|ManagedServiceIdentity|WorkloadIdentityFederation} (default "ServicePrincipal")
+    --certificate-path string        Path to service principal certificate file (PEM format)
+    --description string             Description for the service endpoint
+    --environment string             Azure environment: {AzureCloud|AzureChinaCloud|AzureUSGovernment|AzureGermanCloud|AzureStack} (default "AzureCloud")
+-q, --jq expression                  Filter JSON output using a jq expression
+    --json fields[=*]                Output JSON with the specified fields. Prefix a field with '-' to exclude it.
+    --management-group-id string     Azure management group ID
+    --management-group-name string   Azure management group name
+    --name string                    Name of the service endpoint
+    --resource-group string          Name of the resource group (for subscription-level scope)
+    --server-url string              Azure Stack Resource Manager base URL. Required if --environment is AzureStack.
+    --service-principal-id string    Service principal/application ID (e.g., GUID)
+    --service-principal-key string   Service principal key (secret value)
+    --subscription-id string         Azure subscription ID (e.g., GUID)
+    --subscription-name string       Azure subscription name
+-t, --template string                Format JSON output using a Go template; see "azdo help formatting"
+    --tenant-id string               Azure tenant ID (e.g., GUID)
+-y, --yes                            Skip confirmation prompts
 ```
 
 ### `azdo service-endpoint list [ORGANIZATION/]PROJECT [flags]`
