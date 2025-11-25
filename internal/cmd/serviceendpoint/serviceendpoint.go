@@ -3,6 +3,7 @@ package serviceendpoint
 import (
 	"github.com/MakeNowJust/heredoc"
 	"github.com/spf13/cobra"
+	"github.com/tmeckel/azdo-cli/internal/cmd/serviceendpoint/create"
 	"github.com/tmeckel/azdo-cli/internal/cmd/serviceendpoint/list"
 	"github.com/tmeckel/azdo-cli/internal/cmd/util"
 )
@@ -16,15 +17,14 @@ func NewCmd(ctx util.CmdContext) *cobra.Command {
 		`),
 		Aliases: []string{
 			"service-endpoints",
-			"serviceendpoint",
 			"serviceendpoints",
 			"se",
-			"sep",
 		},
 		GroupID: "core",
 	}
 
 	cmd.AddCommand(list.NewCmd(ctx))
+	cmd.AddCommand(create.NewCmd(ctx))
 
 	return cmd
 }
