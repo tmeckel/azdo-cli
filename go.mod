@@ -26,7 +26,7 @@ require (
 	github.com/muesli/termenv v0.16.0
 	github.com/samber/lo v1.52.0
 	github.com/spewerspew/spew v0.0.0-20230513223542-89b69fbbe2bd
-	github.com/spf13/cobra v1.10.1
+	github.com/spf13/cobra v1.10.2
 	github.com/spf13/pflag v1.0.10
 	github.com/stretchr/testify v1.11.1
 	github.com/zalando/go-keyring v0.2.6
@@ -67,5 +67,6 @@ require (
 	github.com/yuin/goldmark v1.7.8 // indirect
 	github.com/yuin/goldmark-emoji v1.0.5 // indirect
 	go.uber.org/multierr v1.10.0 // indirect
+	go.yaml.in/yaml/v3 v3.0.4 // indirect
 	golang.org/x/net v0.33.0 // indirect
 )
