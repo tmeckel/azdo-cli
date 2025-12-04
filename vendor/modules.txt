@@ -181,7 +181,7 @@ github.com/samber/lo/mutable
 # github.com/spewerspew/spew v0.0.0-20230513223542-89b69fbbe2bd
 ## explicit; go 1.17
 github.com/spewerspew/spew
-# github.com/spf13/cobra v1.10.1
+# github.com/spf13/cobra v1.10.2
 ## explicit; go 1.15
 github.com/spf13/cobra
 github.com/spf13/cobra/doc
@@ -233,6 +233,9 @@ go.uber.org/zap/internal/exit
 go.uber.org/zap/internal/pool
 go.uber.org/zap/internal/stacktrace
 go.uber.org/zap/zapcore
+# go.yaml.in/yaml/v3 v3.0.4
+## explicit; go 1.16
+go.yaml.in/yaml/v3
 # golang.org/x/net v0.33.0
 ## explicit; go 1.18
 golang.org/x/net/html
