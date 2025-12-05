@@ -8,6 +8,13 @@
 {{bold "draft:"}} {{.PullRequest.IsDraft}}
 {{bold "source branch:"}} {{stripprefix (s .PullRequest.SourceRefName) "refs/heads/" }}
 {{bold "target branch:"}} {{stripprefix (s .PullRequest.TargetRefName) "refs/heads/" }}
+{{ $labels := .PullRequest.Labels -}}
+{{ $llength := len $labels -}}
+{{if gt $llength 0 -}}
+{{bold "labels:"}}
+{{range .PullRequest.Labels}}  {{s .Name}}
+{{end -}}
+{{end -}}
 {{ $reviewers := userReviewers .PullRequest.Reviewers -}}
 {{ $length := len $reviewers -}}
 {{if gt $length 0 -}}

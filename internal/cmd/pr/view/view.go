@@ -54,6 +54,7 @@ type pullRequestJSON struct {
 	Description  *string         `json:"description,omitempty"`
 	Threads      *[]threadJSON   `json:"threads,omitempty"`
 	Commits      *[]commitJSON   `json:"commits,omitempty"`
+	Labels       *[]string       `json:"labels,omitempty"`
 }
 
 type authorJSON struct {
@@ -121,6 +122,7 @@ func NewCmd(ctx util.CmdContext) *cobra.Command {
 		Args: cobra.MaximumNArgs(1),
 		Aliases: []string{
 			"show",
+			"status",
 		},
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if len(args) > 0 {
@@ -135,7 +137,23 @@ func NewCmd(ctx util.CmdContext) *cobra.Command {
 	cmd.Flags().BoolVarP(&opts.showRaw, "raw", "r", false, "View pull request raw")
 	util.StringEnumFlag(cmd, &opts.commentType, "comment-type", "", "text", []string{"text", "system", "all"}, "Filter comments by type; defaults to 'text'")
 	util.StringEnumFlag(cmd, &opts.commentSort, "comment-sort", "", "desc", []string{"desc", "asc"}, "Sort comments by creation time; defaults to 'desc' (newest first)")
-	util.AddFormatFlags(cmd, &opts.exporter)
+	util.AddJSONFlags(cmd, &opts.exporter, []string{
+		"url",
+		"id",
+		"title",
+		"author",
+		"createdOn",
+		"status",
+		"mergeStatus",
+		"isDraft",
+		"sourceBranch",
+		"targetBranch",
+		"reviewers",
+		"description",
+		"threads",
+		"commits",
+		"labels",
+	})
 
 	return cmd
 }
@@ -378,6 +396,17 @@ func runCmd(ctx util.CmdContext, opts *viewOptions) (err error) {
 				})
 			}
 			prJSON.Reviewers = &reviewers
+		}
+		if pr.Labels != nil && len(*pr.Labels) > 0 {
+			labels := make([]string, 0, len(*pr.Labels))
+			for _, label := range *pr.Labels {
+				if label.Name != nil {
+					labels = append(labels, *label.Name)
+				}
+			}
+			if len(labels) > 0 {
+				prJSON.Labels = &labels
+			}
 		}
 		if threads != nil {
 			threadsJSON := make([]threadJSON, 0)
