@@ -8,7 +8,17 @@ Edit an existing pull request.
 
 Without an argument, the pull request that belongs to the current branch is selected.
 If there are more than one pull request associated with the current branch, one pull request will be selected based on the shared finder logic.
-%!(EXTRA string=`)
+
+The command can:
+- Add reviewers as optional or required, promoting/demoting existing reviewers when needed.
+- Remove reviewers regardless of their current required/optional state.
+- Add or remove labels
+
+Examples:
+  `azdo pr edit --add-required-reviewer alice@example.com bob@example.com`
+  `azdo pr edit --add-optional-reviewer alice@example.com --remove-reviewer bob@example.com`
+  `azdo pr edit --add-label bug --remove-label needs-review`
+
 
 ### Options
 
@@ -19,11 +29,11 @@ If there are more than one pull request associated with the current branch, one 
 
 * `--add-optional-reviewer` `strings`
 
-	Add optional reviewers (comma-separated)
+	Add or demote optional reviewers (comma-separated)
 
 * `--add-required-reviewer` `strings`
 
-	Add required reviewers (comma-separated)
+	Add or promote required reviewers (comma-separated)
 
 * `-B`, `--base` `string`
 
@@ -39,15 +49,11 @@ If there are more than one pull request associated with the current branch, one 
 
 * `--remove-label` `strings`
 
-	Remove labels (comma-separated)
+	Remove labels (comma-separated, use * to remove all)
 
-* `--remove-optional-reviewer` `strings`
+* `--remove-reviewer` `strings`
 
-	Remove optional reviewers (comma-separated)
-
-* `--remove-required-reviewer` `strings`
-
-	Remove required reviewers (comma-separated)
+	Remove reviewers (comma-separated, use * to remove all)
 
 * `-t`, `--title` `string`
 

@@ -29,13 +29,13 @@ is displayed.
 
 	View pull request commits
 
-* `--format` `string`
-
-	Output format: {json}
-
 * `-q`, `--jq` `expression`
 
 	Filter JSON output using a jq expression
+
+* `--json` `fields`
+
+	Output JSON with the specified fields. Prefix a field with &#39;-&#39; to exclude it.
 
 * `-r`, `--raw`
 
@@ -49,6 +49,11 @@ is displayed.
 ### ALIASES
 
 - `show`
+- `status`
+
+### JSON Fields
+
+`author`, `commits`, `createdOn`, `description`, `id`, `isDraft`, `labels`, `mergeStatus`, `reviewers`, `sourceBranch`, `status`, `targetBranch`, `threads`, `title`, `url`
 
 ### See also
 

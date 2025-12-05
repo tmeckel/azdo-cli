@@ -60,6 +60,11 @@ If the organization name is omitted from the project argument, the default confi
 ### ALIASES
 
 - `cr`
+- `c`
+- `new`
+- `n`
+- `add`
+- `a`
 
 ### JSON Fields
 
