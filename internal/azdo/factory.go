@@ -9,6 +9,7 @@ import (
 	"github.com/microsoft/azure-devops-go-api/azuredevops/v7/graph"
 	"github.com/microsoft/azure-devops-go-api/azuredevops/v7/identity"
 	"github.com/microsoft/azure-devops-go-api/azuredevops/v7/operations"
+	"github.com/microsoft/azure-devops-go-api/azuredevops/v7/pipelinepermissions"
 	"github.com/microsoft/azure-devops-go-api/azuredevops/v7/security"
 	"github.com/microsoft/azure-devops-go-api/azuredevops/v7/serviceendpoint"
 	"github.com/microsoft/azure-devops-go-api/azuredevops/v7/taskagent"
@@ -94,6 +95,14 @@ func (c *clientFactory) Operations(ctx context.Context, org string) (operations.
 		return nil, err
 	}
 	return operations.NewClient(ctx, conn.(*connectionAdapter).conn), nil
+}
+
+func (c *clientFactory) PipelinePermissions(ctx context.Context, org string) (pipelinepermissions.Client, error) {
+	conn, err := c.factory.Connection(org)
+	if err != nil {
+		return nil, err
+	}
+	return pipelinepermissions.NewClient(ctx, conn.(*connectionAdapter).conn)
 }
 
 func (c *clientFactory) ServiceEndpoint(ctx context.Context, org string) (serviceendpoint.Client, error) {
