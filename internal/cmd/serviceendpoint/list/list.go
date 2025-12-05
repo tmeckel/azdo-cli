@@ -315,7 +315,7 @@ func filterByAction(ctx util.CmdContext, client serviceendpoint.Client, project 
 		if ep.Id == nil {
 			continue
 		}
-		_, err := client.GetServiceEndpointDetails(ctx.Context(), serviceendpoint.GetServiceEndpointDetailsArgs{
+		sed, err := client.GetServiceEndpointDetails(ctx.Context(), serviceendpoint.GetServiceEndpointDetailsArgs{
 			Project:      types.ToPtr(project),
 			EndpointId:   ep.Id,
 			ActionFilter: action,
@@ -329,6 +329,9 @@ func filterByAction(ctx util.CmdContext, client serviceendpoint.Client, project 
 				fallback = ep.Id.String()
 			}
 			return nil, fmt.Errorf("failed to fetch permissions for endpoint %s: %w", types.GetValue(ep.Name, fallback), err)
+		}
+		if sed.Id == nil { // GetServiceEndpointDetails returns an empty result instead of nil or an HTTP 404
+			continue
 		}
 		filtered = append(filtered, ep)
 	}
