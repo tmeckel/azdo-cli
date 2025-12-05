@@ -12,6 +12,7 @@ import (
 	"github.com/spf13/cobra"
 	"go.uber.org/zap"
 
+	"github.com/tmeckel/azdo-cli/internal/cmd/serviceendpoint/shared"
 	"github.com/tmeckel/azdo-cli/internal/cmd/util"
 	"github.com/tmeckel/azdo-cli/internal/iostreams"
 	"github.com/tmeckel/azdo-cli/internal/prompter"
@@ -21,22 +22,23 @@ import (
 type createOptions struct {
 	project string
 
-	name                        string
-	description                 string
-	authenticationScheme        string
-	servicePrincipalID          string
-	servicePrincipalKey         string
-	servicePrincipalCertificate string
-	certificatePath             string
-	tenantID                    string
-	subscriptionID              string
-	subscriptionName            string
-	managementGroupID           string
-	managementGroupName         string
-	environment                 string
-	resourceGroup               string
-	serverURL                   string
-	serviceEndpointCreationMode string
+	name                          string
+	description                   string
+	authenticationScheme          string
+	servicePrincipalID            string
+	servicePrincipalKey           string
+	servicePrincipalCertificate   string
+	certificatePath               string
+	tenantID                      string
+	subscriptionID                string
+	subscriptionName              string
+	managementGroupID             string
+	managementGroupName           string
+	environment                   string
+	resourceGroup                 string
+	serverURL                     string
+	serviceEndpointCreationMode   string
+	grantPermissionToAllPipelines bool
 
 	yes      bool
 	exporter util.Exporter
@@ -70,7 +72,7 @@ func NewCmd(ctx util.CmdContext) *cobra.Command {
 		`),
 		Example: heredoc.Doc(`
 			# Service Principal with a secret
-			azdo service-endpoint azurerm create my-org/my-project \
+			azdo service-endpoint create azurerm my-org/my-project \
 					--name "My AzureRM SPN Secret Connection" \
 					--authentication-scheme ServicePrincipal \
 					--tenant-id "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" \
@@ -82,7 +84,7 @@ func NewCmd(ctx util.CmdContext) *cobra.Command {
 					--description "Service Connection for my AzureRM resources"
 
 			# Service Principal with a certificate
-			azdo service-endpoint azurerm create my-org/my-project \
+			azdo service-endpoint create azurerm my-org/my-project \
 					--name "My AzureRM SPN Cert Connection" \
 					--authentication-scheme ServicePrincipal \
 					--tenant-id "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" \
@@ -93,7 +95,7 @@ func NewCmd(ctx util.CmdContext) *cobra.Command {
 					--description "Certificate-based Service Connection"
 
 			# Managed Service Identity
-			azdo service-endpoint azurerm create my-org/my-project \
+			azdo service-endpoint create azurerm my-org/my-project \
 					--name "My AzureRM MSI Connection" \
 					--authentication-scheme ManagedServiceIdentity \
 					--tenant-id "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" \
@@ -102,7 +104,7 @@ func NewCmd(ctx util.CmdContext) *cobra.Command {
 					--description "MSI Service Connection"
 
 			# Workload Identity Federation (Manual mode, with existing Service Principal)
-			azdo service-endpoint azurerm create my-org/my-project \
+			azdo service-endpoint create azurerm my-org/my-project \
 					--name "My AzureRM WIF Manual Connection" \
 					--authentication-scheme WorkloadIdentityFederation \
 					--tenant-id "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" \
@@ -112,7 +114,7 @@ func NewCmd(ctx util.CmdContext) *cobra.Command {
 					--description "WIF Manual Service Connection"
 
 			# Workload Identity Federation (Automatic mode, Azure DevOps creates Service Principal)
-			azdo service-endpoint azurerm create my-org/my-project \
+			azdo service-endpoint create azurerm my-org/my-project \
 					--name "My AzureRM WIF Automatic Connection" \
 					--authentication-scheme WorkloadIdentityFederation \
 					--tenant-id "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" \
@@ -121,7 +123,7 @@ func NewCmd(ctx util.CmdContext) *cobra.Command {
 					--description "WIF Automatic Service Connection"
 
 			# Service Principal with Management Group Scope
-			azdo service-endpoint azurerm create my-org/my-project \
+			azdo service-endpoint create azurerm my-org/my-project \
 					--name "My AzureRM MGMT Group Connection" \
 					--authentication-scheme ServicePrincipal \
 					--tenant-id "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" \
@@ -132,7 +134,7 @@ func NewCmd(ctx util.CmdContext) *cobra.Command {
 					--description "Service Connection scoped to a Management Group"
 
 			# Azure Stack Environment
-			azdo service-endpoint azurerm create my-org/my-project \
+			azdo service-endpoint create azurerm my-org/my-project \
 					--name "My AzureStack Connection" \
 					--authentication-scheme ServicePrincipal \
 					--tenant-id "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" \
@@ -145,6 +147,14 @@ func NewCmd(ctx util.CmdContext) *cobra.Command {
 					--description "Service Connection for Azure Stack"
 		`),
 		Args: cobra.ExactArgs(1),
+		Aliases: []string{
+			"cr",
+			"c",
+			"new",
+			"n",
+			"add",
+			"a",
+		},
 		RunE: func(cmd *cobra.Command, args []string) error {
 			opts.project = args[0]
 			return runCreate(ctx, opts)
@@ -170,6 +180,7 @@ func NewCmd(ctx util.CmdContext) *cobra.Command {
 		"Azure environment")
 	cmd.Flags().StringVar(&opts.serverURL, "server-url", "", "Azure Stack Resource Manager base URL. Required if --environment is AzureStack.")
 	cmd.Flags().BoolVarP(&opts.yes, "yes", "y", false, "Skip confirmation prompts")
+	cmd.Flags().BoolVar(&opts.grantPermissionToAllPipelines, "grant-permission-to-all-pipelines", false, "Grant access permission to all pipelines to use the service connection")
 
 	util.AddJSONFlags(cmd, &opts.exporter, []string{"id", "name", "type", "url", "description", "authorization"})
 
@@ -184,6 +195,7 @@ func runCreate(ctx util.CmdContext, opts *createOptions) error {
 	if err != nil {
 		return err
 	}
+
 	p, err := ctx.Prompter()
 	if err != nil {
 		return err
@@ -237,6 +249,35 @@ func runCreate(ctx util.CmdContext, opts *createOptions) error {
 		zap.String("id", types.GetValue(createdEndpoint.Id, uuid.Nil).String()),
 		zap.String("name", types.GetValue(createdEndpoint.Name, "")),
 	)
+
+	if opts.grantPermissionToAllPipelines {
+		projectID := types.GetValue(projectRef.Id, uuid.Nil)
+		if projectID == uuid.Nil {
+			return errors.New("project reference missing ID")
+		}
+
+		endpointID := types.GetValue(createdEndpoint.Id, uuid.Nil)
+		if endpointID == uuid.Nil {
+			return errors.New("service endpoint create response missing ID")
+		}
+
+		if err := shared.GrantAllPipelinesAccessToEndpoint(ctx,
+			scope.Organization,
+			projectID,
+			endpointID,
+			func() error {
+				return client.DeleteServiceEndpoint(ctx.Context(), serviceendpoint.DeleteServiceEndpointArgs{
+					EndpointId: types.ToPtr(endpointID),
+					ProjectIds: &[]string{projectID.String()},
+				})
+			}); err != nil {
+			return err
+		}
+
+		zap.L().Debug("Granted all pipelines permission to service endpoint",
+			zap.String("id", endpointID.String()),
+		)
+	}
 
 	ios.StopProgressIndicator()
 
@@ -316,9 +357,7 @@ func validateOpts(opts *createOptions, ios *iostreams.IOStreams, p prompter.Prom
 			opts.servicePrincipalCertificate = string(certBytes)
 		}
 	case AuthSchemeWorkloadIdentityFederation:
-		if opts.serviceEndpointCreationMode == CreationModeAutomatic {
-			// This is a valid scenario, where ADO will configure the SPN.
-		}
+		// This is a valid scenario, where ADO will configure the SPN.
 	case AuthSchemeManagedServiceIdentity:
 		// No specific validation needed
 	default:
@@ -348,16 +387,13 @@ func buildServiceEndpoint(opts *createOptions, projectRef *serviceendpoint.Proje
 		"environment": opts.environment,
 	}
 
-	if opts.serviceEndpointCreationMode != "" {
+	if opts.serviceEndpointCreationMode != "" && opts.authenticationScheme != AuthSchemeManagedServiceIdentity {
 		data["creationMode"] = opts.serviceEndpointCreationMode
 	}
 
 	// Scope handling
-	var scopeLevel string
 	if opts.subscriptionID != "" {
-		scopeLevel = ScopeLevelSubscription
-		if opts.resourceGroup != "" {
-			scopeLevel = ScopeLevelResourceGroup
+		if opts.resourceGroup != "" && opts.authenticationScheme != AuthSchemeManagedServiceIdentity {
 			authParams["scope"] = fmt.Sprintf("/subscriptions/%s/resourcegroups/%s", opts.subscriptionID, opts.resourceGroup)
 		}
 		data["scopeLevel"] = ScopeLevelSubscription
@@ -365,12 +401,10 @@ func buildServiceEndpoint(opts *createOptions, projectRef *serviceendpoint.Proje
 		data["subscriptionName"] = opts.subscriptionName
 
 	} else if opts.managementGroupID != "" {
-		scopeLevel = ScopeLevelManagementGroup
 		data["scopeLevel"] = ScopeLevelManagementGroup
 		data["managementGroupId"] = opts.managementGroupID
 		data["managementGroupName"] = opts.managementGroupName
 	}
-	_ = scopeLevel // Not directly used, but good for clarity
 
 	// Auth scheme specific logic
 	switch opts.authenticationScheme {
