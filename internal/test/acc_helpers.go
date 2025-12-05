@@ -5,6 +5,8 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"strings"
+	"sync"
 	"testing"
 	"time"
 
@@ -21,10 +23,10 @@ import (
 const (
 	accToggleEnv      = "AZDO_ACC_TEST"
 	accOrgEnv         = "AZDO_ACC_ORG"
-	accOrgURLEnv      = "AZDO_ACC_ORG_URL"
 	accPATEnv         = "AZDO_ACC_PAT"
 	accTimeoutSeconds = 60
 	accTimeoutEnv     = "AZDO_ACC_TIMEOUT"
+	accProjectEnv     = "AZDO_ACC_PROJECT"
 )
 
 // nullPrinter is a no-op implementation of printer.Printer used for acceptance
@@ -57,14 +59,18 @@ type TestContext interface {
 	Org() string
 	OrgUrl() string
 	PAT() string
+	Project() string
+	SetValue(key, value any)
+	Value(key any) (any, bool)
 }
 
 type acceptanceCmdContext struct {
 	baseCtx       context.Context
 	ios           *iostreams.IOStreams
-	cfg           config.Config
 	connFactory   azdo.ConnectionFactory
+	cfg           config.Config
 	clientFactory azdo.ClientFactory
+	prompter      prompter.Prompter
 }
 
 var _ util.CmdContext = (*acceptanceCmdContext)(nil)
@@ -74,7 +80,10 @@ func (a *acceptanceCmdContext) RepoContext() util.RepoContext             { retu
 func (a *acceptanceCmdContext) ConnectionFactory() azdo.ConnectionFactory { return a.connFactory }
 func (a *acceptanceCmdContext) ClientFactory() azdo.ClientFactory         { return a.clientFactory }
 func (a *acceptanceCmdContext) Prompter() (prompter.Prompter, error) {
-	return nil, fmt.Errorf("not implemented")
+	if a.prompter == nil {
+		a.prompter = &stubPrompter{}
+	}
+	return a.prompter, nil
 }
 func (a *acceptanceCmdContext) Config() (config.Config, error)           { return a.cfg, nil }
 func (a *acceptanceCmdContext) IOStreams() (*iostreams.IOStreams, error) { return a.ios, nil }
@@ -83,9 +92,11 @@ func (a *acceptanceCmdContext) Printer(string) (printer.Printer, error) {
 }
 
 type testContext struct {
-	org    string
-	orgURL string
-	pat    string
+	org     string
+	orgURL  string
+	pat     string
+	project string
+	data    sync.Map
 	util.CmdContext
 }
 
@@ -104,19 +115,36 @@ func (tc *testContext) PAT() string {
 	return tc.pat
 }
 
+func (tc *testContext) Project() string {
+	return tc.project
+}
+
+func (tc *testContext) SetValue(key, value any) {
+	if key == nil {
+		return
+	}
+	tc.data.Store(key, value)
+}
+
+func (tc *testContext) Value(key any) (any, bool) {
+	if key == nil {
+		return nil, false
+	}
+	return tc.data.Load(key)
+}
+
 // Precheck and context builder
 func newTestContext(t *testing.T) TestContext {
 	org := os.Getenv(accOrgEnv)
-	orgurl := os.Getenv(accOrgURLEnv)
 	pat := os.Getenv(accPATEnv)
+	project := os.Getenv(accProjectEnv)
 
 	if org == "" || pat == "" {
 		t.Fatalf("missing acceptance env variables: %q, %q", accOrgEnv, accPATEnv)
 	}
 
-	if orgurl == "" {
-		orgurl = fmt.Sprintf("https://dev.azure.com/%s", org)
-	}
+	orgurl := fmt.Sprintf("https://dev.azure.com/%s", org)
+
 	// Build a safe YAML configuration using marshaling instead of fmt.Sprintf interpolation.
 	// This avoids accidental YAML-breaking characters in env values.
 	cfgData := map[string]any{
@@ -190,17 +218,53 @@ func newTestContext(t *testing.T) TestContext {
 	t.Cleanup(cancel)
 
 	return &testContext{
-		org:    org,
-		orgURL: orgurl,
-		pat:    pat,
+		org:     org,
+		orgURL:  orgurl,
+		pat:     pat,
+		project: strings.TrimSpace(project),
 		CmdContext: &acceptanceCmdContext{
 			baseCtx:       baseCtx,
 			ios:           ios,
 			cfg:           cfg,
 			connFactory:   connFactory,
 			clientFactory: clientFactory,
+			prompter:      &stubPrompter{},
 		},
 	}
+}
+
+type stubPrompter struct{}
+
+func (stubPrompter) Select(string, string, []string) (int, error) {
+	return 0, fmt.Errorf("interactive prompts are disabled in acceptance tests")
+}
+
+func (stubPrompter) MultiSelect(string, []string, []string) ([]int, error) {
+	return nil, fmt.Errorf("interactive prompts are disabled in acceptance tests")
+}
+
+func (stubPrompter) Input(string, string) (string, error) {
+	return "", fmt.Errorf("interactive prompts are disabled in acceptance tests")
+}
+
+func (stubPrompter) InputOrganizationName() (string, error) {
+	return "", fmt.Errorf("interactive prompts are disabled in acceptance tests")
+}
+
+func (stubPrompter) Password(string) (string, error) {
+	return "", fmt.Errorf("interactive prompts are disabled in acceptance tests")
+}
+
+func (stubPrompter) AuthToken() (string, error) {
+	return "", fmt.Errorf("interactive prompts are disabled in acceptance tests")
+}
+
+func (stubPrompter) Confirm(string, bool) (bool, error) {
+	return true, nil
+}
+
+func (stubPrompter) ConfirmDeletion(string) error {
+	return nil
 }
 
 // Compact acc runner
