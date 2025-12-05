@@ -23,6 +23,7 @@ import (
 	graph "github.com/microsoft/azure-devops-go-api/azuredevops/v7/graph"
 	identity "github.com/microsoft/azure-devops-go-api/azuredevops/v7/identity"
 	operations "github.com/microsoft/azure-devops-go-api/azuredevops/v7/operations"
+	pipelinepermissions "github.com/microsoft/azure-devops-go-api/azuredevops/v7/pipelinepermissions"
 	security "github.com/microsoft/azure-devops-go-api/azuredevops/v7/security"
 	serviceendpoint "github.com/microsoft/azure-devops-go-api/azuredevops/v7/serviceendpoint"
 	taskagent "github.com/microsoft/azure-devops-go-api/azuredevops/v7/taskagent"
@@ -404,6 +405,21 @@ func (m *MockClientFactory) Operations(ctx context.Context, organization string)
 func (mr *MockClientFactoryMockRecorder) Operations(ctx, organization any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Operations", reflect.TypeOf((*MockClientFactory)(nil).Operations), ctx, organization)
+}
+
+// PipelinePermissions mocks base method.
+func (m *MockClientFactory) PipelinePermissions(ctx context.Context, organization string) (pipelinepermissions.Client, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "PipelinePermissions", ctx, organization)
+	ret0, _ := ret[0].(pipelinepermissions.Client)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// PipelinePermissions indicates an expected call of PipelinePermissions.
+func (mr *MockClientFactoryMockRecorder) PipelinePermissions(ctx, organization any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "PipelinePermissions", reflect.TypeOf((*MockClientFactory)(nil).PipelinePermissions), ctx, organization)
 }
 
 // Security mocks base method.
