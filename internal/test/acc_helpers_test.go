@@ -59,12 +59,12 @@ func TestAcceptanceCmdContext_Printer(t *testing.T) {
 func TestTestContext_OrgFields(t *testing.T) {
 	// Prepare unique values and set them with t.Setenv so they're restored automatically.
 	org := "example-org-env"
-	orgURL := "https://example.org/env"
+	orgURL := "https://dev.azure.com/example-org-env"
 	pat := "env-secret-pat"
 
 	t.Setenv(accOrgEnv, org)
-	t.Setenv(accOrgURLEnv, orgURL)
 	t.Setenv(accPATEnv, pat)
+	t.Setenv(accProjectEnv, "proj-value")
 
 	// newTestContext validates env vars and returns a TestContext built from them.
 	tc := newTestContext(t)
@@ -79,6 +79,9 @@ func TestTestContext_OrgFields(t *testing.T) {
 	if got := tc.PAT(); got != pat {
 		t.Fatalf("PAT() = %q, want %q", got, pat)
 	}
+	if got := tc.Project(); got != "proj-value" {
+		t.Fatalf("Project() = %q, want proj-value", got)
+	}
 }
 
 // TestNewTestContext_Config ensures that newTestContext builds a config from
@@ -86,13 +89,13 @@ func TestTestContext_OrgFields(t *testing.T) {
 func TestNewTestContext_Config(t *testing.T) {
 	// Prepare unique values
 	org := "test-org-for-unit"
-	orgURL := "https://dev.azure.test/test-org-for-unit"
+	orgURL := "https://dev.azure.com/test-org-for-unit"
 	pat := "TEST_PAT_VALUE"
 
 	// Use t.Setenv so the testing framework will automatically restore values.
 	t.Setenv(accOrgEnv, org)
-	t.Setenv(accOrgURLEnv, orgURL)
 	t.Setenv(accPATEnv, pat)
+	t.Setenv(accProjectEnv, "proj-alpha")
 
 	// Call newTestContext which will build a config from the env vars.
 	tc := newTestContext(t)
@@ -111,6 +114,29 @@ func TestNewTestContext_Config(t *testing.T) {
 	gotPAT, _ := cfg.Get([]string{config.Organizations, org, "pat"})
 	if gotPAT != pat {
 		t.Fatalf("config organizations.%s.pat = %q, want %q", org, gotPAT, pat)
+	}
+}
+
+// TestTestContextValueStore ensures SetValue/Value share data between steps.
+func TestTestContextValueStore(t *testing.T) {
+	t.Setenv(accOrgEnv, "org")
+	t.Setenv(accPATEnv, "pat")
+	t.Setenv(accProjectEnv, "project")
+
+	tc := newTestContext(t)
+
+	tc.SetValue("key", 42)
+	if v, ok := tc.Value("missing"); ok || v != nil {
+		t.Fatalf("Value for missing key should be absent, got %v", v)
+	}
+	if v, ok := tc.Value("key"); !ok || v.(int) != 42 {
+		t.Fatalf("Value for key mismatch, got %v", v)
+	}
+
+	// Overwrite and ensure latest wins
+	tc.SetValue("key", 99)
+	if v, ok := tc.Value("key"); !ok || v.(int) != 99 {
+		t.Fatalf("Value for key overwrite mismatch, got %v", v)
 	}
 }
 
