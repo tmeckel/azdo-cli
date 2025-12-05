@@ -62,7 +62,7 @@ func run(ctx util.CmdContext, opts *opts) error {
 	ios.StartProgressIndicator()
 	defer ios.StopProgressIndicator()
 
-	scope, err := util.ParseTargetWithDefaultOrganization(ctx, opts.scope)
+	scope, err := util.ParseProjectTargetWithDefaultOrganization(ctx, opts.scope)
 	if err != nil {
 		return util.FlagErrorWrap(err)
 	}
