@@ -46,6 +46,24 @@ func UniqueFunc[T any](items []T, cmp func(T, T) bool) []T {
 	})
 }
 
+func MapSlice[S any, T any](items []S, mapper func(S) T) []T {
+	if len(items) == 0 {
+		return []T{}
+	}
+	result := make([]T, len(items))
+	for i, item := range items {
+		result[i] = mapper(item)
+	}
+	return result
+}
+
+func MapSlicePtr[S any, T any](items *[]S, mapper func(S) T) []T {
+	if items == nil {
+		return []T{}
+	}
+	return MapSlice(*items, mapper)
+}
+
 // func UniqueErrors[T error](items []T) []T {
 // 	return UniqueFunc(items, func(e1 T, e2 T) bool {
 // 		return e1.Error() == e2.Error()
