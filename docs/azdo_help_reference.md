@@ -971,6 +971,22 @@ Aliases
 cr, c, new, n, add, a
 ```
 
+### `azdo service-endpoint delete [ORGANIZATION/]PROJECT/ID_OR_NAME [flags]`
+
+Delete a service endpoint from a project.
+
+```
+    --additional-project stringArray   Additional project scope [ORGANIZATION/]PROJECT when the endpoint is shared. (Repeatable, comma-separated)
+    --deep                             Also delete the backing Azure AD application for supported endpoints.
+-y, --yes                              Skip the confirmation prompt.
+```
+
+Aliases
+
+```
+rm, del, d
+```
+
 ### `azdo service-endpoint list [ORGANIZATION/]PROJECT [flags]`
 
 List service endpoints in a project.
