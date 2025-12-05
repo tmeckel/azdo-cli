@@ -23,6 +23,8 @@ Developer: # Repository Guidelines
 - **Linting:** Follow `golangci-lint` guidance; wrap errors using `%w` for error chains.
 - **Naming:** Packages use lowercase; exported identifiers in CamelCase; files use lower_snake_case.
 - **CLI Flags:** Use kebab-case (e.g., `--organization-url`).
+- **Multi-value flag conventions:** When supporting “remove all” semantics on list flags, reserve `*` as the exclusive sentinel. Commands must reject combinations like `--remove-label foo,*` and treat a lone `*` as “remove every existing entry.”
+- **Editing Tools:** Modify files using git-aware patches (e.g., `apply_patch`). Do not rely on ad-hoc scripts (Python, sed, etc.) to edit tracked files so diffs stay reviewable.
 - **Logging:** Use `zap.L()` with structured messages; prefer `%w` for wrapping errors.
 - **Variables:** Variable names must never collide with any imports or name of GO packages
 - **Indentation During Drafts:** Cosmetic indentation mismatches are acceptable while implementing changes. Final formatting is applied with `gofumpt` after coding is complete, so focus on correctness first.
@@ -198,6 +200,10 @@ To ensure high-quality, production-ready code and prevent common errors, adhere 
 - **Mandate:** When generating or modifying Go code, **always explicitly list and verify all required import statements**. Before writing the file, perform a dry run or a mental check to ensure all types, functions, and packages used in the new/modified code are correctly imported.
 
 - **Detail:** Ensure imports for standard library packages (e.g., `fmt`, `strings`, `context`), third-party libraries (e.g., `github.com/spf13/cobra`, `github.com/MakeNowJust/heredoc`), and internal project modules (e.g., `github.com/tmeckel/azdo-cli/internal/cmd/util`, `github.com/tmeckel/azdo-cli/internal/azdo`) are present. If unsure, err on the side of including common imports for the context.
+
+### Reuse Existing Helpers
+
+- Prefer the generic helpers in `internal/types` (e.g., `MapSlice`, `MapSlicePtr`) when transforming SDK slices instead of rewriting mapping loops. These helpers already handle nil pointers and keep slice code consistent across commands.
 
 ### Idiomatic Go Code & Error Handling
 
