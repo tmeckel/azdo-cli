@@ -13,6 +13,7 @@ import (
 	"github.com/microsoft/azure-devops-go-api/azuredevops/v7/graph"
 	"github.com/microsoft/azure-devops-go-api/azuredevops/v7/identity"
 	"github.com/microsoft/azure-devops-go-api/azuredevops/v7/operations"
+	"github.com/microsoft/azure-devops-go-api/azuredevops/v7/pipelinepermissions"
 	"github.com/microsoft/azure-devops-go-api/azuredevops/v7/security"
 	"github.com/microsoft/azure-devops-go-api/azuredevops/v7/serviceendpoint"
 	"github.com/microsoft/azure-devops-go-api/azuredevops/v7/taskagent"
@@ -51,6 +52,7 @@ type ClientFactory interface {
 	Graph(ctx context.Context, organization string) (graph.Client, error)
 	Core(ctx context.Context, organization string) (core.Client, error)
 	Operations(ctx context.Context, organization string) (operations.Client, error)
+	PipelinePermissions(ctx context.Context, organization string) (pipelinepermissions.Client, error)
 	ServiceEndpoint(ctx context.Context, organization string) (serviceendpoint.Client, error)
 	Security(ctx context.Context, organization string) (security.Client, error)
 	TaskAgent(ctx context.Context, organization string) (taskagent.Client, error)
