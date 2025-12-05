@@ -71,6 +71,11 @@ func NewCmd(ctx util.CmdContext) *cobra.Command {
 		Args: cobra.ExactArgs(1),
 		Aliases: []string{
 			"cr",
+			"c",
+			"new",
+			"n",
+			"add",
+			"a",
 		},
 		PreRunE: func(cmd *cobra.Command, args []string) error {
 			noWaitChanged := cmd.Flags().Changed("no-wait")
