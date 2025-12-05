@@ -65,6 +65,12 @@ mockgen \
   -mock_names Client=MockTaskAgentClient \
   github.com/microsoft/azure-devops-go-api/azuredevops/v7/taskagent Client
 
+echo "Generating Azure DevOps PipelinePermissions client mock..."
+mockgen \
+  -package=mocks -destination internal/mocks/pipelinepermissions_client_mock.go \
+  -mock_names Client=MockPipelinePermissionsClient \
+  github.com/microsoft/azure-devops-go-api/azuredevops/v7/pipelinepermissions Client
+
 echo "Generating Repository mock..."
 mockgen -source internal/azdo/repo.go \
   -package=mocks -destination internal/mocks/repository_mock.go
