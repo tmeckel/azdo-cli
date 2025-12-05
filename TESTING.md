@@ -94,6 +94,7 @@ Acceptance tests (`*_acc_test.go`) run against a live Azure DevOps organization 
 | `AZDO_ACC_ORG`     | Organization name used for the session.                                                                |
 | `AZDO_ACC_ORG_URL` | Optional explicit organization URL; defaults to `https://dev.azure.com/<org>`.                         |
 | `AZDO_ACC_PAT`     | Personal Access Token with the scopes required by the test steps.                                      |
+| `AZDO_ACC_PROJECT` | Project name used by acceptance tests that operate on project-scoped resources.                        |
 | `AZDO_ACC_TIMEOUT` | Optional override for the default 60 s timeout. Accepts Go durations (`45s`, `2m`) or integer seconds. |
 
 ### Step-by-step skeleton
@@ -113,6 +114,12 @@ AZDO_ACC_PAT=xxxxxxxxxxxxxxxxxxxx \
 go test ./internal/cmd/security/permission/delete -run TestAccDeletePermission
 ```
 Acceptance tests are not run in CI; execute them manually before publishing features that depend on live Azure DevOps behavior.
+
+### TestContext helpers & utilities
+
+- `inttest.TestContext` now exposes `Project()` alongside `Org`, `OrgUrl`, and `PAT`. Set `AZDO_ACC_PROJECT` when a test needs to target a specific project and fail fast in `PreRun` if it is missing.
+- Use `TestContext.SetValue(key, value)`/`Value(key)` to propagate data across `PreRun`, `Run`, `Verify`, and `PostRun` without relying on package-level variables. Keys can be simple strings or typed aliases; mimic `context.Context` usage.
+- The helper `inttest.WriteTestFile(path, contents)` creates or truncates files with `0600` permissions and ensures parent directories exist, which is useful for acceptance tests that need temporary credentials or certificates.
 
 ### Updating Mocks
 
