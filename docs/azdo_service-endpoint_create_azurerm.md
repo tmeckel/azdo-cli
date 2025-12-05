@@ -27,6 +27,10 @@ This command is modeled after the Azure DevOps Terraform Provider's implementati
 
 	Azure environment: {AzureCloud|AzureChinaCloud|AzureUSGovernment|AzureGermanCloud|AzureStack}
 
+* `--grant-permission-to-all-pipelines`
+
+	Grant access permission to all pipelines to use the service connection
+
 * `-q`, `--jq` `expression`
 
 	Filter JSON output using a jq expression
@@ -84,6 +88,15 @@ This command is modeled after the Azure DevOps Terraform Provider's implementati
 	Skip confirmation prompts
 
 
+### ALIASES
+
+- `cr`
+- `c`
+- `new`
+- `n`
+- `add`
+- `a`
+
 ### JSON Fields
 
 `authorization`, `description`, `id`, `name`, `type`, `url`
@@ -92,7 +105,7 @@ This command is modeled after the Azure DevOps Terraform Provider's implementati
 
 ```bash
 # Service Principal with a secret
-azdo service-endpoint azurerm create my-org/my-project \
+azdo service-endpoint create azurerm my-org/my-project \
 		--name "My AzureRM SPN Secret Connection" \
 		--authentication-scheme ServicePrincipal \
 		--tenant-id "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" \
@@ -104,7 +117,7 @@ azdo service-endpoint azurerm create my-org/my-project \
 		--description "Service Connection for my AzureRM resources"
 
 # Service Principal with a certificate
-azdo service-endpoint azurerm create my-org/my-project \
+azdo service-endpoint create azurerm my-org/my-project \
 		--name "My AzureRM SPN Cert Connection" \
 		--authentication-scheme ServicePrincipal \
 		--tenant-id "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" \
@@ -115,7 +128,7 @@ azdo service-endpoint azurerm create my-org/my-project \
 		--description "Certificate-based Service Connection"
 
 # Managed Service Identity
-azdo service-endpoint azurerm create my-org/my-project \
+azdo service-endpoint create azurerm my-org/my-project \
 		--name "My AzureRM MSI Connection" \
 		--authentication-scheme ManagedServiceIdentity \
 		--tenant-id "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" \
@@ -124,7 +137,7 @@ azdo service-endpoint azurerm create my-org/my-project \
 		--description "MSI Service Connection"
 
 # Workload Identity Federation (Manual mode, with existing Service Principal)
-azdo service-endpoint azurerm create my-org/my-project \
+azdo service-endpoint create azurerm my-org/my-project \
 		--name "My AzureRM WIF Manual Connection" \
 		--authentication-scheme WorkloadIdentityFederation \
 		--tenant-id "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" \
@@ -134,7 +147,7 @@ azdo service-endpoint azurerm create my-org/my-project \
 		--description "WIF Manual Service Connection"
 
 # Workload Identity Federation (Automatic mode, Azure DevOps creates Service Principal)
-azdo service-endpoint azurerm create my-org/my-project \
+azdo service-endpoint create azurerm my-org/my-project \
 		--name "My AzureRM WIF Automatic Connection" \
 		--authentication-scheme WorkloadIdentityFederation \
 		--tenant-id "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" \
@@ -143,7 +156,7 @@ azdo service-endpoint azurerm create my-org/my-project \
 		--description "WIF Automatic Service Connection"
 
 # Service Principal with Management Group Scope
-azdo service-endpoint azurerm create my-org/my-project \
+azdo service-endpoint create azurerm my-org/my-project \
 		--name "My AzureRM MGMT Group Connection" \
 		--authentication-scheme ServicePrincipal \
 		--tenant-id "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" \
@@ -154,7 +167,7 @@ azdo service-endpoint azurerm create my-org/my-project \
 		--description "Service Connection scoped to a Management Group"
 
 # Azure Stack Environment
-azdo service-endpoint azurerm create my-org/my-project \
+azdo service-endpoint create azurerm my-org/my-project \
 		--name "My AzureStack Connection" \
 		--authentication-scheme ServicePrincipal \
 		--tenant-id "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" \

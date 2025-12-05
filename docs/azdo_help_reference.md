@@ -328,16 +328,15 @@ View changes in a pull request
 Edit a pull request
 
 ```
-    --add-label strings                  Add labels (comma-separated)
-    --add-optional-reviewer strings      Add optional reviewers (comma-separated)
-    --add-required-reviewer strings      Add required reviewers (comma-separated)
--B, --base string                        Change the base branch for this pull request
--b, --body string                        Set the new body.
--F, --body-file string                   Read body text from file (use "-" to read from standard input)
-    --remove-label strings               Remove labels (comma-separated)
-    --remove-optional-reviewer strings   Remove optional reviewers (comma-separated)
-    --remove-required-reviewer strings   Remove required reviewers (comma-separated)
--t, --title string                       Set the new title.
+    --add-label strings               Add labels (comma-separated)
+    --add-optional-reviewer strings   Add or demote optional reviewers (comma-separated)
+    --add-required-reviewer strings   Add or promote required reviewers (comma-separated)
+-B, --base string                     Change the base branch for this pull request
+-b, --body string                     Set the new body.
+-F, --body-file string                Read body text from file (use "-" to read from standard input)
+    --remove-label strings            Remove labels (comma-separated, use * to remove all)
+    --remove-reviewer strings         Remove reviewers (comma-separated, use * to remove all)
+-t, --title string                    Set the new title.
 ```
 
 ### `azdo pr list [[organization/]project/repository] [flags]`
@@ -393,8 +392,8 @@ View a pull request
     --comment-type string   Filter comments by type; defaults to 'text': {text|system|all} (default "text")
 -c, --comments              View pull request comments
 -C, --commits               View pull request commits
-    --format string         Output format: {json}
 -q, --jq expression         Filter JSON output using a jq expression
+    --json fields[=*]       Output JSON with the specified fields. Prefix a field with '-' to exclude it.
 -r, --raw                   View pull request raw
 -t, --template string       Format JSON output using a Go template; see "azdo help formatting"
 ```
@@ -402,7 +401,7 @@ View a pull request
 Aliases
 
 ```
-show
+show, status
 ```
 
 ### `azdo pr vote [<number> | <branch> | <url>] [flags]`
@@ -442,7 +441,7 @@ Create a new Azure DevOps Project
 Aliases
 
 ```
-cr
+cr, c, new, n, add, a
 ```
 
 ### `azdo project delete [ORGANIZATION/]PROJECT [flags]`
@@ -945,24 +944,31 @@ Create service connections
 Create an Azure Resource Manager service connection
 
 ```
-    --authentication-scheme string   Authentication scheme: {ServicePrincipal|ManagedServiceIdentity|WorkloadIdentityFederation} (default "ServicePrincipal")
-    --certificate-path string        Path to service principal certificate file (PEM format)
-    --description string             Description for the service endpoint
-    --environment string             Azure environment: {AzureCloud|AzureChinaCloud|AzureUSGovernment|AzureGermanCloud|AzureStack} (default "AzureCloud")
--q, --jq expression                  Filter JSON output using a jq expression
-    --json fields[=*]                Output JSON with the specified fields. Prefix a field with '-' to exclude it.
-    --management-group-id string     Azure management group ID
-    --management-group-name string   Azure management group name
-    --name string                    Name of the service endpoint
-    --resource-group string          Name of the resource group (for subscription-level scope)
-    --server-url string              Azure Stack Resource Manager base URL. Required if --environment is AzureStack.
-    --service-principal-id string    Service principal/application ID (e.g., GUID)
-    --service-principal-key string   Service principal key (secret value)
-    --subscription-id string         Azure subscription ID (e.g., GUID)
-    --subscription-name string       Azure subscription name
--t, --template string                Format JSON output using a Go template; see "azdo help formatting"
-    --tenant-id string               Azure tenant ID (e.g., GUID)
--y, --yes                            Skip confirmation prompts
+    --authentication-scheme string        Authentication scheme: {ServicePrincipal|ManagedServiceIdentity|WorkloadIdentityFederation} (default "ServicePrincipal")
+    --certificate-path string             Path to service principal certificate file (PEM format)
+    --description string                  Description for the service endpoint
+    --environment string                  Azure environment: {AzureCloud|AzureChinaCloud|AzureUSGovernment|AzureGermanCloud|AzureStack} (default "AzureCloud")
+    --grant-permission-to-all-pipelines   Grant access permission to all pipelines to use the service connection
+-q, --jq expression                       Filter JSON output using a jq expression
+    --json fields[=*]                     Output JSON with the specified fields. Prefix a field with '-' to exclude it.
+    --management-group-id string          Azure management group ID
+    --management-group-name string        Azure management group name
+    --name string                         Name of the service endpoint
+    --resource-group string               Name of the resource group (for subscription-level scope)
+    --server-url string                   Azure Stack Resource Manager base URL. Required if --environment is AzureStack.
+    --service-principal-id string         Service principal/application ID (e.g., GUID)
+    --service-principal-key string        Service principal key (secret value)
+    --subscription-id string              Azure subscription ID (e.g., GUID)
+    --subscription-name string            Azure subscription name
+-t, --template string                     Format JSON output using a Go template; see "azdo help formatting"
+    --tenant-id string                    Azure tenant ID (e.g., GUID)
+-y, --yes                                 Skip confirmation prompts
+```
+
+Aliases
+
+```
+cr, c, new, n, add, a
 ```
 
 ### `azdo service-endpoint list [ORGANIZATION/]PROJECT [flags]`
