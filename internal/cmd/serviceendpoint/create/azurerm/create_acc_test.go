@@ -1,35 +1,23 @@
 package azurerm
 
 import (
-	"context"
 	"errors"
 	"fmt"
 	"os"
 	"strings"
-	"sync"
 	"testing"
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/microsoft/azure-devops-go-api/azuredevops/v7/core"
-	"github.com/microsoft/azure-devops-go-api/azuredevops/v7/operations"
 	"github.com/microsoft/azure-devops-go-api/azuredevops/v7/serviceendpoint"
 
-	"github.com/tmeckel/azdo-cli/internal/azdo"
+	"github.com/tmeckel/azdo-cli/internal/cmd/serviceendpoint/test"
 	inttest "github.com/tmeckel/azdo-cli/internal/test"
 	"github.com/tmeckel/azdo-cli/internal/types"
 )
 
-type contextKey string
-
 const (
-	ctxKeyCreateOpts        contextKey = "azurerm/create-opts"
-	ctxKeyEndpointID        contextKey = "azurerm/endpoint-id"
-	ctxKeyEndpointProjectID contextKey = "azurerm/project-id"
-	ctxKeyCertPath          contextKey = "azurerm/cert-path"
-	ctxKeyProjectName       contextKey = "azurerm/test-project-name"
-	ctxKeyProjectID         contextKey = "azurerm/test-project-id"
-	testCertificatePEM                 = `-----BEGIN CERTIFICATE-----
+	testCertificatePEM = `-----BEGIN CERTIFICATE-----
 MIIDXTCCAkWgAwIBAgIJAKoK/heBjcOuMA0GCSqGSIb3DQEBBQUAMEUxCzAJBgNV
 BAYTAkFVMRMwEQYDVQQIDApTb21lLVN0YXRlMSEwHwYDVQQKDBhJbnRlcm5ldCBX
 aWRnaXRzIFB0eSBMdGQwHhcNMTIwOTEyMjE1MjAyWhcNMTUwOTEyMjE1MjAyWjBF
@@ -40,7 +28,7 @@ gKCAQEAwuTanj/Uo5Yhq7ckmL5jycB3Z/zPBuZjviQ4fAar/7xeOUe7/y2Kpls=
 )
 
 func TestAccCreateAzureRMServiceEndpoint(t *testing.T) {
-	sharedProj := newProject(fmt.Sprintf("azdo-cli-acc-%s", uuid.New().String()))
+	sharedProj := test.NewSharedProject(fmt.Sprintf("azdo-cli-acc-%s", uuid.New().String()))
 	t.Cleanup(func() {
 		err := sharedProj.Cleanup()
 		if err != nil {
@@ -83,7 +71,7 @@ func TestAccCreateAzureRMServiceEndpoint(t *testing.T) {
 	})
 }
 
-func testAccCreateAzureRMServiceEndpoint(t *testing.T, sharedProj *sharedProject, authScheme string, creationMode string, setupFunc func(*createOptions)) {
+func testAccCreateAzureRMServiceEndpoint(t *testing.T, sharedProj *test.SharedProject, authScheme string, creationMode string, setupFunc func(*createOptions)) {
 	// Generate unique names for each test run
 	endpointName := fmt.Sprintf("azdo-cli-test-ep-%s-%s", authScheme, uuid.New().String())
 	subscriptionID := uuid.New().String()
@@ -97,7 +85,7 @@ func testAccCreateAzureRMServiceEndpoint(t *testing.T, sharedProj *sharedProject
 					return sharedProj.Ensure(ctx)
 				},
 				Run: func(ctx inttest.TestContext) error {
-					projectName, err := getTestProjectName(ctx)
+					projectName, err := test.GetTestProjectName(ctx)
 					if err != nil {
 						return err
 					}
@@ -154,7 +142,7 @@ func testAccCreateAzureRMServiceEndpoint(t *testing.T, sharedProj *sharedProject
 					}
 
 					return inttest.Poll(func() error {
-						projectName, err := getTestProjectName(ctx)
+						projectName, err := test.GetTestProjectName(ctx)
 						if err != nil {
 							return err
 						}
@@ -181,12 +169,12 @@ func testAccCreateAzureRMServiceEndpoint(t *testing.T, sharedProj *sharedProject
 						}
 
 						if foundEndpoint.Id != nil {
-							ctx.SetValue(ctxKeyEndpointID, foundEndpoint.Id.String())
+							ctx.SetValue(test.CtxKeyEndpointID, foundEndpoint.Id.String())
 						}
 						if refs := foundEndpoint.ServiceEndpointProjectReferences; refs != nil {
 							for _, ref := range *refs {
 								if ref.ProjectReference != nil && ref.ProjectReference.Id != nil {
-									ctx.SetValue(ctxKeyEndpointProjectID, ref.ProjectReference.Id.String())
+									ctx.SetValue(test.CtxKeyProjectID, ref.ProjectReference.Id.String())
 									break
 								}
 							}
@@ -259,7 +247,7 @@ func testAccCreateAzureRMServiceEndpoint(t *testing.T, sharedProj *sharedProject
 				PostRun: func(ctx inttest.TestContext) error {
 					var errs []error
 
-					if err := deleteCreatedEndpoint(ctx); err != nil {
+					if err := test.CleanupEndpointFromContext(ctx, test.CtxKeyEndpointID, test.CtxKeyProjectID); err != nil {
 						errs = append(errs, err)
 					}
 
@@ -279,201 +267,4 @@ func testAccCreateAzureRMServiceEndpoint(t *testing.T, sharedProj *sharedProject
 			},
 		},
 	})
-}
-
-func getTestProjectName(ctx inttest.TestContext) (string, error) {
-	if val, ok := ctx.Value(ctxKeyProjectName); ok {
-		if name, _ := val.(string); strings.TrimSpace(name) != "" {
-			return name, nil
-		}
-	}
-	if name := strings.TrimSpace(ctx.Project()); name != "" {
-		return name, nil
-	}
-	return "", fmt.Errorf("test project name not available")
-}
-
-type sharedProject struct {
-	name        string
-	id          string
-	initOnce    sync.Once
-	cleanupOnce sync.Once
-	ctx         inttest.TestContext
-}
-
-func newProject(name string) *sharedProject {
-	return &sharedProject{name: name}
-}
-
-func (p *sharedProject) Ensure(ctx inttest.TestContext) error {
-	var initErr error
-	p.initOnce.Do(func() {
-		projectID, err := provisionProject(ctx, p.name)
-		if err != nil {
-			initErr = err
-			return
-		}
-		p.id = projectID
-		p.ctx = ctx
-	})
-	if initErr != nil {
-		return initErr
-	}
-	if strings.TrimSpace(p.id) == "" {
-		return fmt.Errorf("shared project initialization incomplete")
-	}
-	ctx.SetValue(ctxKeyProjectName, p.name)
-	ctx.SetValue(ctxKeyProjectID, p.id)
-	return nil
-}
-
-func (p *sharedProject) Cleanup() error {
-	var cleanupErr error
-	p.cleanupOnce.Do(func() {
-		cleanupErr = deleteProjectByID(p.ctx, p.id)
-	})
-	return cleanupErr
-}
-
-func provisionProject(ctx inttest.TestContext, projectName string) (string, error) {
-	coreClient, err := ctx.ClientFactory().Core(ctx.Context(), ctx.Org())
-	if err != nil {
-		return "", fmt.Errorf("failed to create core client: %w", err)
-	}
-
-	teamProject := &core.TeamProject{
-		Name: types.ToPtr(projectName),
-	}
-	vis := core.ProjectVisibilityValues.Private
-	teamProject.Visibility = &vis
-
-	processID, err := resolveProcessTemplate(ctx, coreClient, "Agile")
-	if err != nil {
-		return "", err
-	}
-
-	capabilities := map[string]map[string]string{
-		"versioncontrol": {
-			"sourceControlType": "Git",
-		},
-		"processTemplate": {
-			"templateTypeId": processID,
-		},
-	}
-	teamProject.Capabilities = &capabilities
-
-	opRef, err := coreClient.QueueCreateProject(ctx.Context(), core.QueueCreateProjectArgs{
-		ProjectToCreate: teamProject,
-	})
-	if err != nil {
-		return "", fmt.Errorf("failed to queue project creation: %w", err)
-	}
-
-	if err := waitForOperation(ctx, opRef); err != nil {
-		return "", fmt.Errorf("project creation failed: %w", err)
-	}
-
-	project, err := coreClient.GetProject(ctx.Context(), core.GetProjectArgs{
-		ProjectId:           types.ToPtr(projectName),
-		IncludeCapabilities: types.ToPtr(true),
-	})
-	if err != nil {
-		return "", fmt.Errorf("failed to fetch created project %q: %w", projectName, err)
-	}
-	if project == nil || project.Id == nil {
-		return "", fmt.Errorf("project %q returned empty id", projectName)
-	}
-
-	return project.Id.String(), nil
-}
-
-func deleteProjectByID(ctx inttest.TestContext, projectID string) error {
-	projectID = strings.TrimSpace(projectID)
-	if projectID == "" {
-		return nil
-	}
-	context := context.Background()
-	coreClient, err := ctx.ClientFactory().Core(context, ctx.Org())
-	if err != nil {
-		return fmt.Errorf("failed to create core client for cleanup: %w", err)
-	}
-	parsedProjectID, err := uuid.Parse(projectID)
-	if err != nil {
-		return fmt.Errorf("invalid project ID %q: %w", projectID, err)
-	}
-	op, err := coreClient.QueueDeleteProject(context, core.QueueDeleteProjectArgs{
-		ProjectId: &parsedProjectID,
-	})
-	if err != nil {
-		return fmt.Errorf("failed to queue project deletion: %w", err)
-	}
-	return waitForOperation(ctx, op)
-}
-
-func deleteCreatedEndpoint(ctx inttest.TestContext) error {
-	endpointVal, _ := ctx.Value(ctxKeyEndpointID)
-	projectVal, _ := ctx.Value(ctxKeyEndpointProjectID)
-	if projectVal == nil {
-		projectVal, _ = ctx.Value(ctxKeyProjectID)
-	}
-	endpointID, _ := endpointVal.(string)
-	projectID, _ := projectVal.(string)
-
-	if endpointID == "" || projectID == "" {
-		return nil
-	}
-
-	client, err := ctx.ClientFactory().ServiceEndpoint(ctx.Context(), ctx.Org())
-	if err != nil {
-		return fmt.Errorf("failed to create service endpoint client: %w", err)
-	}
-	parsedEndpointID, err := uuid.Parse(endpointID)
-	if err != nil {
-		return fmt.Errorf("invalid endpoint ID %q: %w", endpointID, err)
-	}
-	projectIDs := []string{projectID}
-	if err := client.DeleteServiceEndpoint(ctx.Context(), serviceendpoint.DeleteServiceEndpointArgs{
-		EndpointId: &parsedEndpointID,
-		ProjectIds: &projectIDs,
-	}); err != nil {
-		return fmt.Errorf("failed to delete service endpoint: %w", err)
-	}
-	return nil
-}
-
-func resolveProcessTemplate(ctx inttest.TestContext, client core.Client, preferred string) (string, error) {
-	processes, err := client.GetProcesses(ctx.Context(), core.GetProcessesArgs{})
-	if err != nil {
-		return "", fmt.Errorf("failed to list processes: %w", err)
-	}
-	preferred = strings.TrimSpace(preferred)
-	var fallback string
-	for _, process := range *processes {
-		if process.Id == nil {
-			continue
-		}
-		if fallback == "" {
-			fallback = process.Id.String()
-		}
-		if process.Name != nil && preferred != "" && strings.EqualFold(*process.Name, preferred) {
-			return process.Id.String(), nil
-		}
-	}
-	if fallback == "" {
-		return "", fmt.Errorf("no processes available in organization %s", ctx.Org())
-	}
-	return fallback, nil
-}
-
-func waitForOperation(ctx inttest.TestContext, opRef *operations.OperationReference) error {
-	if opRef == nil {
-		return fmt.Errorf("operation reference is nil")
-	}
-	context := context.Background()
-	operationsClient, err := ctx.ClientFactory().Operations(context, ctx.Org())
-	if err != nil {
-		return fmt.Errorf("failed to create operations client: %w", err)
-	}
-	_, err = azdo.PollOperationResult(context, operationsClient, opRef, 10*time.Minute)
-	return err
 }
