@@ -155,96 +155,111 @@ func ResolveScopeDescriptor(ctx CmdContext, organization, project string) (*stri
 }
 
 type Target struct {
-	Organization string
-	Project      string
-	Target       string
+	Scope
+	Target string
 }
 
 // ParseTarget validates and parses a target argument of form ORGANIZATION/TARGET or ORGANIZATION/PROJECT/TARGET.
 func ParseTarget(target string) (*Target, error) {
-	if strings.TrimSpace(target) == "" {
-		return nil, fmt.Errorf("target must not be empty")
-	}
-
-	parts := strings.Split(target, "/")
-	switch len(parts) {
-	case 2:
-		org := strings.TrimSpace(parts[0])
-		groupName := strings.TrimSpace(parts[1])
-		if org == "" || groupName == "" {
-			return nil, fmt.Errorf("invalid target format: %s", target)
-		}
-		return &Target{
-			Organization: org,
-			Target:       groupName,
-		}, nil
-	case 3:
-		org := strings.TrimSpace(parts[0])
-		project := strings.TrimSpace(parts[1])
-		groupName := strings.TrimSpace(parts[2])
-		if org == "" || project == "" || groupName == "" {
-			return nil, fmt.Errorf("invalid target format: %s", target)
-		}
-		return &Target{
-			Organization: org,
-			Project:      project,
-			Target:       groupName,
-		}, nil
-	default:
-		return nil, fmt.Errorf("invalid target format: %s", target)
-	}
+	return parseTarget(nil, target, targetParseOptions{
+		allowImplicitOrg: false,
+		requireProject:   false,
+	})
 }
 
-// ParseTargetWithDefaultOrganization resolves a target argument that allows an implicit organization by falling
-// back to the configured default. The accepted formats are:
+// ParseTargetWithDefaultOrganization resolves a group-oriented target that allows an implicit organization by
+// falling back to the configured default. Accepted formats are [ORGANIZATION/]GROUP and
+// [ORGANIZATION/]PROJECT/GROUP (used by security membership commands where the middle segment is optional).
 func ParseTargetWithDefaultOrganization(ctx CmdContext, target string) (*Target, error) {
-	if strings.TrimSpace(target) == "" {
+	return parseTarget(ctx, target, targetParseOptions{
+		allowImplicitOrg: true,
+		requireProject:   false,
+	})
+}
+
+// ParseProjectTargetWithDefaultOrganization resolves targets that must include a project segment. It accepts
+// arguments in the form [ORGANIZATION/]PROJECT/TARGET, falling back to the user's default organization when the
+// organization segment is omitted.
+func ParseProjectTargetWithDefaultOrganization(ctx CmdContext, target string) (*Target, error) {
+	return parseTarget(ctx, target, targetParseOptions{
+		allowImplicitOrg: true,
+		requireProject:   true,
+	})
+}
+
+type targetParseOptions struct {
+	allowImplicitOrg bool
+	requireProject   bool
+}
+
+func parseTarget(ctx CmdContext, raw string, opts targetParseOptions) (*Target, error) {
+	trimmed := strings.TrimSpace(raw)
+	if trimmed == "" {
 		return nil, fmt.Errorf("target must not be empty")
 	}
 
-	parts := strings.Split(target, "/")
+	parts := strings.Split(trimmed, "/")
+	for i := range parts {
+		parts[i] = strings.TrimSpace(parts[i])
+	}
+
+	var org, project, targetValue string
 	switch len(parts) {
 	case 1:
-		target := strings.TrimSpace(parts[0])
-		if target == "" {
-			return nil, fmt.Errorf("invalid target format: %s", target)
+		if !opts.allowImplicitOrg || opts.requireProject {
+			return nil, fmt.Errorf("invalid target format: %s", raw)
+		}
+		targetValue = parts[0]
+	case 2:
+		if opts.requireProject {
+			project = parts[0]
+			targetValue = parts[1]
+		} else {
+			org = parts[0]
+			targetValue = parts[1]
+		}
+	case 3:
+		org = parts[0]
+		project = parts[1]
+		targetValue = parts[2]
+	default:
+		return nil, fmt.Errorf("invalid target format: %s", raw)
+	}
+
+	if targetValue == "" {
+		return nil, fmt.Errorf("invalid target format: %s", raw)
+	}
+	if opts.requireProject && project == "" {
+		return nil, fmt.Errorf("invalid target format: %s", raw)
+	}
+
+	if org == "" {
+		if !opts.allowImplicitOrg {
+			return nil, fmt.Errorf("invalid target format: %s", raw)
+		}
+		if ctx == nil {
+			return nil, fmt.Errorf("no organization specified and no default organization configured")
 		}
 		cfg, err := ctx.Config()
 		if err != nil {
 			return nil, err
 		}
-		org, err := cfg.Authentication().GetDefaultOrganization()
+		authCfg := cfg.Authentication()
+		org, err = authCfg.GetDefaultOrganization()
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("no organization specified and no default organization configured: %w", err)
 		}
+		org = strings.TrimSpace(org)
+		if org == "" {
+			return nil, fmt.Errorf("no organization specified and no default organization configured")
+		}
+	}
 
-		return &Target{
-			Organization: org,
-			Target:       target,
-		}, nil
-	case 2:
-		org := strings.TrimSpace(parts[0])
-		target := strings.TrimSpace(parts[1])
-		if org == "" || target == "" {
-			return nil, fmt.Errorf("invalid target format: %s", target)
-		}
-		return &Target{
-			Organization: org,
-			Target:       target,
-		}, nil
-	case 3:
-		org := strings.TrimSpace(parts[0])
-		project := strings.TrimSpace(parts[1])
-		target := strings.TrimSpace(parts[2])
-		if org == "" || project == "" || target == "" {
-			return nil, fmt.Errorf("invalid target format: %s", target)
-		}
-		return &Target{
+	return &Target{
+		Scope: Scope{
 			Organization: org,
 			Project:      project,
-			Target:       target,
-		}, nil
-	default:
-		return nil, fmt.Errorf("invalid target format: %s", target)
-	}
+		},
+		Target: targetValue,
+	}, nil
 }

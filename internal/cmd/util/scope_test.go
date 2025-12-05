@@ -148,6 +148,159 @@ func TestParseProjectScope(t *testing.T) {
 	})
 }
 
+func TestParseTarget(t *testing.T) {
+	t.Run("organization and group", func(t *testing.T) {
+		result, err := util.ParseTarget("org/group")
+		require.NoError(t, err)
+		assert.Equal(t, "org", result.Organization)
+		assert.Empty(t, result.Project)
+		assert.Equal(t, "group", result.Target)
+	})
+
+	t.Run("organization project group", func(t *testing.T) {
+		result, err := util.ParseTarget("org/project/group")
+		require.NoError(t, err)
+		assert.Equal(t, "org", result.Organization)
+		assert.Equal(t, "project", result.Project)
+		assert.Equal(t, "group", result.Target)
+	})
+
+	t.Run("invalid format", func(t *testing.T) {
+		_, err := util.ParseTarget("justone")
+		require.Error(t, err)
+	})
+}
+
+func TestParseTargetWithDefaultOrganization(t *testing.T) {
+	t.Run("implicit organization", func(t *testing.T) {
+		ctrl := gomock.NewController(t)
+		t.Cleanup(ctrl.Finish)
+
+		mockCtx := mocks.NewMockCmdContext(ctrl)
+		mockConfig := mocks.NewMockConfig(ctrl)
+		mockAuth := mocks.NewMockAuthConfig(ctrl)
+
+		mockCtx.EXPECT().Config().Return(mockConfig, nil)
+		mockConfig.EXPECT().Authentication().Return(mockAuth).AnyTimes()
+		mockAuth.EXPECT().GetDefaultOrganization().Return("default-org", nil)
+
+		result, err := util.ParseTargetWithDefaultOrganization(mockCtx, "group")
+		require.NoError(t, err)
+		assert.Equal(t, "default-org", result.Organization)
+		assert.Equal(t, "group", result.Target)
+	})
+
+	t.Run("explicit organization", func(t *testing.T) {
+		ctrl := gomock.NewController(t)
+		t.Cleanup(ctrl.Finish)
+
+		result, err := util.ParseTargetWithDefaultOrganization(mocks.NewMockCmdContext(ctrl), "org/group")
+		require.NoError(t, err)
+		assert.Equal(t, "org", result.Organization)
+		assert.Equal(t, "group", result.Target)
+	})
+
+	t.Run("organization project group", func(t *testing.T) {
+		ctrl := gomock.NewController(t)
+		t.Cleanup(ctrl.Finish)
+
+		result, err := util.ParseTargetWithDefaultOrganization(mocks.NewMockCmdContext(ctrl), "org/project/group")
+		require.NoError(t, err)
+		assert.Equal(t, "org", result.Organization)
+		assert.Equal(t, "project", result.Project)
+		assert.Equal(t, "group", result.Target)
+	})
+
+	t.Run("missing default organization", func(t *testing.T) {
+		ctrl := gomock.NewController(t)
+		t.Cleanup(ctrl.Finish)
+
+		mockCtx := mocks.NewMockCmdContext(ctrl)
+		mockConfig := mocks.NewMockConfig(ctrl)
+		mockAuth := mocks.NewMockAuthConfig(ctrl)
+
+		mockCtx.EXPECT().Config().Return(mockConfig, nil)
+		mockConfig.EXPECT().Authentication().Return(mockAuth).AnyTimes()
+		mockAuth.EXPECT().GetDefaultOrganization().Return("", nil)
+
+		_, err := util.ParseTargetWithDefaultOrganization(mockCtx, "group")
+		require.Error(t, err)
+	})
+
+	t.Run("invalid format", func(t *testing.T) {
+		ctrl := gomock.NewController(t)
+		t.Cleanup(ctrl.Finish)
+
+		_, err := util.ParseTargetWithDefaultOrganization(mocks.NewMockCmdContext(ctrl), "")
+		require.Error(t, err)
+	})
+}
+
+func TestParseProjectTargetWithDefaultOrganization(t *testing.T) {
+	t.Run("implicit organization", func(t *testing.T) {
+		ctrl := gomock.NewController(t)
+		t.Cleanup(ctrl.Finish)
+
+		mockCtx := mocks.NewMockCmdContext(ctrl)
+		mockConfig := mocks.NewMockConfig(ctrl)
+		mockAuth := mocks.NewMockAuthConfig(ctrl)
+
+		mockCtx.EXPECT().Config().Return(mockConfig, nil)
+		mockConfig.EXPECT().Authentication().Return(mockAuth).AnyTimes()
+		mockAuth.EXPECT().GetDefaultOrganization().Return("default-org", nil)
+
+		result, err := util.ParseProjectTargetWithDefaultOrganization(mockCtx, "project/target")
+		require.NoError(t, err)
+		require.NotNil(t, result)
+		assert.Equal(t, "default-org", result.Organization)
+		assert.Equal(t, "project", result.Project)
+		assert.Equal(t, "target", result.Target)
+	})
+
+	t.Run("explicit organization", func(t *testing.T) {
+		ctrl := gomock.NewController(t)
+		t.Cleanup(ctrl.Finish)
+
+		result, err := util.ParseProjectTargetWithDefaultOrganization(mocks.NewMockCmdContext(ctrl), "org/project/target")
+		require.NoError(t, err)
+		assert.Equal(t, "org", result.Organization)
+		assert.Equal(t, "project", result.Project)
+		assert.Equal(t, "target", result.Target)
+	})
+
+	t.Run("missing default organization", func(t *testing.T) {
+		ctrl := gomock.NewController(t)
+		t.Cleanup(ctrl.Finish)
+
+		mockCtx := mocks.NewMockCmdContext(ctrl)
+		mockConfig := mocks.NewMockConfig(ctrl)
+		mockAuth := mocks.NewMockAuthConfig(ctrl)
+
+		mockCtx.EXPECT().Config().Return(mockConfig, nil)
+		mockConfig.EXPECT().Authentication().Return(mockAuth).AnyTimes()
+		mockAuth.EXPECT().GetDefaultOrganization().Return("", nil)
+
+		_, err := util.ParseProjectTargetWithDefaultOrganization(mockCtx, "project/target")
+		require.Error(t, err)
+	})
+
+	t.Run("missing project segment", func(t *testing.T) {
+		ctrl := gomock.NewController(t)
+		t.Cleanup(ctrl.Finish)
+
+		_, err := util.ParseProjectTargetWithDefaultOrganization(mocks.NewMockCmdContext(ctrl), "justtarget")
+		require.Error(t, err)
+	})
+
+	t.Run("invalid format", func(t *testing.T) {
+		ctrl := gomock.NewController(t)
+		t.Cleanup(ctrl.Finish)
+
+		_, err := util.ParseProjectTargetWithDefaultOrganization(mocks.NewMockCmdContext(ctrl), "")
+		require.Error(t, err)
+	})
+}
+
 func TestResolveScopeDescriptor_NoProject(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	t.Cleanup(ctrl.Finish)
