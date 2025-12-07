@@ -7,7 +7,6 @@ import (
 
 	"github.com/MakeNowJust/heredoc"
 	"github.com/google/uuid"
-	"github.com/microsoft/azure-devops-go-api/azuredevops/v7/core"
 	"github.com/microsoft/azure-devops-go-api/azuredevops/v7/serviceendpoint"
 	"github.com/spf13/cobra"
 	"go.uber.org/zap"
@@ -182,7 +181,24 @@ func NewCmd(ctx util.CmdContext) *cobra.Command {
 	cmd.Flags().BoolVarP(&opts.yes, "yes", "y", false, "Skip confirmation prompts")
 	cmd.Flags().BoolVar(&opts.grantPermissionToAllPipelines, "grant-permission-to-all-pipelines", false, "Grant access permission to all pipelines to use the service connection")
 
-	util.AddJSONFlags(cmd, &opts.exporter, []string{"id", "name", "type", "url", "description", "authorization"})
+	util.AddJSONFlags(cmd, &opts.exporter, []string{
+		"administratorsGroup",
+		"authorization",
+		"createdBy",
+		"data",
+		"description",
+		"groupScopeId",
+		"id",
+		"isReady",
+		"isShared",
+		"name",
+		"operationStatus",
+		"owner",
+		"readersGroup",
+		"serviceEndpointProjectReferences",
+		"type",
+		"url",
+	})
 
 	_ = cmd.MarkFlagRequired("name")
 	_ = cmd.MarkFlagRequired("authentication-scheme")
@@ -220,7 +236,7 @@ func runCreate(ctx util.CmdContext, opts *createOptions) error {
 		}
 	}
 
-	projectRef, err := resolveProjectReference(ctx, scope)
+	projectRef, err := shared.ResolveProjectReference(ctx, scope)
 	if err != nil {
 		return util.FlagErrorWrap(err)
 	}
@@ -466,26 +482,4 @@ func getEndpointURL(opts *createOptions) (string, error) {
 	default:
 		return "", fmt.Errorf("unknown environment: %s", opts.environment)
 	}
-}
-
-func resolveProjectReference(ctx util.CmdContext, scope *util.Scope) (*serviceendpoint.ProjectReference, error) {
-	coreClient, err := ctx.ClientFactory().Core(ctx.Context(), scope.Organization)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create core client: %w", err)
-	}
-
-	project, err := coreClient.GetProject(ctx.Context(), core.GetProjectArgs{
-		ProjectId: types.ToPtr(scope.Project),
-	})
-	if err != nil {
-		return nil, fmt.Errorf("failed to resolve project %q: %w", scope.Project, err)
-	}
-	if project == nil || project.Id == nil {
-		return nil, fmt.Errorf("project %q does not expose an ID", scope.Project)
-	}
-
-	return &serviceendpoint.ProjectReference{
-		Id:   project.Id,
-		Name: project.Name,
-	}, nil
 }
