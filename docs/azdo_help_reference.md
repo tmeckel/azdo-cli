@@ -935,9 +935,23 @@ Aliases
 service-endpoints, serviceendpoints, se
 ```
 
-### `azdo service-endpoint create`
+### `azdo service-endpoint create [ORGANIZATION/]PROJECT --from-file <path> [flags]`
 
 Create service connections
+
+```
+-e, --encoding string    File encoding (utf-8, ascii, utf-16be, utf-16le). (default "utf-8")
+-f, --from-file string   Path to the JSON service endpoint definition or '-' for stdin.
+-q, --jq expression      Filter JSON output using a jq expression
+    --json fields[=*]    Output JSON with the specified fields. Prefix a field with '-' to exclude it.
+-t, --template string    Format JSON output using a Go template; see "azdo help formatting"
+```
+
+Aliases
+
+```
+import
+```
 
 #### `azdo service-endpoint create azurerm [ORGANIZATION/]PROJECT --name <name> --authentication-scheme <scheme> [flags]`
 

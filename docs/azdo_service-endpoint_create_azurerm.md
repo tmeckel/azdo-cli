@@ -99,7 +99,7 @@ This command is modeled after the Azure DevOps Terraform Provider's implementati
 
 ### JSON Fields
 
-`authorization`, `description`, `id`, `name`, `type`, `url`
+`administratorsGroup`, `authorization`, `createdBy`, `data`, `description`, `groupScopeId`, `id`, `isReady`, `isShared`, `name`, `operationStatus`, `owner`, `readersGroup`, `serviceEndpointProjectReferences`, `type`, `url`
 
 ### Examples
 
