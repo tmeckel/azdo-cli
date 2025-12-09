@@ -1001,6 +1001,21 @@ Aliases
 rm, del, d
 ```
 
+### `azdo service-endpoint export [ORGANIZATION/]PROJECT/ID_OR_NAME [flags]`
+
+Export a service endpoint definition as JSON.
+
+```
+-o, --output-file string   Path to write the exported JSON. Defaults to stdout.
+    --with-secrets         Include sensitive authorization values in the export.
+```
+
+Aliases
+
+```
+e, ex
+```
+
 ### `azdo service-endpoint list [ORGANIZATION/]PROJECT [flags]`
 
 List service endpoints in a project.
