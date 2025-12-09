@@ -4,7 +4,7 @@ Manage Azure DevOps pipelines
 
 ### Available commands
 
-* [azdo pipelines variable-groups](./azdo_pipelines_variable-groups.md)
+* [azdo pipelines variable-group](./azdo_pipelines_variable-group.md)
 
 ### ALIASES
 

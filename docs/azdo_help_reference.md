@@ -200,17 +200,17 @@ Aliases
 p
 ```
 
-### `azdo pipelines variable-groups`
+### `azdo pipelines variable-group`
 
 Manage Azure DevOps variable groups
 
 Aliases
 
 ```
-variable-groups, variablegroups, vg
+variablegroup, variable-groups, variablegroups, vg
 ```
 
-#### `azdo pipelines variable-groups list [ORGANIZATION/]PROJECT [flags]`
+#### `azdo pipelines variable-group list [ORGANIZATION/]PROJECT [flags]`
 
 List variable groups
 
@@ -230,7 +230,7 @@ Aliases
 ls, l
 ```
 
-#### `azdo pipelines variable-groups variable`
+#### `azdo pipelines variable-group variable`
 
 Manage variables in a variable group
 
@@ -240,7 +240,7 @@ Aliases
 var
 ```
 
-##### `azdo pipelines variable-groups variable list [ORGANIZATION/]PROJECT/VARIABLEGROUP [flags]`
+##### `azdo pipelines variable-group variable list [ORGANIZATION/]PROJECT/VARIABLEGROUP [flags]`
 
 List variables in a variable group
 
