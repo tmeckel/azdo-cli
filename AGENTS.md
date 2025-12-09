@@ -61,7 +61,12 @@ For a complete guidance on how to implement tests refer to [TESTING.md](./TESTIN
 - **CmdContext Usage:** Always use the injected `util.CmdContext` to retrieve `IOStreams`, configuration (`ctx.Config()`), connection (`ctx.ConnectionFactory()`), and typed API clients via `ctx.ClientFactory()`.
 - **Vendored API:** Access Azure DevOps endpoints via the vendored `azuredevops/v7` client packages instead of raw HTTP calls. Build the appropriate `Args` structs and call the client method (e.g., `git.Client.CreateRepository`).
     - **CRITICAL: Verify Data Types:** Before using API response data, always inspect the struct definitions in the `vendor/github.com/microsoft/azure-devops-go-api/azuredevops/v7/` directory. Mismatched types (e.g., `int64` vs `uint64`) between the API struct and your command's structs will cause compilation errors.
-- **Output:** Use `ctx.Printer(format)` and repository’s standard `printer` helpers to format output in table or JSON, following patterns from existing commands. For commands that make API calls, always wrap the logic with `ios.StartProgressIndicator()` and `defer ios.StopProgressIndicator()` to provide feedback to the user. When not outputting JSON, provide a clean, human-readable table using the `ctx.Printer("list")` helper for list-like output. Choose the most relevant columns to display. Always call `ios.StopProgressIndicator()` **before** creating any output on the command line.
+- **Output:** Use `ctx.Printer(format)` and the standard printer helpers to format table or JSON output. When not emitting JSON, prefer `ctx.Printer("list")` for clear tables and pick the most relevant columns for the scenario.
+
+#### Progress Indicator Usage
+- Start the progress indicator immediately after successfully obtaining `IOStreams` so users see activity while you parse inputs or build clients.
+- Immediately `defer ios.StopProgressIndicator()` to guarantee cleanup on every return path.
+- If you need to print to stdout/stderr before the deferred stop executes, call `ios.StopProgressIndicator()` first to keep progress text from interleaving with user-visible output.
 - **Testing:** Create mocks for the relevant client interface methods under `internal/mocks` and write hermetic, table-driven tests alongside the command.
 
 ### Handling Missing Azure DevOps SDK Clients
