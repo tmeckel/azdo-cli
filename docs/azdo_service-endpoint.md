@@ -9,6 +9,7 @@ Manage Azure DevOps service endpoints (service connections) for projects.
 * [azdo service-endpoint delete](./azdo_service-endpoint_delete.md)
 * [azdo service-endpoint export](./azdo_service-endpoint_export.md)
 * [azdo service-endpoint list](./azdo_service-endpoint_list.md)
+* [azdo service-endpoint show](./azdo_service-endpoint_show.md)
 
 ### ALIASES
 
