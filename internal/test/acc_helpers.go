@@ -90,6 +90,7 @@ func (a *acceptanceCmdContext) IOStreams() (*iostreams.IOStreams, error) { retur
 func (a *acceptanceCmdContext) Printer(string) (printer.Printer, error) {
 	return &nullPrinter{}, nil
 }
+func (f *acceptanceCmdContext) Secret(prompt string) (result string, err error) { return "", nil }
 
 type testContext struct {
 	org     string
@@ -265,6 +266,10 @@ func (stubPrompter) Confirm(string, bool) (bool, error) {
 
 func (stubPrompter) ConfirmDeletion(string) error {
 	return nil
+}
+
+func (stubPrompter) Secret(string) (string, error) {
+	return "", fmt.Errorf("interactive prompts are disabled in acceptance tests")
 }
 
 // Compact acc runner
