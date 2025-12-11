@@ -16,6 +16,7 @@ type Prompter interface {
 	InputOrganizationName() (string, error)
 	Password(string) (string, error)
 	AuthToken() (string, error)
+	Secret(string) (string, error)
 	Confirm(string, bool) (bool, error)
 	ConfirmDeletion(string) error
 }
@@ -164,6 +165,13 @@ func (p *surveyPrompter) Password(prompt string) (result string, err error) {
 		Message: prompt,
 	}, &result)
 
+	return result, err
+}
+
+func (p *surveyPrompter) Secret(prompt string) (result string, err error) {
+	err = p.ask(&survey.Password{
+		Message: prompt,
+	}, &result, survey.WithHideCharacter('*'))
 	return result, err
 }
 
