@@ -143,6 +143,21 @@ func (mr *MockPrompterMockRecorder) Password(arg0 any) *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Password", reflect.TypeOf((*MockPrompter)(nil).Password), arg0)
 }
 
+// Secret mocks base method.
+func (m *MockPrompter) Secret(arg0 string) (string, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Secret", arg0)
+	ret0, _ := ret[0].(string)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// Secret indicates an expected call of Secret.
+func (mr *MockPrompterMockRecorder) Secret(arg0 any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Secret", reflect.TypeOf((*MockPrompter)(nil).Secret), arg0)
+}
+
 // Select mocks base method.
 func (m *MockPrompter) Select(arg0, arg1 string, arg2 []string) (int, error) {
 	m.ctrl.T.Helper()
