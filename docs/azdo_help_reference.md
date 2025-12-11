@@ -210,6 +210,26 @@ Aliases
 variablegroup, variable-groups, variablegroups, vg
 ```
 
+#### `azdo pipelines variable-group create [ORGANIZATION/]PROJECT/NAME [flags]`
+
+Create a variable group
+
+```
+-A, --authorize                          Authorize the variable group for all pipelines in the project after creation
+-d, --description string                 Optional description for the variable group
+-q, --jq expression                      Filter JSON output using a jq expression
+    --json fields[=*]                    Output JSON with the specified fields. Prefix a field with '-' to exclude it.
+    --keyvault-name string               Azure Key Vault name backing the variable group
+    --keyvault-secret strings            Map a pipeline variable to a Key Vault secret (variable=secretName); repeat for multiple entries
+    --keyvault-service-endpoint string   Service endpoint ID (UUID) or name, that grants access to the Azure Key Vault
+    --project-reference strings          Additional project names or IDs to share the group with (repeat or comma-separate)
+    --provider-data-json string          Raw JSON payload for providerData (advanced; cannot be combined with Key Vault options)
+    --secret strings                     Seed secret variables using key[=value]; value falls back to AZDO_PIPELINES_SECRET_<NAME> or an interactive prompt
+-t, --template string                    Format JSON output using a Go template; see "azdo help formatting"
+    --type string                        Variable group type: {Vsts|AzureKeyVault} (default "Vsts")
+-v, --variable strings                   Seed non-secret variables using key=value[;readOnly=true|false]
+```
+
 #### `azdo pipelines variable-group list [ORGANIZATION/]PROJECT [flags]`
 
 List variable groups
