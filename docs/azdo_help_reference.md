@@ -230,6 +230,25 @@ Create a variable group
 -v, --variable strings                   Seed non-secret variables using key=value[;readOnly=true|false]
 ```
 
+#### `azdo pipelines variable-group delete [ORGANIZATION/]PROJECT/GROUP [flags]`
+
+Delete a variable group from a project
+
+```
+    --all                         Remove the variable group from every assigned project
+-q, --jq expression               Filter JSON output using a jq expression
+    --json fields[=*]             Output JSON with the specified fields. Prefix a field with '-' to exclude it.
+    --project-reference strings   Additional project names or IDs to remove the group from (repeatable, comma-separated)
+-t, --template string             Format JSON output using a Go template; see "azdo help formatting"
+-y, --yes                         Skip the confirmation prompt.
+```
+
+Aliases
+
+```
+rm, del, d
+```
+
 #### `azdo pipelines variable-group list [ORGANIZATION/]PROJECT [flags]`
 
 List variable groups
