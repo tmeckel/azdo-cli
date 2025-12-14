@@ -15,8 +15,8 @@ import (
 )
 
 type options struct {
-	targetArg        string
-	yes              bool
+	targetArg         string
+	yes               bool
 	projectReferences []string
 	all               bool
 	exporter          util.Exporter
@@ -142,7 +142,7 @@ func run(cmdCtx util.CmdContext, opts *options) error {
 	}
 
 	deleteArgs := taskagent.DeleteVariableGroupArgs{
-		GroupId: &groupID,
+		GroupId:    &groupID,
 		ProjectIds: &projectIDs,
 	}
 
