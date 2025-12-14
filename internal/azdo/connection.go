@@ -8,6 +8,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/microsoft/azure-devops-go-api/azuredevops/v7"
+	"github.com/microsoft/azure-devops-go-api/azuredevops/v7/build"
 	"github.com/microsoft/azure-devops-go-api/azuredevops/v7/core"
 	azdogit "github.com/microsoft/azure-devops-go-api/azuredevops/v7/git"
 	"github.com/microsoft/azure-devops-go-api/azuredevops/v7/graph"
@@ -47,6 +48,7 @@ type ConnectionFactory interface {
 }
 
 type ClientFactory interface {
+	Build(ctx context.Context, organization string) (build.Client, error)
 	Git(ctx context.Context, organization string) (azdogit.Client, error)
 	Identity(ctx context.Context, organization string) (identity.Client, error)
 	Graph(ctx context.Context, organization string) (graph.Client, error)

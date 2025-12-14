@@ -4,6 +4,7 @@ import (
 	"context"
 	"strings"
 
+	"github.com/microsoft/azure-devops-go-api/azuredevops/v7/build"
 	"github.com/microsoft/azure-devops-go-api/azuredevops/v7/core"
 	"github.com/microsoft/azure-devops-go-api/azuredevops/v7/git"
 	"github.com/microsoft/azure-devops-go-api/azuredevops/v7/graph"
@@ -55,6 +56,14 @@ func NewClientFactory(factory ConnectionFactory) (ClientFactory, error) {
 			factory: factory,
 		},
 		nil
+}
+
+func (c *clientFactory) Build(ctx context.Context, org string) (build.Client, error) {
+	conn, err := c.factory.Connection(org)
+	if err != nil {
+		return nil, err
+	}
+	return build.NewClient(ctx, conn.(*connectionAdapter).conn)
 }
 
 func (c *clientFactory) Git(ctx context.Context, org string) (git.Client, error) {
