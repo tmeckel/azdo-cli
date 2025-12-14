@@ -18,6 +18,7 @@ import (
 
 	uuid "github.com/google/uuid"
 	azuredevops "github.com/microsoft/azure-devops-go-api/azuredevops/v7"
+	build "github.com/microsoft/azure-devops-go-api/azuredevops/v7/build"
 	core "github.com/microsoft/azure-devops-go-api/azuredevops/v7/core"
 	git "github.com/microsoft/azure-devops-go-api/azuredevops/v7/git"
 	graph "github.com/microsoft/azure-devops-go-api/azuredevops/v7/graph"
@@ -315,6 +316,21 @@ func NewMockClientFactory(ctrl *gomock.Controller) *MockClientFactory {
 // EXPECT returns an object that allows the caller to indicate expected use.
 func (m *MockClientFactory) EXPECT() *MockClientFactoryMockRecorder {
 	return m.recorder
+}
+
+// Build mocks base method.
+func (m *MockClientFactory) Build(ctx context.Context, organization string) (build.Client, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Build", ctx, organization)
+	ret0, _ := ret[0].(build.Client)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// Build indicates an expected call of Build.
+func (mr *MockClientFactoryMockRecorder) Build(ctx, organization any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Build", reflect.TypeOf((*MockClientFactory)(nil).Build), ctx, organization)
 }
 
 // Core mocks base method.
