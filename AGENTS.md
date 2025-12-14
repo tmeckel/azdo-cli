@@ -53,6 +53,14 @@ For a complete guidance on how to implement tests refer to [TESTING.md](./TESTIN
 
 ## Agent-Specific Instructions
 
+### Plan Adherence & Deviation Approval
+
+- If you propose a plan and the user approves it, you must follow it; any material deviation (approach, dependencies, SDK-vs-REST, output shape) requires you to stop and ask for approval before implementing.
+- If a planned step is blocked by sandbox/network/tooling constraints, do not “work around” by changing the approach; pause and ask for approval (or for the user to perform required external steps) instead.
+- If you need to create directories or delete/move files, do not do it yourself; stop and ask the user to perform the action, then continue once confirmed.
+- Do not introduce placeholder/stub implementations (e.g., TODOs, empty helpers, or temporary `return nil`) to “get unstuck”; if information is missing, stop and ask the user for guidance/approval.
+- Prefer MCP tools (GitHub MCP / msdocs / context7) over direct network fetches (`curl`, etc.); if MCP cannot provide what’s needed, try network fetches or internet search. If this does not work either, ask the user to fetch/provide the information instead.
+
 ### Implementing New CLI Commands
 
 - **Location & Structure:** Place new command code in an appropriate subdirectory under `internal/cmd/<category>/<command>/`, matching the CLI hierarchy. For example, `azdo repo create` → `internal/cmd/repo/create/create.go`.
@@ -80,7 +88,7 @@ When a required Azure DevOps client is not available in the vendored Go SDK:
 5. Let the user run `bash ./scripts/generate_mocks.sh`
 6. Implement the factory method in `internal/azdo/factory.go` so the new client can be constructed via existing connection plumbing.
 
-Do not hand-roll HTTP calls if an SDK client can be introduced through this process.
+Do not hand-roll HTTP calls or add new `internal/azdo/extensions` methods as a shortcut when an SDK client can be introduced through this process; if the user-approved plan is to add an SDK client, follow the steps above or stop and ask for approval to change approach.
 
 ### Implementing Commands with JSON and Table/Plain Output
 
@@ -176,6 +184,7 @@ Do not hand-roll HTTP calls if an SDK client can be introduced through this proc
 - **Checklist:** Before making changes, begin with a concise checklist (3-7 conceptual bullets) outlining intended actions. Skip if the change is trivial
 - **Change Scope:** Keep changes focused and consistent with existing structure and naming.
 - **Patch Size:** Favor small, isolated patches and update/add nearby tests where relevant.
+- **Patch Size:** Favor small, isolated patches and update/add nearby tests where relevant. If a planned step becomes blocked, stop and ask instead of substituting a different implementation strategy.
 - **Validation:** After code edits, validate results in 1-2 lines and proceed or self-correct if validation fails.
 - **Code Edits:** Explicitly state assumptions before edits, create or run minimal tests when possible, and produce ready-to-review diffs following the repository style.
 - **Code Scope:** When you create, change or fix tests you only work on tests. You don't change any other code. When required prompt the user to deviate from that instruction.
