@@ -23,6 +23,12 @@ mockgen  \
   -mock_names Client=MockAzDOGitClient \
   github.com/microsoft/azure-devops-go-api/azuredevops/v7/git Client
 
+echo "Generating Azure DevOps Build client mock..."
+mockgen \
+  -package=mocks -destination internal/mocks/build_client_mock.go \
+  -mock_names Client=MockBuildClient \
+  github.com/microsoft/azure-devops-go-api/azuredevops/v7/build Client
+
 echo "Generating Azure DevOps Core client mock..."
 mockgen \
   -package=mocks -destination internal/mocks/core_client_mock.go \
