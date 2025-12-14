@@ -5,6 +5,7 @@ import (
 	"github.com/tmeckel/azdo-cli/internal/cmd/pipelines/variablegroup/create"
 	"github.com/tmeckel/azdo-cli/internal/cmd/pipelines/variablegroup/delete"
 	"github.com/tmeckel/azdo-cli/internal/cmd/pipelines/variablegroup/list"
+	"github.com/tmeckel/azdo-cli/internal/cmd/pipelines/variablegroup/show"
 	"github.com/tmeckel/azdo-cli/internal/cmd/pipelines/variablegroup/variable"
 	"github.com/tmeckel/azdo-cli/internal/cmd/util"
 )
@@ -24,6 +25,7 @@ func NewCmd(ctx util.CmdContext) *cobra.Command {
 	cmd.AddCommand(list.NewCmd(ctx))
 	cmd.AddCommand(create.NewCmd(ctx))
 	cmd.AddCommand(delete.NewCmd(ctx))
+	cmd.AddCommand(show.NewCmd(ctx))
 	cmd.AddCommand(variable.NewCmd(ctx))
 	return cmd
 }
