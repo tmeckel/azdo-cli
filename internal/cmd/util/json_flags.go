@@ -401,99 +401,156 @@ var (
 
 func structExportData(v reflect.Value, fields []string, strict bool) map[string]any {
 	if v.Kind() == reflect.Ptr {
+		if v.IsNil() {
+			return nil
+		}
 		v = v.Elem()
 	}
 	if v.Kind() != reflect.Struct {
 		// If s is not a struct or pointer to a struct return nil.
 		return nil
 	}
-	dataLen := len(fields)
-	if dataLen == 0 {
-		dataLen = v.NumField()
+
+	fieldList, fieldIndex := flattenStructFields(v)
+	if len(fieldList) == 0 {
+		return nil
 	}
-	data := make(map[string]any, dataLen)
+
+	allocate := len(fields)
+	if allocate == 0 {
+		allocate = len(fieldList)
+	}
+	data := make(map[string]any, allocate)
+
+	emitField := func(fi structFieldInfo, nameOverride string) {
+		sf := fi.value
+		if !sf.IsValid() || !sf.CanInterface() {
+			return
+		}
+		if fi.omitEmpty && sf.IsZero() {
+			return
+		}
+
+		fieldName := fi.jsonName
+		if fieldName == "" {
+			fieldName = fi.structField.Name
+		}
+		if nameOverride != "" {
+			fieldName = nameOverride
+		}
+
+		data[fieldName] = sf.Interface()
+	}
+
 	if len(fields) > 0 {
-		type fieldInfo struct {
-			idx   int
-			field reflect.Value
-		}
-		fieldMap := map[string]fieldInfo{}
-		for i := range v.NumField() {
-			fieldMap[strings.ToLower(v.Type().Field(i).Name)] = fieldInfo{
-				idx:   i,
-				field: v.Field(i),
-			}
-		}
 		for _, f := range fields {
-			sfi, ok := fieldMap[strings.ToLower(f)]
+			idx, ok := fieldIndex[strings.ToLower(f)]
 			if !ok {
 				continue
 			}
-			sf := sfi.field
-			if sf.IsValid() && sf.CanInterface() {
-				field := v.Type().Field(sfi.idx)
-				jsonTag := field.Tag.Get("json")
-				parts := strings.Split(jsonTag, ",")
+			fi := fieldList[idx]
+			name := ""
+			if strict {
+				name = fi.structField.Name
+			} else {
+				name = f
+			}
+			emitField(fi, name)
+		}
+		return data
+	}
 
-				hasOmitempty := false
-				if len(parts) > 1 {
-					for _, flag := range parts[1:] {
-						if flag == "omitempty" {
-							hasOmitempty = true
-							break
-						}
-					}
-				}
+	for _, fi := range fieldList {
+		emitField(fi, "")
+	}
 
-				if hasOmitempty && sf.IsZero() {
+	return data
+}
+
+type structFieldInfo struct {
+	value       reflect.Value
+	structField reflect.StructField
+	jsonName    string
+	omitEmpty   bool
+}
+
+func flattenStructFields(v reflect.Value) ([]structFieldInfo, map[string]int) {
+	fields := make([]structFieldInfo, 0)
+	index := make(map[string]int)
+
+	var walk func(reflect.Value)
+	walk = func(val reflect.Value) {
+		if val.Kind() == reflect.Ptr {
+			if val.IsNil() {
+				return
+			}
+			val = val.Elem()
+		}
+		if val.Kind() != reflect.Struct {
+			return
+		}
+
+		t := val.Type()
+		for i := 0; i < t.NumField(); i++ {
+			sf := t.Field(i)
+
+			fv := val.Field(i)
+
+			if sf.Anonymous {
+				if fv.Kind() == reflect.Ptr && fv.IsNil() {
 					continue
 				}
-
-				fName := f
-				if strict {
-					fName = v.Type().Field(sfi.idx).Name
+				if fv.Kind() == reflect.Ptr || fv.Kind() == reflect.Interface {
+					fv = fv.Elem()
 				}
-				data[fName] = sf.Interface()
-			}
-		}
-	} else {
-		for i := range v.NumField() {
-			field := v.Type().Field(i)
-			sf := v.FieldByIndex([]int{i})
-
-			if !sf.IsValid() || !sf.CanInterface() {
+				if fv.Kind() == reflect.Struct {
+					walk(fv)
+					continue
+				}
+			} else if sf.PkgPath != "" {
 				continue
 			}
 
-			jsonTag := field.Tag.Get("json")
+			jsonTag := sf.Tag.Get("json")
 			if jsonTag == "-" {
 				continue
 			}
 
-			parts := strings.Split(jsonTag, ",")
-			jsonName := parts[0]
-
-			hasOmitempty := false
-			if len(parts) > 1 {
-				for _, flag := range parts[1:] {
-					if flag == "omitempty" {
-						hasOmitempty = true
+			jsonName := ""
+			omitEmpty := false
+			if jsonTag != "" {
+				parts := strings.Split(jsonTag, ",")
+				if len(parts) > 0 {
+					jsonName = parts[0]
+				}
+				for _, p := range parts[1:] {
+					if p == "omitempty" {
+						omitEmpty = true
 						break
 					}
 				}
 			}
 
-			if hasOmitempty && sf.IsZero() {
+			key := strings.ToLower(sf.Name)
+			if jsonName != "" {
+				key = strings.ToLower(jsonName)
+			}
+
+			if _, exists := index[key]; exists {
 				continue
 			}
 
-			fieldName := field.Name
-			if jsonName != "" {
-				fieldName = jsonName
+			info := structFieldInfo{
+				value:       fv,
+				structField: sf,
+				jsonName:    jsonName,
+				omitEmpty:   omitEmpty,
 			}
-
-			data[fieldName] = sf.Interface()
+			index[key] = len(fields)
+			fields = append(fields, info)
 		}
 	}
-	return data
+
+	walk(v)
+	return fields, index
 }
