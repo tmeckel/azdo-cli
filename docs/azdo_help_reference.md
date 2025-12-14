@@ -269,6 +269,19 @@ Aliases
 ls, l
 ```
 
+#### `azdo pipelines variable-group show [ORGANIZATION/]PROJECT/VARIABLE_GROUP_ID_OR_NAME [flags]`
+
+Show variable group details
+
+```
+    --include-project-references   Include variableGroupProjectReferences details
+    --include-provider-data        Include providerData payloads
+    --include-variables            Include variable values (secrets remain redacted)
+-q, --jq expression                Filter JSON output using a jq expression
+    --json fields[=*]              Output JSON with the specified fields. Prefix a field with '-' to exclude it.
+-t, --template string              Format JSON output using a Go template; see "azdo help formatting"
+```
+
 #### `azdo pipelines variable-group variable`
 
 Manage variables in a variable group
