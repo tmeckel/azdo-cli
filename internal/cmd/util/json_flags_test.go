@@ -456,6 +456,12 @@ func TestStructExportData(t *testing.T) {
 		unexportedField: 4,
 	}
 	fields := []string{"stringField", "intField", "boolField", "sliceField", "mapField", "structField"}
+
+	type embeddedBase struct {
+		ID    int
+		Label string
+	}
+
 	tests := []struct {
 		name    string
 		export  any
@@ -499,6 +505,30 @@ func TestStructExportData(t *testing.T) {
 			export:  export,
 			fields:  []string{"STRINGfield"},
 			wantOut: `{"STRINGfield":"test"}`,
+		},
+		{
+			name: "serializes embedded struct fields",
+			export: struct {
+				embeddedBase
+				Extra string
+			}{
+				embeddedBase: embeddedBase{ID: 7, Label: "abc"},
+				Extra:        "more",
+			},
+			fields:  []string{"id", "label", "extra"},
+			wantOut: `{"id":7,"label":"abc","extra":"more"}`,
+		},
+		{
+			name: "skips nil embedded pointer struct",
+			export: struct {
+				*embeddedBase
+				Extra string
+			}{
+				embeddedBase: nil,
+				Extra:        "more",
+			},
+			fields:  []string{"id", "extra"},
+			wantOut: `{"extra":"more"}`,
 		},
 	}
 	for _, tt := range tests {
