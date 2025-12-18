@@ -310,6 +310,21 @@ Aliases
 var
 ```
 
+##### `azdo pipelines variable-group variable create [ORGANIZATION/]PROJECT/VARIABLE_GROUP_ID_OR_NAME --name VARIABLE_NAME [flags]`
+
+Create a variable in a variable group
+
+```
+-q, --jq expression     Filter JSON output using a jq expression
+    --json fields[=*]   Output JSON with the specified fields. Prefix a field with '-' to exclude it.
+    --name string       Variable name to add (case-insensitive)
+    --prompt-value      Prompt securely for a secret value (only valid with --secret)
+    --read-only         Set the variable read-only
+    --secret            Mark the variable as secret (write-only)
+-t, --template string   Format JSON output using a Go template; see "azdo help formatting"
+    --value string      Literal value for the variable
+```
+
 ##### `azdo pipelines variable-group variable delete [ORGANIZATION/]PROJECT/VARIABLE_GROUP_ID_OR_NAME --name VARIABLE_NAME [flags]`
 
 Delete a variable from a variable group
