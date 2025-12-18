@@ -8,6 +8,7 @@ Work with variables within Azure Pipelines variable groups.
 * [azdo pipelines variable-group variable create](./azdo_pipelines_variable-group_variable_create.md)
 * [azdo pipelines variable-group variable delete](./azdo_pipelines_variable-group_variable_delete.md)
 * [azdo pipelines variable-group variable list](./azdo_pipelines_variable-group_variable_list.md)
+* [azdo pipelines variable-group variable update](./azdo_pipelines_variable-group_variable_update.md)
 
 ### ALIASES
 
