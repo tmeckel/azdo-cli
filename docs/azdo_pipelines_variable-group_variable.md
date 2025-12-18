@@ -5,6 +5,7 @@ Work with variables within Azure Pipelines variable groups.
 
 ### Available commands
 
+* [azdo pipelines variable-group variable delete](./azdo_pipelines_variable-group_variable_delete.md)
 * [azdo pipelines variable-group variable list](./azdo_pipelines_variable-group_variable_list.md)
 
 ### ALIASES

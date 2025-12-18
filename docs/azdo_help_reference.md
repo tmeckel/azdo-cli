@@ -310,6 +310,15 @@ Aliases
 var
 ```
 
+##### `azdo pipelines variable-group variable delete [ORGANIZATION/]PROJECT/VARIABLE_GROUP_ID_OR_NAME --name VARIABLE_NAME [flags]`
+
+Delete a variable from a variable group
+
+```
+--name string   Name of the variable to delete (case-insensitive)
+--yes           Skip the confirmation prompt
+```
+
 ##### `azdo pipelines variable-group variable list [ORGANIZATION/]PROJECT/VARIABLEGROUP [flags]`
 
 List variables in a variable group
