@@ -15,6 +15,7 @@ Check the available subcommands to create service connections of specific well-k
 ### Available commands
 
 * [azdo service-endpoint create azurerm](./azdo_service-endpoint_create_azurerm.md)
+* [azdo service-endpoint create github](./azdo_service-endpoint_create_github.md)
 
 ### Options
 
