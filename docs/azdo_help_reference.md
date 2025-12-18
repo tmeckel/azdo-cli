@@ -344,6 +344,25 @@ List variables in a variable group
 -t, --template string   Format JSON output using a Go template; see "azdo help formatting"
 ```
 
+##### `azdo pipelines variable-group variable update [ORGANIZATION/]PROJECT/VARIABLE_GROUP_ID_OR_NAME --name VARIABLE_NAME [flags]`
+
+Update a variable in a variable group
+
+```
+    --clear-value        Clear the stored value for a non-secret variable (destructive)
+    --from-json string   Apply updates from JSON (file path, '-', or inline JSON)
+-q, --jq expression      Filter JSON output using a jq expression
+    --json fields[=*]    Output JSON with the specified fields. Prefix a field with '-' to exclude it.
+    --name string        Variable name to update (case-insensitive)
+    --new-name string    Rename the variable (case-insensitive)
+    --prompt-value       Prompt securely for a secret value (write-only)
+    --read-only          Set variable read-only (tri-state: only when explicitly set)
+    --secret             Set variable as secret (tri-state: only when explicitly set)
+-t, --template string    Format JSON output using a Go template; see "azdo help formatting"
+    --value string       Replace the variable value
+    --yes                Skip confirmation prompts for destructive operations
+```
+
 ## `azdo pr <command> [flags]`
 
 Manage pull requests
