@@ -16,6 +16,13 @@ import (
 	"github.com/tmeckel/azdo-cli/internal/types"
 )
 
+type contextKey string
+
+const (
+	ctxKeyCreateOpts contextKey = "azurerm/create-opts"
+	ctxKeyCertPath   contextKey = "azurerm/cert-path"
+)
+
 const (
 	testCertificatePEM = `-----BEGIN CERTIFICATE-----
 MIIDXTCCAkWgAwIBAgIJAKoK/heBjcOuMA0GCSqGSIb3DQEBBQUAMEUxCzAJBgNV
