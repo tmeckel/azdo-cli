@@ -18,6 +18,7 @@ import (
 	"golang.org/x/text/encoding/unicode"
 
 	"github.com/tmeckel/azdo-cli/internal/cmd/serviceendpoint/create/azurerm"
+	"github.com/tmeckel/azdo-cli/internal/cmd/serviceendpoint/create/github"
 	"github.com/tmeckel/azdo-cli/internal/cmd/serviceendpoint/shared"
 	"github.com/tmeckel/azdo-cli/internal/cmd/util"
 	"github.com/tmeckel/azdo-cli/internal/types"
@@ -97,6 +98,8 @@ func NewCmd(ctx util.CmdContext) *cobra.Command {
 	_ = cmd.MarkFlagRequired("from-file")
 
 	cmd.AddCommand(azurerm.NewCmd(ctx))
+
+	cmd.AddCommand(github.NewCmd(ctx))
 
 	return cmd
 }
