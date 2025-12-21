@@ -69,3 +69,21 @@ func FindServiceEndpoint(ctx util.CmdContext, client serviceendpoint.Client, pro
 	logger.Debug("no service endpoint matched provided name")
 	return nil, ErrEndpointNotFound
 }
+
+// AuthorizationScheme returns the authorization scheme of the service endpoint or an empty string if not available.
+func AuthorizationScheme(ep *serviceendpoint.ServiceEndpoint) string {
+	if ep != nil && ep.Authorization != nil && ep.Authorization.Scheme != nil {
+		return *ep.Authorization.Scheme
+	}
+	return ""
+}
+
+// RedactSecrets masks sensitive authorization parameters in the service endpoint.
+func RedactSecrets(ep *serviceendpoint.ServiceEndpoint) {
+	if ep == nil || ep.Authorization == nil || ep.Authorization.Parameters == nil {
+		return
+	}
+	for k := range *ep.Authorization.Parameters {
+		(*ep.Authorization.Parameters)[k] = "REDACTED"
+	}
+}
