@@ -41,3 +41,27 @@ func ResolveProjectReference(ctx util.CmdContext, scope *util.Scope) (*serviceen
 		Name: project.Name,
 	}, nil
 }
+
+// FormatProjectReference formats a list of service endpoint project references into a single string for display.
+func FormatProjectReference(refs *[]serviceendpoint.ServiceEndpointProjectReference) string {
+	if refs == nil || len(*refs) == 0 {
+		return ""
+	}
+	first := (*refs)[0]
+	if first.ProjectReference == nil {
+		return ""
+	}
+	id := ""
+	if first.ProjectReference.Id != nil {
+		id = first.ProjectReference.Id.String()
+	}
+	name := types.GetValue(first.ProjectReference.Name, "")
+
+	if id != "" && name != "" {
+		return fmt.Sprintf("%s/%s", name, id)
+	}
+	if name != "" {
+		return name
+	}
+	return id
+}
