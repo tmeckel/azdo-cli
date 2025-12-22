@@ -12,12 +12,11 @@ import (
 	"github.com/google/uuid"
 	"github.com/microsoft/azure-devops-go-api/azuredevops/v7"
 	"github.com/microsoft/azure-devops-go-api/azuredevops/v7/serviceendpoint"
-	"github.com/microsoft/azure-devops-go-api/azuredevops/v7/webapi"
 	"github.com/spf13/cobra"
 	"go.uber.org/zap"
 
+	"github.com/tmeckel/azdo-cli/internal/cmd/serviceendpoint/shared"
 	"github.com/tmeckel/azdo-cli/internal/cmd/util"
-	"github.com/tmeckel/azdo-cli/internal/iostreams"
 	"github.com/tmeckel/azdo-cli/internal/printer"
 	"github.com/tmeckel/azdo-cli/internal/types"
 )
@@ -36,29 +35,6 @@ type listOptions struct {
 	nameFilters      []string
 	outputFormat     string
 	exporter         util.Exporter
-}
-
-type endpointJSON struct {
-	ID                  string                `json:"id"`
-	Name                string                `json:"name"`
-	Type                string                `json:"type"`
-	Owner               string                `json:"owner,omitempty"`
-	IsReady             bool                  `json:"isReady"`
-	IsShared            bool                  `json:"isShared"`
-	AuthorizationScheme string                `json:"authorizationScheme,omitempty"`
-	CreatedBy           *identityJSON         `json:"createdBy,omitempty"`
-	ProjectReference    *projectReferenceJSON `json:"projectReference,omitempty"`
-}
-
-type identityJSON struct {
-	DisplayName string `json:"displayName,omitempty"`
-	UniqueName  string `json:"uniqueName,omitempty"`
-	ID          string `json:"id,omitempty"`
-}
-
-type projectReferenceJSON struct {
-	ID   string `json:"id,omitempty"`
-	Name string `json:"name,omitempty"`
 }
 
 var actionFilterMap = map[string]serviceendpoint.ServiceEndpointActionFilter{
@@ -109,17 +85,7 @@ func NewCmd(ctx util.CmdContext) *cobra.Command {
 	cmd.Flags().BoolVar(&opts.includeDetails, "include-details", false, "Request additional authorization metadata when available.")
 	cmd.Flags().StringSliceVar(&opts.nameFilters, "name", nil, "Filter by endpoint display name. Repeat to specify multiple values or separate multiple values by comma ','.")
 	util.StringEnumFlag(cmd, &opts.outputFormat, "output-format", "", "table", []string{"table", "ids"}, "Select non-JSON output format")
-	util.AddJSONFlags(cmd, &opts.exporter, []string{
-		"id",
-		"name",
-		"type",
-		"owner",
-		"isReady",
-		"isShared",
-		"authorizationScheme",
-		"createdBy",
-		"projectReference",
-	})
+	util.AddJSONFlags(cmd, &opts.exporter, shared.ServiceEndpointJSONFields)
 
 	return cmd
 }
@@ -225,7 +191,7 @@ func runList(ctx util.CmdContext, opts *listOptions) error {
 	progressStopped = true
 
 	if opts.exporter != nil {
-		return renderJSON(ios, opts.exporter, endpoints)
+		return opts.exporter.Write(ios, endpoints)
 	}
 
 	switch opts.outputFormat {
@@ -338,29 +304,6 @@ func filterByAction(ctx util.CmdContext, client serviceendpoint.Client, project 
 	return filtered, nil
 }
 
-func renderJSON(ios *iostreams.IOStreams, exporter util.Exporter, endpoints []serviceendpoint.ServiceEndpoint) error {
-	payload := make([]endpointJSON, 0, len(endpoints))
-	for _, ep := range endpoints {
-		id := ""
-		if ep.Id != nil {
-			id = ep.Id.String()
-		}
-		entry := endpointJSON{
-			ID:                  id,
-			Name:                types.GetValue(ep.Name, ""),
-			Type:                types.GetValue(ep.Type, ""),
-			Owner:               types.GetValue(ep.Owner, ""),
-			IsReady:             types.GetValue(ep.IsReady, false),
-			IsShared:            types.GetValue(ep.IsShared, false),
-			AuthorizationScheme: authorizationScheme(ep),
-			CreatedBy:           toIdentity(ep.CreatedBy),
-			ProjectReference:    toProjectReference(ep.ServiceEndpointProjectReferences),
-		}
-		payload = append(payload, entry)
-	}
-	return exporter.Write(ios, payload)
-}
-
 func renderTable(ctx util.CmdContext, endpoints []serviceendpoint.ServiceEndpoint) error {
 	tp, err := ctx.Printer("table")
 	if err != nil {
@@ -370,7 +313,7 @@ func renderTable(ctx util.CmdContext, endpoints []serviceendpoint.ServiceEndpoin
 	tp.AddColumns("ID", "Name", "Type", "Owner", "Ready", "Shared", "Auth Scheme", "Project Reference")
 
 	for _, ep := range endpoints {
-		scope := formatProjectReference(ep.ServiceEndpointProjectReferences)
+		scope := shared.FormatProjectReference(ep.ServiceEndpointProjectReferences)
 
 		id := ""
 		if ep.Id != nil {
@@ -383,7 +326,7 @@ func renderTable(ctx util.CmdContext, endpoints []serviceendpoint.ServiceEndpoin
 		tp.AddField(types.GetValue(ep.Owner, ""))
 		tp.AddField(formatBool(types.GetValue(ep.IsReady, false)))
 		tp.AddField(formatBool(types.GetValue(ep.IsShared, false)))
-		tp.AddField(authorizationScheme(ep))
+		tp.AddField(shared.AuthorizationScheme(&ep))
 		tp.AddField(scope)
 		tp.EndRow()
 	}
@@ -436,60 +379,6 @@ func intersectByID(endpoints []serviceendpoint.ServiceEndpoint, ids []uuid.UUID)
 		}
 	}
 	return filtered
-}
-
-func authorizationScheme(ep serviceendpoint.ServiceEndpoint) string {
-	if ep.Authorization != nil && ep.Authorization.Scheme != nil {
-		return *ep.Authorization.Scheme
-	}
-	return ""
-}
-
-func toIdentity(ref *webapi.IdentityRef) *identityJSON {
-	if ref == nil {
-		return nil
-	}
-	id := ""
-	if ref.Id != nil {
-		id = *ref.Id
-	}
-	return &identityJSON{
-		DisplayName: types.GetValue(ref.DisplayName, ""),
-		UniqueName:  types.GetValue(ref.UniqueName, ""),
-		ID:          id,
-	}
-}
-
-func toProjectReference(refs *[]serviceendpoint.ServiceEndpointProjectReference) *projectReferenceJSON {
-	if refs == nil || len(*refs) == 0 {
-		return nil
-	}
-	first := (*refs)[0]
-	if first.ProjectReference == nil {
-		return nil
-	}
-	id := ""
-	if first.ProjectReference.Id != nil {
-		id = first.ProjectReference.Id.String()
-	}
-	return &projectReferenceJSON{
-		ID:   id,
-		Name: types.GetValue(first.ProjectReference.Name, ""),
-	}
-}
-
-func formatProjectReference(refs *[]serviceendpoint.ServiceEndpointProjectReference) string {
-	pr := toProjectReference(refs)
-	if pr == nil {
-		return ""
-	}
-	if pr.ID != "" && pr.Name != "" {
-		return fmt.Sprintf("%s/%s", pr.Name, pr.ID)
-	}
-	if pr.Name != "" {
-		return pr.Name
-	}
-	return pr.ID
 }
 
 func formatBool(value bool) string {

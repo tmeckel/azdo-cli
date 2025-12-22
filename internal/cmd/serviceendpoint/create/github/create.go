@@ -58,24 +58,7 @@ func NewCmd(ctx util.CmdContext) *cobra.Command {
 
 	_ = cmd.MarkFlagRequired("name")
 
-	util.AddJSONFlags(cmd, &opts.exporter, []string{
-		"administratorsGroup",
-		"authorization",
-		"createdBy",
-		"data",
-		"description",
-		"groupScopeId",
-		"id",
-		"isReady",
-		"isShared",
-		"name",
-		"operationStatus",
-		"owner",
-		"readersGroup",
-		"serviceEndpointProjectReferences",
-		"type",
-		"url",
-	})
+	util.AddJSONFlags(cmd, &opts.exporter, shared.ServiceEndpointJSONFields)
 
 	return cmd
 }
@@ -182,27 +165,8 @@ func runCreate(ctx util.CmdContext, opts *createOptions) error {
 	ios.StopProgressIndicator()
 
 	if opts.exporter != nil {
-		// redact authorization.parameters before emitting JSON to avoid leaking secrets
-		if createdEndpoint.Authorization != nil && createdEndpoint.Authorization.Parameters != nil {
-			for k := range *createdEndpoint.Authorization.Parameters {
-				(*createdEndpoint.Authorization.Parameters)[k] = "REDACTED"
-			}
-		}
-		return opts.exporter.Write(ios, createdEndpoint)
+		shared.RedactSecrets(createdEndpoint)
 	}
 
-	tp, err := ctx.Printer("list")
-	if err != nil {
-		return err
-	}
-	tp.AddColumns("ID", "Name", "Type", "URL")
-	tp.EndRow()
-	tp.AddField(types.GetValue(createdEndpoint.Id, uuid.Nil).String())
-	tp.AddField(types.GetValue(createdEndpoint.Name, ""))
-	tp.AddField(types.GetValue(createdEndpoint.Type, ""))
-	tp.AddField(types.GetValue(createdEndpoint.Url, ""))
-	tp.EndRow()
-	tp.Render()
-
-	return nil
+	return shared.Output(ctx, createdEndpoint, opts.exporter)
 }
