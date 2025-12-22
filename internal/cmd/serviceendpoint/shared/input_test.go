@@ -7,6 +7,8 @@ import (
 )
 
 func TestDecodeContent(t *testing.T) {
+	t.Parallel()
+
 	t.Run("UTF-8 encoding", func(t *testing.T) {
 		t.Parallel()
 		testCases := []struct {

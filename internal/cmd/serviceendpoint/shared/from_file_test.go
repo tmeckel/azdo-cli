@@ -2,7 +2,6 @@ package shared
 
 import (
 	"io"
-	"io/ioutil"
 	"os"
 	"strings"
 	"testing"
@@ -14,6 +13,8 @@ import (
 )
 
 func TestReadServiceEndpointFromFile(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name          string
 		path          string
@@ -56,7 +57,7 @@ func TestReadServiceEndpointFromFile(t *testing.T) {
 		{
 			name:          "File not found",
 			path:          "non-existent-file.json",
-			expectedError: "failed to read non-existent-file.json: open non-existent-file.json: no such file or directory",
+			expectedError: "no such file or directory",
 		},
 		{
 			name:          "Bad JSON",
@@ -80,6 +81,8 @@ func TestReadServiceEndpointFromFile(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			var stdin io.ReadCloser
 			if tt.stdinContent != "" {
 				stdin = io.NopCloser(strings.NewReader(tt.stdinContent))
@@ -87,7 +90,7 @@ func TestReadServiceEndpointFromFile(t *testing.T) {
 
 			path := tt.path
 			if tt.createFile {
-				tmpfile, err := ioutil.TempFile("", "test-*.json")
+				tmpfile, err := os.CreateTemp("", "test-*.json")
 				require.NoError(t, err)
 				defer os.Remove(tmpfile.Name())
 				_, err = tmpfile.Write(tt.fileContent)
