@@ -119,30 +119,30 @@ func run(cmdCtx util.CmdContext, o *opts) error {
 		return util.FlagErrorWrap(err)
 	}
 
-    // validate mutual exclusivity
-    if o.providerDataJSONChanged && o.clearProviderDataChanged {
-        return util.FlagErrorf("--provider-data-json and --clear-provider-data are mutually exclusive")
-    }
+	// validate mutual exclusivity
+	if o.providerDataJSONChanged && o.clearProviderDataChanged {
+		return util.FlagErrorf("--provider-data-json and --clear-provider-data are mutually exclusive")
+	}
 
-    // Determine whether any model fields will be changed
-    willUpdateGroup := o.nameChanged || o.descriptionChanged || o.vgTypeChanged || o.providerDataJSONChanged || o.clearProviderDataChanged || o.projectReferencesChanged || o.clearProjectReferencesChanged
-    if !willUpdateGroup && !o.authorizeChanged {
-        return util.FlagErrorf("at least one mutating flag must be supplied")
-    }
+	// Determine whether any model fields will be changed
+	willUpdateGroup := o.nameChanged || o.descriptionChanged || o.vgTypeChanged || o.providerDataJSONChanged || o.clearProviderDataChanged || o.projectReferencesChanged || o.clearProjectReferencesChanged
+	if !willUpdateGroup && !o.authorizeChanged {
+		return util.FlagErrorf("at least one mutating flag must be supplied")
+	}
 
-    taskClient, err := cmdCtx.ClientFactory().TaskAgent(cmdCtx.Context(), scope.Organization)
-    if err != nil {
-        return fmt.Errorf("failed to create task agent client: %w", err)
-    }
+	taskClient, err := cmdCtx.ClientFactory().TaskAgent(cmdCtx.Context(), scope.Organization)
+	if err != nil {
+		return fmt.Errorf("failed to create task agent client: %w", err)
+	}
 
-    // resolve variable group
-    group, err := shared.ResolveVariableGroup(cmdCtx, taskClient, scope.Project, scope.Target)
-    if err != nil {
-        return err
-    }
-    if group == nil || group.Id == nil {
-        return fmt.Errorf("variable group %q not found", scope.Target)
-    }
+	// resolve variable group
+	group, err := shared.ResolveVariableGroup(cmdCtx, taskClient, scope.Project, scope.Target)
+	if err != nil {
+		return err
+	}
+	if group == nil || group.Id == nil {
+		return fmt.Errorf("variable group %q not found", scope.Target)
+	}
 
 	var updatedGroup *taskagent.VariableGroup
 
