@@ -181,24 +181,7 @@ func NewCmd(ctx util.CmdContext) *cobra.Command {
 	cmd.Flags().BoolVarP(&opts.yes, "yes", "y", false, "Skip confirmation prompts")
 	cmd.Flags().BoolVar(&opts.grantPermissionToAllPipelines, "grant-permission-to-all-pipelines", false, "Grant access permission to all pipelines to use the service connection")
 
-	util.AddJSONFlags(cmd, &opts.exporter, []string{
-		"administratorsGroup",
-		"authorization",
-		"createdBy",
-		"data",
-		"description",
-		"groupScopeId",
-		"id",
-		"isReady",
-		"isShared",
-		"name",
-		"operationStatus",
-		"owner",
-		"readersGroup",
-		"serviceEndpointProjectReferences",
-		"type",
-		"url",
-	})
+	util.AddJSONFlags(cmd, &opts.exporter, shared.ServiceEndpointJSONFields)
 
 	_ = cmd.MarkFlagRequired("name")
 	_ = cmd.MarkFlagRequired("authentication-scheme")
@@ -277,10 +260,11 @@ func runCreate(ctx util.CmdContext, opts *createOptions) error {
 			return errors.New("service endpoint create response missing ID")
 		}
 
-		if err := shared.GrantAllPipelinesAccessToEndpoint(ctx,
+		if err := shared.SetAllPipelinesAccessToEndpoint(ctx,
 			scope.Organization,
 			projectID,
 			endpointID,
+			true,
 			func() error {
 				return client.DeleteServiceEndpoint(ctx.Context(), serviceendpoint.DeleteServiceEndpointArgs{
 					EndpointId: types.ToPtr(endpointID),
@@ -297,24 +281,7 @@ func runCreate(ctx util.CmdContext, opts *createOptions) error {
 
 	ios.StopProgressIndicator()
 
-	if opts.exporter != nil {
-		return opts.exporter.Write(ios, createdEndpoint)
-	}
-
-	tp, err := ctx.Printer("list")
-	if err != nil {
-		return err
-	}
-	tp.AddColumns("ID", "Name", "Type", "URL")
-	tp.EndRow()
-	tp.AddField(types.GetValue(createdEndpoint.Id, uuid.Nil).String())
-	tp.AddField(types.GetValue(createdEndpoint.Name, ""))
-	tp.AddField(types.GetValue(createdEndpoint.Type, ""))
-	tp.AddField(types.GetValue(createdEndpoint.Url, ""))
-	tp.EndRow()
-	tp.Render()
-
-	return nil
+	return shared.Output(ctx, createdEndpoint, opts.exporter)
 }
 
 func validateOpts(opts *createOptions, ios *iostreams.IOStreams, p prompter.Prompter) error {

@@ -1,23 +1,14 @@
 package show
 
 import (
-	_ "embed"
 	"errors"
 	"fmt"
-	"strings"
 
 	"github.com/MakeNowJust/heredoc"
-	"github.com/google/uuid"
-	"github.com/microsoft/azure-devops-go-api/azuredevops/v7/serviceendpoint"
-	"github.com/microsoft/azure-devops-go-api/azuredevops/v7/webapi"
 	"github.com/spf13/cobra"
 	"github.com/tmeckel/azdo-cli/internal/cmd/serviceendpoint/shared"
 	"github.com/tmeckel/azdo-cli/internal/cmd/util"
-	"github.com/tmeckel/azdo-cli/internal/template"
 )
-
-//go:embed show.tpl
-var showTpl string
 
 type showOptions struct {
 	targetArg string
@@ -50,24 +41,7 @@ func NewCmd(ctx util.CmdContext) *cobra.Command {
 		},
 	}
 
-	util.AddJSONFlags(cmd, &opts.exporter, []string{
-		"administratorsGroup",
-		"authorization",
-		"createdBy",
-		"data",
-		"description",
-		"groupScopeId",
-		"id",
-		"isReady",
-		"isShared",
-		"name",
-		"operationStatus",
-		"owner",
-		"readersGroup",
-		"serviceEndpointProjectReferences",
-		"type",
-		"url",
-	})
+	util.AddJSONFlags(cmd, &opts.exporter, shared.ServiceEndpointJSONFields)
 
 	return cmd
 }
@@ -108,57 +82,5 @@ func runShow(ctx util.CmdContext, opts *showOptions) error {
 
 	ios.StopProgressIndicator()
 
-	if opts.exporter != nil {
-		return opts.exporter.Write(ios, endpoint)
-	}
-
-	t := template.New(
-		ios.Out,
-		ios.TerminalWidth(),
-		ios.ColorEnabled()).
-		WithTheme(ios.TerminalTheme()).
-		WithFuncs(map[string]any{
-			"s": func(v *string) string {
-				if v == nil {
-					return ""
-				}
-				return *v
-			},
-			"hasText": func(v *string) bool {
-				if v == nil {
-					return false
-				}
-				return strings.TrimSpace(*v) != ""
-			},
-			"b": func(v *bool) string {
-				if v == nil {
-					return ""
-				}
-				return fmt.Sprintf("%v", *v)
-			},
-			"u": func(v *uuid.UUID) string {
-				if v == nil {
-					return ""
-				}
-				return v.String()
-			},
-			"scheme": func(ep *serviceendpoint.EndpointAuthorization) string {
-				if ep == nil || ep.Scheme == nil {
-					return ""
-				}
-				return *ep.Scheme
-			},
-			"identity": func(id *webapi.IdentityRef) string {
-				if id == nil || id.DisplayName == nil {
-					return ""
-				}
-				return fmt.Sprintf("%s (%s)", *id.DisplayName, *id.UniqueName)
-			},
-		})
-	err = t.Parse(showTpl)
-	if err != nil {
-		return err
-	}
-
-	return t.ExecuteData(endpoint)
+	return shared.Output(ctx, endpoint, opts.exporter)
 }
