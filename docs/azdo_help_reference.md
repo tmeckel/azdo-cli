@@ -1178,6 +1178,22 @@ Show details of a service endpoint.
 -t, --template string   Format JSON output using a Go template; see "azdo help formatting"
 ```
 
+### `azdo service-endpoint update [ORGANIZATION/]PROJECT/ID_OR_NAME [flags]`
+
+Update a service endpoint.
+
+```
+    --description string   New description for the service endpoint.
+    --enable-for-all       Grant (true) or revoke (false) access for all pipelines.
+-e, --encoding string      File encoding (utf-8, ascii, utf-16be, utf-16le). (default "utf-8")
+-f, --from-file string     Path to a JSON service endpoint definition or '-' for stdin. Mutually exclusive with --name/--description/--url.
+-q, --jq expression        Filter JSON output using a jq expression
+    --json fields[=*]      Output JSON with the specified fields. Prefix a field with '-' to exclude it.
+    --name string          New friendly name for the service endpoint.
+-t, --template string      Format JSON output using a Go template; see "azdo help formatting"
+    --url string           New service endpoint URL.
+```
+
 
 
 ### See also
