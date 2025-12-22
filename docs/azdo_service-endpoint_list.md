@@ -69,7 +69,7 @@ segment is omitted the default organization from configuration is used.
 
 ### JSON Fields
 
-`authorizationScheme`, `createdBy`, `id`, `isReady`, `isShared`, `name`, `owner`, `projectReference`, `type`
+`administratorsGroup`, `authorization`, `createdBy`, `data`, `description`, `groupScopeId`, `id`, `isReady`, `isShared`, `name`, `operationStatus`, `owner`, `readersGroup`, `serviceEndpointProjectReferences`, `type`, `url`
 
 ### Examples
 
