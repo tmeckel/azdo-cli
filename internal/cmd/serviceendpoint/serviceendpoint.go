@@ -8,6 +8,7 @@ import (
 	"github.com/tmeckel/azdo-cli/internal/cmd/serviceendpoint/export"
 	"github.com/tmeckel/azdo-cli/internal/cmd/serviceendpoint/list"
 	"github.com/tmeckel/azdo-cli/internal/cmd/serviceendpoint/show"
+	"github.com/tmeckel/azdo-cli/internal/cmd/serviceendpoint/update"
 	"github.com/tmeckel/azdo-cli/internal/cmd/util"
 )
 
@@ -31,6 +32,7 @@ func NewCmd(ctx util.CmdContext) *cobra.Command {
 	cmd.AddCommand(create.NewCmd(ctx))
 	cmd.AddCommand(delete.NewCmd(ctx))
 	cmd.AddCommand(export.NewCmd(ctx))
+	cmd.AddCommand(update.NewCmd(ctx))
 
 	return cmd
 }
