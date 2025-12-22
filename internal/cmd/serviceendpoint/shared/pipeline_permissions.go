@@ -18,12 +18,13 @@ const (
 // CleanupFunc allows callers to provide optional rollback logic when granting permissions fails.
 type CleanupFunc func() error
 
-// GrantAllPipelinesAccessToEndpoint allows every pipeline in the specified project to use the service endpoint.
-func GrantAllPipelinesAccessToEndpoint(
+// SetAllPipelinesAccessToEndpoint sets the access permission for all pipelines in the specified project to use the service endpoint.
+func SetAllPipelinesAccessToEndpoint(
 	cmdCtx util.CmdContext,
 	organization string,
 	projectID uuid.UUID,
 	endpointID uuid.UUID,
+	authorized bool,
 	cleanup CleanupFunc,
 ) error {
 	if cmdCtx == nil {
@@ -44,7 +45,6 @@ func GrantAllPipelinesAccessToEndpoint(
 		return runCleanup(fmt.Errorf("failed to initialize pipeline permissions client: %w", err), cleanup)
 	}
 
-	allPipelines := true
 	projectIDStr := projectID.String()
 	resourceType := EndpointResourceType
 	resourceID := endpointID.String()
@@ -55,12 +55,12 @@ func GrantAllPipelinesAccessToEndpoint(
 		ResourceId:   &resourceID,
 		ResourceAuthorization: &pipelinepermissions.ResourcePipelinePermissions{
 			AllPipelines: &pipelinepermissions.Permission{
-				Authorized: &allPipelines,
+				Authorized: &authorized,
 			},
 		},
 	})
 	if err != nil {
-		return runCleanup(fmt.Errorf("failed to authorize endpoint %s for all pipelines: %w", endpointID, err), cleanup)
+		return runCleanup(fmt.Errorf("failed to set authorization for endpoint %s (authorized=%t): %w", endpointID, authorized, err), cleanup)
 	}
 
 	return nil
