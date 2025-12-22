@@ -15,6 +15,8 @@ import (
 )
 
 func TestSetAllPipelinesAccessToEndpoint_ValidationErrors(t *testing.T) {
+	t.Parallel()
+
 	projectID := uuid.MustParse("00000000-0000-0000-0000-000000000001")
 	endpointID := uuid.MustParse("00000000-0000-0000-0000-000000000002")
 
@@ -59,6 +61,8 @@ func TestSetAllPipelinesAccessToEndpoint_ValidationErrors(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			if tt.nilCmdCtx {
 				err := SetAllPipelinesAccessToEndpoint(nil, tt.org, tt.projectID, tt.endpointID, true, nil)
 				require.EqualError(t, err, tt.wantErr)
@@ -76,6 +80,8 @@ func TestSetAllPipelinesAccessToEndpoint_ValidationErrors(t *testing.T) {
 }
 
 func TestSetAllPipelinesAccessToEndpoint_UsesPipelinePermissionsClient(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name       string
 		authorized bool
@@ -86,6 +92,8 @@ func TestSetAllPipelinesAccessToEndpoint_UsesPipelinePermissionsClient(t *testin
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			ctrl := gomock.NewController(t)
 			t.Cleanup(ctrl.Finish)
 
@@ -135,6 +143,8 @@ func TestSetAllPipelinesAccessToEndpoint_UsesPipelinePermissionsClient(t *testin
 }
 
 func TestSetAllPipelinesAccessToEndpoint_CallsCleanupOnClientInitError(t *testing.T) {
+	t.Parallel()
+
 	ctrl := gomock.NewController(t)
 	t.Cleanup(ctrl.Finish)
 
@@ -163,6 +173,8 @@ func TestSetAllPipelinesAccessToEndpoint_CallsCleanupOnClientInitError(t *testin
 }
 
 func TestSetAllPipelinesAccessToEndpoint_CallsCleanupOnUpdateError(t *testing.T) {
+	t.Parallel()
+
 	ctrl := gomock.NewController(t)
 	t.Cleanup(ctrl.Finish)
 
@@ -199,6 +211,8 @@ func TestSetAllPipelinesAccessToEndpoint_CallsCleanupOnUpdateError(t *testing.T)
 }
 
 func TestSetAllPipelinesAccessToEndpoint_ReturnsCleanupErrorWhenCleanupFails(t *testing.T) {
+	t.Parallel()
+
 	ctrl := gomock.NewController(t)
 	t.Cleanup(ctrl.Finish)
 

@@ -16,6 +16,8 @@ import (
 )
 
 func TestRunCreate_WithTokenFlag(t *testing.T) {
+	t.Parallel()
+
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
@@ -76,6 +78,8 @@ func TestRunCreate_WithTokenFlag(t *testing.T) {
 }
 
 func TestRunCreate_PromptForToken(t *testing.T) {
+	t.Parallel()
+
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
@@ -130,6 +134,8 @@ func TestRunCreate_PromptForToken(t *testing.T) {
 }
 
 func TestRunCreate_WithConfigurationID(t *testing.T) {
+	t.Parallel()
+
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 

@@ -59,6 +59,8 @@ func (e *recordingExporter) Write(ios *iostreams.IOStreams, data any) error {
 }
 
 func TestOutput_ReturnsErrorWhenIOStreamsFails(t *testing.T) {
+	t.Parallel()
+
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
@@ -71,6 +73,8 @@ func TestOutput_ReturnsErrorWhenIOStreamsFails(t *testing.T) {
 }
 
 func TestOutput_UsesExporterWhenProvided(t *testing.T) {
+	t.Parallel()
+
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
@@ -97,6 +101,8 @@ func TestOutput_UsesExporterWhenProvided(t *testing.T) {
 }
 
 func TestOutput_JSONExporter_RespectsJSONFieldSelection(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name         string
 		args         []string
@@ -126,6 +132,8 @@ func TestOutput_JSONExporter_RespectsJSONFieldSelection(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			ctrl := gomock.NewController(t)
 			defer ctrl.Finish()
 
@@ -196,6 +204,8 @@ func TestOutput_JSONExporter_RespectsJSONFieldSelection(t *testing.T) {
 }
 
 func TestOutput_RendersTemplateWhenNoExporter(t *testing.T) {
+	t.Parallel()
+
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 

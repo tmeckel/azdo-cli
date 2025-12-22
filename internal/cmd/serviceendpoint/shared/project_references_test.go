@@ -26,6 +26,8 @@ func createSEProjectRef(id string, name string) serviceendpoint.ServiceEndpointP
 }
 
 func TestEnsureProjectReferenceIncluded(t *testing.T) {
+	t.Parallel()
+
 	uuid1 := uuid.New().String()
 	uuid2 := uuid.New().String()
 	uuid3 := uuid.New().String()
@@ -108,6 +110,8 @@ func TestEnsureProjectReferenceIncluded(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			var refs *[]serviceendpoint.ServiceEndpointProjectReference
 			if !tt.nilRefs {
 				refs = &tt.initialRefs

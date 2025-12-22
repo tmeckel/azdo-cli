@@ -20,6 +20,8 @@ const (
 )
 
 func TestAccCreateGitHubServiceEndpoint(t *testing.T) {
+	t.Parallel()
+
 	sharedProj := test.NewSharedProject(fmt.Sprintf("azdo-cli-acc-%s", uuid.New().String()))
 
 	t.Cleanup(func() {

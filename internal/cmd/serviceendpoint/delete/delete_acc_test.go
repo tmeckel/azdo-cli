@@ -21,6 +21,8 @@ const (
 )
 
 func TestAccDeleteServiceEndpoint(t *testing.T) {
+	t.Parallel()
+
 	sharedProj := test.NewSharedProject(fmt.Sprintf("azdo-cli-acc-del-%s", uuid.New().String()))
 	t.Cleanup(func() {
 		if err := sharedProj.Cleanup(); err != nil {

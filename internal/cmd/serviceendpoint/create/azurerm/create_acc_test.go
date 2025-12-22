@@ -35,6 +35,8 @@ gKCAQEAwuTanj/Uo5Yhq7ckmL5jycB3Z/zPBuZjviQ4fAar/7xeOUe7/y2Kpls=
 )
 
 func TestAccCreateAzureRMServiceEndpoint(t *testing.T) {
+	t.Parallel()
+
 	sharedProj := test.NewSharedProject(fmt.Sprintf("azdo-cli-acc-%s", uuid.New().String()))
 	t.Cleanup(func() {
 		err := sharedProj.Cleanup()
