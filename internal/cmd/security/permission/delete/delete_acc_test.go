@@ -13,6 +13,7 @@ import (
 	"github.com/tmeckel/azdo-cli/internal/cmd/security/permission/shared"
 	inttest "github.com/tmeckel/azdo-cli/internal/test"
 	"github.com/tmeckel/azdo-cli/internal/types"
+	pollutil "github.com/tmeckel/azdo-cli/internal/util"
 )
 
 type aceContainer struct {
@@ -31,6 +32,7 @@ func TestAccDeletePermission(t *testing.T) {
 	var groupIdentity string
 
 	inttest.Test(t, inttest.TestCase{
+		AcceptanceTest: true,
 		Steps: []inttest.Step{
 			{
 				PreRun: func(ctx inttest.TestContext) error {
@@ -103,7 +105,7 @@ func TestAccDeletePermission(t *testing.T) {
 					if err != nil {
 						return err
 					}
-					return inttest.Poll(func() error {
+					return pollutil.Poll(ctx.Context(), func() error {
 						ace, err := shared.FindAccessControlEntry(ctx.Context(), secClient, nsUUID, token, groupIdentity)
 						if err != nil {
 							return err
@@ -117,7 +119,7 @@ func TestAccDeletePermission(t *testing.T) {
 							return nil
 						}
 						return fmt.Errorf("expected ACE to be removed; allow=%d deny=%d", allow, deny)
-					}, inttest.PollOptions{
+					}, pollutil.PollOptions{
 						Tries:   10,
 						Timeout: 30 * time.Second,
 					})
