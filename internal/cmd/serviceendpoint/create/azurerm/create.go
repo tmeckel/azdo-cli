@@ -6,42 +6,12 @@ import (
 	"os"
 
 	"github.com/MakeNowJust/heredoc"
-	"github.com/google/uuid"
 	"github.com/microsoft/azure-devops-go-api/azuredevops/v7/serviceendpoint"
 	"github.com/spf13/cobra"
-	"go.uber.org/zap"
 
 	"github.com/tmeckel/azdo-cli/internal/cmd/serviceendpoint/shared"
 	"github.com/tmeckel/azdo-cli/internal/cmd/util"
-	"github.com/tmeckel/azdo-cli/internal/iostreams"
-	"github.com/tmeckel/azdo-cli/internal/prompter"
-	"github.com/tmeckel/azdo-cli/internal/types"
 )
-
-type createOptions struct {
-	project string
-
-	name                          string
-	description                   string
-	authenticationScheme          string
-	servicePrincipalID            string
-	servicePrincipalKey           string
-	servicePrincipalCertificate   string
-	certificatePath               string
-	tenantID                      string
-	subscriptionID                string
-	subscriptionName              string
-	managementGroupID             string
-	managementGroupName           string
-	environment                   string
-	resourceGroup                 string
-	serverURL                     string
-	serviceEndpointCreationMode   string
-	grantPermissionToAllPipelines bool
-
-	yes      bool
-	exporter util.Exporter
-}
 
 const (
 	// Authentication Schemes
@@ -59,8 +29,212 @@ const (
 	ScopeLevelManagementGroup = "ManagementGroup"
 )
 
+type createOptions struct {
+	authenticationScheme          string
+	servicePrincipalID            string
+	servicePrincipalKey           string
+	servicePrincipalCertificate   string
+	certificatePath               string
+	tenantID                      string
+	subscriptionID                string
+	subscriptionName              string
+	managementGroupID             string
+	managementGroupName           string
+	environment                   string
+	resourceGroup                 string
+	serverURL                     string
+	serviceEndpointCreationMode   string
+	grantPermissionToAllPipelines bool
+}
+
+type azurermConfigurer struct {
+	cmdCtx util.CmdContext
+	createOptions
+}
+
+func (g *azurermConfigurer) CommandContext() util.CmdContext {
+	return g.cmdCtx
+}
+
+func (c *azurermConfigurer) TypeName() string {
+	return "azurerm"
+}
+
+func (c *azurermConfigurer) Configure(endpoint *serviceendpoint.ServiceEndpoint) error {
+	err := c.validateOpts()
+	if err != nil {
+		return err
+	}
+
+	url, err := c.getEndpointURL()
+	if err != nil {
+		return err
+	}
+
+	endpoint.Url = &url
+
+	authParams := map[string]string{
+		"tenantid": c.tenantID,
+	}
+
+	data := map[string]string{
+		"environment": c.environment,
+	}
+
+	if c.serviceEndpointCreationMode != "" && c.authenticationScheme != AuthSchemeManagedServiceIdentity {
+		data["creationMode"] = c.serviceEndpointCreationMode
+	}
+
+	// Scope handling
+	if c.subscriptionID != "" {
+		if c.resourceGroup != "" && c.authenticationScheme != AuthSchemeManagedServiceIdentity {
+			authParams["scope"] = fmt.Sprintf("/subscriptions/%s/resourcegroups/%s", c.subscriptionID, c.resourceGroup)
+		}
+		data["scopeLevel"] = ScopeLevelSubscription
+		data["subscriptionId"] = c.subscriptionID
+		data["subscriptionName"] = c.subscriptionName
+
+	} else if c.managementGroupID != "" {
+		data["scopeLevel"] = ScopeLevelManagementGroup
+		data["managementGroupId"] = c.managementGroupID
+		data["managementGroupName"] = c.managementGroupName
+	}
+
+	// Auth scheme specific logic
+	switch c.authenticationScheme {
+	case AuthSchemeServicePrincipal:
+		authParams["serviceprincipalid"] = c.servicePrincipalID
+		if c.servicePrincipalKey != "" {
+			authParams["authenticationType"] = "spnKey"
+			authParams["serviceprincipalkey"] = c.servicePrincipalKey
+		} else if c.servicePrincipalCertificate != "" {
+			authParams["authenticationType"] = "spnCertificate"
+			authParams["servicePrincipalCertificate"] = c.servicePrincipalCertificate
+		}
+	case AuthSchemeWorkloadIdentityFederation:
+		if c.serviceEndpointCreationMode == CreationModeManual {
+			if c.servicePrincipalID == "" {
+				return errors.New("serviceprincipalid is required for WorkloadIdentityFederation in Manual mode")
+			}
+			authParams["serviceprincipalid"] = c.servicePrincipalID
+		} else {
+			authParams["serviceprincipalid"] = ""
+		}
+	case AuthSchemeManagedServiceIdentity:
+		// No extra auth params needed
+	}
+
+	endpoint.Authorization = &serviceendpoint.EndpointAuthorization{
+		Scheme:     &c.authenticationScheme,
+		Parameters: &authParams,
+	}
+	endpoint.Data = &data
+	return nil
+}
+
+func (c *azurermConfigurer) validateOpts() error {
+	if c.tenantID == "" {
+		return errors.New("--tenant-id is required")
+	}
+
+	// Validate scope
+	if c.subscriptionID == "" && c.managementGroupID == "" {
+		return errors.New("one of --subscription-id or --management-group-id must be provided")
+	}
+	if c.subscriptionID != "" && c.managementGroupID != "" {
+		return errors.New("--subscription-id and --management-group-id are mutually exclusive")
+	}
+	if c.managementGroupID != "" && c.managementGroupName == "" {
+		return errors.New("--management-group-name is required when --management-group-id is specified")
+	}
+	if c.subscriptionID != "" && c.subscriptionName == "" {
+		return errors.New("--subscription-name is required when --subscription-id is specified")
+	}
+
+	// Set creation mode
+	hasCredentials := c.servicePrincipalID != ""
+	if c.authenticationScheme == AuthSchemeServicePrincipal || c.authenticationScheme == AuthSchemeWorkloadIdentityFederation {
+		if hasCredentials {
+			c.serviceEndpointCreationMode = CreationModeManual
+		} else {
+			c.serviceEndpointCreationMode = CreationModeAutomatic
+		}
+	}
+
+	// Validate auth scheme specific requirements
+	switch c.authenticationScheme {
+	case AuthSchemeServicePrincipal:
+		if c.serviceEndpointCreationMode == CreationModeAutomatic {
+			return errors.New("automatic creation mode is not supported for ServicePrincipal from the CLI. Please provide --service-principal-id")
+		}
+		if c.servicePrincipalKey == "" && c.certificatePath == "" {
+			cmdCtx := c.cmdCtx
+			ios, err := cmdCtx.IOStreams()
+			if err != nil {
+				return err
+			}
+
+			if !ios.CanPrompt() {
+				return errors.New("--service-principal-key not provided and prompting disabled")
+			}
+
+			p, err := cmdCtx.Prompter()
+			if err != nil {
+				return err
+			}
+
+			secret, err := p.Password("Service principal key:")
+			if err != nil {
+				return fmt.Errorf("prompt for secret failed: %w", err)
+			}
+			c.servicePrincipalKey = secret
+		}
+		if c.servicePrincipalKey != "" && c.certificatePath != "" {
+			return errors.New("--service-principal-key and --certificate-path are mutually exclusive")
+		}
+		if c.certificatePath != "" {
+			certBytes, err := os.ReadFile(c.certificatePath)
+			if err != nil {
+				return fmt.Errorf("failed to read certificate file: %w", err)
+			}
+			c.servicePrincipalCertificate = string(certBytes)
+		}
+	case AuthSchemeWorkloadIdentityFederation:
+		// This is a valid scenario, where ADO will configure the SPN.
+	case AuthSchemeManagedServiceIdentity:
+		// No specific validation needed
+	default:
+		return fmt.Errorf("invalid --authentication-scheme: %s", c.authenticationScheme)
+	}
+
+	if c.environment == "AzureStack" && c.serverURL == "" {
+		return errors.New("--server-url is required when environment is AzureStack")
+	}
+
+	return nil
+}
+
+func (c *azurermConfigurer) getEndpointURL() (string, error) {
+	switch c.environment {
+	case "AzureCloud":
+		return "https://management.azure.com/", nil
+	case "AzureChinaCloud":
+		return "https://management.chinacloudapi.cn/", nil
+	case "AzureUSGovernment":
+		return "https://management.usgovcloudapi.net/", nil
+	case "AzureGermanCloud":
+		return "https://management.microsoftazure.de/", nil
+	case "AzureStack":
+		return c.serverURL, nil
+	default:
+		return "", fmt.Errorf("unknown environment: %s", c.environment)
+	}
+}
+
 func NewCmd(ctx util.CmdContext) *cobra.Command {
-	opts := &createOptions{}
+	cfg := &azurermConfigurer{
+		cmdCtx: ctx,
+	}
 
 	cmd := &cobra.Command{
 		Use:   "azurerm [ORGANIZATION/]PROJECT --name <name> --authentication-scheme <scheme> [flags]",
@@ -155,298 +329,29 @@ func NewCmd(ctx util.CmdContext) *cobra.Command {
 			"a",
 		},
 		RunE: func(cmd *cobra.Command, args []string) error {
-			opts.project = args[0]
-			return runCreate(ctx, opts)
+			return shared.RunTypedCreate(cmd, args, cfg)
 		},
 	}
 
-	cmd.Flags().StringVar(&opts.name, "name", "", "Name of the service endpoint")
-	cmd.Flags().StringVar(&opts.description, "description", "", "Description for the service endpoint")
-	util.StringEnumFlag(cmd, &opts.authenticationScheme, "authentication-scheme", "", AuthSchemeServicePrincipal,
+	util.StringEnumFlag(cmd, &cfg.authenticationScheme, "authentication-scheme", "", AuthSchemeServicePrincipal,
 		[]string{AuthSchemeServicePrincipal, AuthSchemeManagedServiceIdentity, AuthSchemeWorkloadIdentityFederation},
 		"Authentication scheme")
-	cmd.Flags().StringVar(&opts.tenantID, "tenant-id", "", "Azure tenant ID (e.g., GUID)")
-	cmd.Flags().StringVar(&opts.subscriptionID, "subscription-id", "", "Azure subscription ID (e.g., GUID)")
-	cmd.Flags().StringVar(&opts.subscriptionName, "subscription-name", "", "Azure subscription name")
-	cmd.Flags().StringVar(&opts.managementGroupID, "management-group-id", "", "Azure management group ID")
-	cmd.Flags().StringVar(&opts.managementGroupName, "management-group-name", "", "Azure management group name")
-	cmd.Flags().StringVar(&opts.resourceGroup, "resource-group", "", "Name of the resource group (for subscription-level scope)")
-	cmd.Flags().StringVar(&opts.servicePrincipalID, "service-principal-id", "", "Service principal/application ID (e.g., GUID)")
-	cmd.Flags().StringVar(&opts.servicePrincipalKey, "service-principal-key", "", "Service principal key (secret value)")
-	cmd.Flags().StringVar(&opts.certificatePath, "certificate-path", "", "Path to service principal certificate file (PEM format)")
-	util.StringEnumFlag(cmd, &opts.environment, "environment", "", "AzureCloud",
+	cmd.Flags().StringVar(&cfg.tenantID, "tenant-id", "", "Azure tenant ID (e.g., GUID)")
+	cmd.Flags().StringVar(&cfg.subscriptionID, "subscription-id", "", "Azure subscription ID (e.g., GUID)")
+	cmd.Flags().StringVar(&cfg.subscriptionName, "subscription-name", "", "Azure subscription name")
+	cmd.Flags().StringVar(&cfg.managementGroupID, "management-group-id", "", "Azure management group ID")
+	cmd.Flags().StringVar(&cfg.managementGroupName, "management-group-name", "", "Azure management group name")
+	cmd.Flags().StringVar(&cfg.resourceGroup, "resource-group", "", "Name of the resource group (for subscription-level scope)")
+	cmd.Flags().StringVar(&cfg.servicePrincipalID, "service-principal-id", "", "Service principal/application ID (e.g., GUID)")
+	cmd.Flags().StringVar(&cfg.servicePrincipalKey, "service-principal-key", "", "Service principal key (secret value)")
+	cmd.Flags().StringVar(&cfg.certificatePath, "certificate-path", "", "Path to service principal certificate file (PEM format)")
+	util.StringEnumFlag(cmd, &cfg.environment, "environment", "", "AzureCloud",
 		[]string{"AzureCloud", "AzureChinaCloud", "AzureUSGovernment", "AzureGermanCloud", "AzureStack"},
 		"Azure environment")
-	cmd.Flags().StringVar(&opts.serverURL, "server-url", "", "Azure Stack Resource Manager base URL. Required if --environment is AzureStack.")
-	cmd.Flags().BoolVarP(&opts.yes, "yes", "y", false, "Skip confirmation prompts")
-	cmd.Flags().BoolVar(&opts.grantPermissionToAllPipelines, "grant-permission-to-all-pipelines", false, "Grant access permission to all pipelines to use the service connection")
-
-	util.AddJSONFlags(cmd, &opts.exporter, shared.ServiceEndpointJSONFields)
+	cmd.Flags().StringVar(&cfg.serverURL, "server-url", "", "Azure Stack Resource Manager base URL. Required if --environment is AzureStack.")
 
 	_ = cmd.MarkFlagRequired("name")
 	_ = cmd.MarkFlagRequired("authentication-scheme")
 
-	return cmd
-}
-
-func runCreate(ctx util.CmdContext, opts *createOptions) error {
-	ios, err := ctx.IOStreams()
-	if err != nil {
-		return err
-	}
-
-	p, err := ctx.Prompter()
-	if err != nil {
-		return err
-	}
-
-	scope, err := util.ParseProjectScope(ctx, opts.project)
-	if err != nil {
-		return util.FlagErrorWrap(err)
-	}
-
-	if err := validateOpts(opts, ios, p); err != nil {
-		return util.FlagErrorWrap(err)
-	}
-
-	if !opts.yes {
-		ok, err := p.Confirm("This will create credentials in Azure DevOps. Continue?", false)
-		if err != nil {
-			return err
-		}
-		if !ok {
-			return util.ErrCancel
-		}
-	}
-
-	projectRef, err := shared.ResolveProjectReference(ctx, scope)
-	if err != nil {
-		return util.FlagErrorWrap(err)
-	}
-
-	endpoint, err := buildServiceEndpoint(opts, projectRef)
-	if err != nil {
-		return util.FlagErrorf("failed to build service endpoint payload: %w", err)
-	}
-
-	ios.StartProgressIndicator()
-	defer ios.StopProgressIndicator()
-
-	client, err := ctx.ClientFactory().ServiceEndpoint(ctx.Context(), scope.Organization)
-	if err != nil {
-		return err
-	}
-
-	createdEndpoint, err := client.CreateServiceEndpoint(ctx.Context(), serviceendpoint.CreateServiceEndpointArgs{
-		Endpoint: endpoint,
-	})
-	if err != nil {
-		return fmt.Errorf("failed to create service endpoint: %w", err)
-	}
-
-	zap.L().Debug("azurerm service endpoint created",
-		zap.String("id", types.GetValue(createdEndpoint.Id, uuid.Nil).String()),
-		zap.String("name", types.GetValue(createdEndpoint.Name, "")),
-	)
-
-	if opts.grantPermissionToAllPipelines {
-		projectID := types.GetValue(projectRef.Id, uuid.Nil)
-		if projectID == uuid.Nil {
-			return errors.New("project reference missing ID")
-		}
-
-		endpointID := types.GetValue(createdEndpoint.Id, uuid.Nil)
-		if endpointID == uuid.Nil {
-			return errors.New("service endpoint create response missing ID")
-		}
-
-		if err := shared.SetAllPipelinesAccessToEndpoint(ctx,
-			scope.Organization,
-			projectID,
-			endpointID,
-			true,
-			func() error {
-				return client.DeleteServiceEndpoint(ctx.Context(), serviceendpoint.DeleteServiceEndpointArgs{
-					EndpointId: types.ToPtr(endpointID),
-					ProjectIds: &[]string{projectID.String()},
-				})
-			}); err != nil {
-			return err
-		}
-
-		zap.L().Debug("Granted all pipelines permission to service endpoint",
-			zap.String("id", endpointID.String()),
-		)
-	}
-
-	ios.StopProgressIndicator()
-
-	return shared.Output(ctx, createdEndpoint, opts.exporter)
-}
-
-func validateOpts(opts *createOptions, ios *iostreams.IOStreams, p prompter.Prompter) error {
-	if opts.tenantID == "" {
-		return errors.New("--tenant-id is required")
-	}
-
-	// Validate scope
-	if opts.subscriptionID == "" && opts.managementGroupID == "" {
-		return errors.New("one of --subscription-id or --management-group-id must be provided")
-	}
-	if opts.subscriptionID != "" && opts.managementGroupID != "" {
-		return errors.New("--subscription-id and --management-group-id are mutually exclusive")
-	}
-	if opts.managementGroupID != "" && opts.managementGroupName == "" {
-		return errors.New("--management-group-name is required when --management-group-id is specified")
-	}
-	if opts.subscriptionID != "" && opts.subscriptionName == "" {
-		return errors.New("--subscription-name is required when --subscription-id is specified")
-	}
-
-	// Set creation mode
-	hasCredentials := opts.servicePrincipalID != ""
-	if opts.authenticationScheme == AuthSchemeServicePrincipal || opts.authenticationScheme == AuthSchemeWorkloadIdentityFederation {
-		if hasCredentials {
-			opts.serviceEndpointCreationMode = CreationModeManual
-		} else {
-			opts.serviceEndpointCreationMode = CreationModeAutomatic
-		}
-	}
-
-	// Validate auth scheme specific requirements
-	switch opts.authenticationScheme {
-	case AuthSchemeServicePrincipal:
-		if opts.serviceEndpointCreationMode == CreationModeAutomatic {
-			return errors.New("automatic creation mode is not supported for ServicePrincipal from the CLI. Please provide --service-principal-id")
-		}
-		if opts.servicePrincipalKey == "" && opts.certificatePath == "" {
-			if !ios.CanPrompt() {
-				return errors.New("--service-principal-key not provided and prompting disabled")
-			}
-			secret, err := p.Password("Service principal key:")
-			if err != nil {
-				return fmt.Errorf("prompt for secret failed: %w", err)
-			}
-			opts.servicePrincipalKey = secret
-		}
-		if opts.servicePrincipalKey != "" && opts.certificatePath != "" {
-			return errors.New("--service-principal-key and --certificate-path are mutually exclusive")
-		}
-		if opts.certificatePath != "" {
-			certBytes, err := os.ReadFile(opts.certificatePath)
-			if err != nil {
-				return fmt.Errorf("failed to read certificate file: %w", err)
-			}
-			opts.servicePrincipalCertificate = string(certBytes)
-		}
-	case AuthSchemeWorkloadIdentityFederation:
-		// This is a valid scenario, where ADO will configure the SPN.
-	case AuthSchemeManagedServiceIdentity:
-		// No specific validation needed
-	default:
-		return fmt.Errorf("invalid --authentication-scheme: %s", opts.authenticationScheme)
-	}
-
-	if opts.environment == "AzureStack" && opts.serverURL == "" {
-		return errors.New("--server-url is required when environment is AzureStack")
-	}
-
-	return nil
-}
-
-func buildServiceEndpoint(opts *createOptions, projectRef *serviceendpoint.ProjectReference) (*serviceendpoint.ServiceEndpoint, error) {
-	endpointType := "azurerm"
-	endpointURL, err := getEndpointURL(opts)
-	if err != nil {
-		return nil, err
-	}
-	owner := "library"
-
-	authParams := map[string]string{
-		"tenantid": opts.tenantID,
-	}
-
-	data := map[string]string{
-		"environment": opts.environment,
-	}
-
-	if opts.serviceEndpointCreationMode != "" && opts.authenticationScheme != AuthSchemeManagedServiceIdentity {
-		data["creationMode"] = opts.serviceEndpointCreationMode
-	}
-
-	// Scope handling
-	if opts.subscriptionID != "" {
-		if opts.resourceGroup != "" && opts.authenticationScheme != AuthSchemeManagedServiceIdentity {
-			authParams["scope"] = fmt.Sprintf("/subscriptions/%s/resourcegroups/%s", opts.subscriptionID, opts.resourceGroup)
-		}
-		data["scopeLevel"] = ScopeLevelSubscription
-		data["subscriptionId"] = opts.subscriptionID
-		data["subscriptionName"] = opts.subscriptionName
-
-	} else if opts.managementGroupID != "" {
-		data["scopeLevel"] = ScopeLevelManagementGroup
-		data["managementGroupId"] = opts.managementGroupID
-		data["managementGroupName"] = opts.managementGroupName
-	}
-
-	// Auth scheme specific logic
-	switch opts.authenticationScheme {
-	case AuthSchemeServicePrincipal:
-		authParams["serviceprincipalid"] = opts.servicePrincipalID
-		if opts.servicePrincipalKey != "" {
-			authParams["authenticationType"] = "spnKey"
-			authParams["serviceprincipalkey"] = opts.servicePrincipalKey
-		} else if opts.servicePrincipalCertificate != "" {
-			authParams["authenticationType"] = "spnCertificate"
-			authParams["servicePrincipalCertificate"] = opts.servicePrincipalCertificate
-		}
-	case AuthSchemeWorkloadIdentityFederation:
-		if opts.serviceEndpointCreationMode == CreationModeManual {
-			if opts.servicePrincipalID == "" {
-				return nil, errors.New("serviceprincipalid is required for WorkloadIdentityFederation in Manual mode")
-			}
-			authParams["serviceprincipalid"] = opts.servicePrincipalID
-		} else {
-			authParams["serviceprincipalid"] = ""
-		}
-	case AuthSchemeManagedServiceIdentity:
-		// No extra auth params needed
-	}
-
-	return &serviceendpoint.ServiceEndpoint{
-		Name:        &opts.name,
-		Type:        &endpointType,
-		Url:         &endpointURL,
-		Description: &opts.description,
-		Owner:       &owner,
-		Authorization: &serviceendpoint.EndpointAuthorization{
-			Scheme:     &opts.authenticationScheme,
-			Parameters: &authParams,
-		},
-		Data: &data,
-		ServiceEndpointProjectReferences: &[]serviceendpoint.ServiceEndpointProjectReference{
-			{
-				ProjectReference: projectRef,
-				Name:             &opts.name,
-				Description:      &opts.description,
-			},
-		},
-	}, nil
-}
-
-func getEndpointURL(opts *createOptions) (string, error) {
-	switch opts.environment {
-	case "AzureCloud":
-		return "https://management.azure.com/", nil
-	case "AzureChinaCloud":
-		return "https://management.chinacloudapi.cn/", nil
-	case "AzureUSGovernment":
-		return "https://management.usgovcloudapi.net/", nil
-	case "AzureGermanCloud":
-		return "https://management.microsoftazure.de/", nil
-	case "AzureStack":
-		return opts.serverURL, nil
-	default:
-		return "", fmt.Errorf("unknown environment: %s", opts.environment)
-	}
+	return shared.AddCreateCommonFlags(cmd)
 }
