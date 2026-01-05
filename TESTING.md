@@ -80,6 +80,15 @@ Use this pattern as a seed and add more mocks only as the code under test demand
 
 Acceptance tests (`*_acc_test.go`) run against a live Azure DevOps organization using the harness under `internal/test`. They are opt-in and should only be used when unit tests and mocks cannot provide enough confidence.
 
+### Getting started (`AcceptanceTest`)
+
+`inttest.Test` executes a `TestCase` using a `TestContext` created by the harness. The `TestCase.AcceptanceTest` boolean controls which context is used:
+
+- `AcceptanceTest: true` (recommended for all `*_acc_test.go`): uses `inttest.NewAccTestContext(t)` which reads the required `AZDO_ACC_*` environment variables and creates real SDK clients for the configured organization.
+- `AcceptanceTest: false`: uses `inttest.NewTestContext(t)` which generates random placeholder values for `Org`, `PAT`, and `Project`. This is only useful for hermetic unit tests that want a lightweight `util.CmdContext` implementation; it is not suitable for live Azure DevOps operations.
+
+For acceptance tests, always set `AcceptanceTest: true`. Otherwise the harness will still be gated by `AZDO_ACC_TEST=1`, but the generated placeholder org/token values will typically cause confusing failures once your steps attempt real API calls.
+
 ### When to add an acceptance test
 
 - You need to verify a workflow/command (e.g., modifying security permissions) against real data.
@@ -92,19 +101,38 @@ Acceptance tests (`*_acc_test.go`) run against a live Azure DevOps organization 
 | ------------------ | ------------------------------------------------------------------------------------------------------ |
 | `AZDO_ACC_TEST=1`  | Enables acceptance tests. Without it, `inttest.Test` skips all steps.                                  |
 | `AZDO_ACC_ORG`     | Organization name used for the session.                                                                |
-| `AZDO_ACC_ORG_URL` | Optional explicit organization URL; defaults to `https://dev.azure.com/<org>`.                         |
 | `AZDO_ACC_PAT`     | Personal Access Token with the scopes required by the test steps.                                      |
 | `AZDO_ACC_PROJECT` | Project name used by acceptance tests that operate on project-scoped resources.                        |
-| `AZDO_ACC_TIMEOUT` | Optional override for the default 60 s timeout. Accepts Go durations (`45s`, `2m`) or integer seconds. |
+| `AZDO_ACC_TIMEOUT` | Optional override for the default 240 s timeout. Accepts Go durations (`45s`, `2m`) or integer seconds. Use `-1` to disable timeouts. |
 
 ### Step-by-step skeleton
 
 1. Place the test in the command package with the `_acc_test.go` suffix.
-2. Wrap your steps in `inttest.Test(t, inttest.TestCase{ Steps: []inttest.Step{ ... } })`.
+2. Wrap your steps in `inttest.Test(t, inttest.TestCase{ AcceptanceTest: true, Steps: []inttest.Step{ ... } })`.
 3. **PreRun**: create or seed live resources (groups, repositories, permissions) using `ctx.ClientFactory()`.
 4. **Run**: construct the command options and call the command’s `run...` helper directly (e.g., `return runCommand(ctx, opts)`).
-5. **Verify**: use `inttest.Poll` to wait for eventual consistency and assert desired state.
+5. **Verify**: use `internal/util/poll.go` (`pollutil.Poll(ctx.Context(), ...)`) to wait for eventual consistency and assert desired state.
 6. **PostRun**: delete or revert all resources you created; aggregate cleanup errors with `errors.Join`.
+
+Minimal scaffold:
+
+```go
+inttest.Test(t, inttest.TestCase{
+	AcceptanceTest: true,
+	PreCheck: func() error {
+		// Validate required inputs (e.g., ensure AZDO_ACC_PROJECT is set when needed).
+		return nil
+	},
+	Steps: []inttest.Step{
+		{
+			PreRun:  func(ctx inttest.TestContext) error { return nil },
+			Run:     func(ctx inttest.TestContext) error { return nil },
+			Verify:  func(ctx inttest.TestContext) error { return nil },
+			PostRun: func(ctx inttest.TestContext) error { return nil },
+		},
+	},
+})
+```
 
 Example shell to execute a single acceptance test:
 ```bash
@@ -119,7 +147,7 @@ Acceptance tests are not run in CI; execute them manually before publishing feat
 
 - `inttest.TestContext` now exposes `Project()` alongside `Org`, `OrgUrl`, and `PAT`. Set `AZDO_ACC_PROJECT` when a test needs to target a specific project and fail fast in `PreRun` if it is missing.
 - Use `TestContext.SetValue(key, value)`/`Value(key)` to propagate data across `PreRun`, `Run`, `Verify`, and `PostRun` without relying on package-level variables. Keys can be simple strings or typed aliases; mimic `context.Context` usage.
-- The helper `inttest.WriteTestFile(path, contents)` creates or truncates files with `0600` permissions and ensures parent directories exist, which is useful for acceptance tests that need temporary credentials or certificates.
+- The helpers `inttest.WriteTestFile(t, contents)` and `inttest.WriteTestFileWithName(t, filename, contents)` create files with `0600` permissions under `t.TempDir()`, which is useful for acceptance tests that need temporary credentials or certificates.
 
 ### Updating Mocks
 
