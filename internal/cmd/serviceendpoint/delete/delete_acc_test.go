@@ -12,6 +12,7 @@ import (
 	"github.com/tmeckel/azdo-cli/internal/cmd/util"
 	inttest "github.com/tmeckel/azdo-cli/internal/test"
 	"github.com/tmeckel/azdo-cli/internal/types"
+	pollutil "github.com/tmeckel/azdo-cli/internal/util"
 )
 
 type ctxKey string
@@ -31,6 +32,7 @@ func TestAccDeleteServiceEndpoint(t *testing.T) {
 	})
 
 	inttest.Test(t, inttest.TestCase{
+		AcceptanceTest: true,
 		Steps: []inttest.Step{
 			{
 				PreRun: func(ctx inttest.TestContext) error {
@@ -86,7 +88,7 @@ func TestAccDeleteServiceEndpoint(t *testing.T) {
 					if err != nil {
 						return fmt.Errorf("invalid endpoint id: %w", err)
 					}
-					return inttest.Poll(func() error {
+					return pollutil.Poll(ctx.Context(), func() error {
 						sp, err := client.GetServiceEndpointDetails(ctx.Context(), serviceendpoint.GetServiceEndpointDetailsArgs{
 							Project:    types.ToPtr(projectName),
 							EndpointId: &endpointID,
@@ -99,7 +101,7 @@ func TestAccDeleteServiceEndpoint(t *testing.T) {
 							return nil
 						}
 						return err
-					}, inttest.PollOptions{
+					}, pollutil.PollOptions{
 						Tries:   10,
 						Timeout: 240 * time.Second,
 					})
