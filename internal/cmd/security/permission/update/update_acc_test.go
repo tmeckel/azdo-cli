@@ -12,6 +12,7 @@ import (
 
 	"github.com/tmeckel/azdo-cli/internal/cmd/security/permission/shared"
 	inttest "github.com/tmeckel/azdo-cli/internal/test"
+	pollutil "github.com/tmeckel/azdo-cli/internal/util"
 )
 
 func TestAccUpdatePermission(t *testing.T) {
@@ -26,6 +27,7 @@ func TestAccUpdatePermission(t *testing.T) {
 	groupName := fmt.Sprintf("azdo-cli-test-group-%s", uuid.New().String())
 
 	inttest.Test(t, inttest.TestCase{
+		AcceptanceTest: true,
 		Steps: []inttest.Step{
 			{
 				PreRun: func(ctx inttest.TestContext) error {
@@ -72,7 +74,7 @@ func TestAccUpdatePermission(t *testing.T) {
 					if err != nil {
 						return err
 					}
-					return inttest.Poll(func() error {
+					return pollutil.Poll(ctx.Context(), func() error {
 						ace, err := shared.FindAccessControlEntry(ctx.Context(), sec, nsUUID, token, groupIdentity)
 						if err != nil {
 							return err
@@ -87,7 +89,7 @@ func TestAccUpdatePermission(t *testing.T) {
 							return fmt.Errorf("allow mask %d does not contain expected bit 0x2", *ace.Allow)
 						}
 						return nil
-					}, inttest.PollOptions{
+					}, pollutil.PollOptions{
 						Tries:   10,
 						Timeout: 30 * time.Second,
 					})
