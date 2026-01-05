@@ -67,7 +67,7 @@ func TestTestContext_OrgFields(t *testing.T) {
 	t.Setenv(accProjectEnv, "proj-value")
 
 	// newTestContext validates env vars and returns a TestContext built from them.
-	tc := newTestContext(t)
+	tc := NewAccTestContext(t)
 
 	// Verify that the TestContext accessors return the expected values from env.
 	if got := tc.Org(); got != org {
@@ -98,7 +98,7 @@ func TestNewTestContext_Config(t *testing.T) {
 	t.Setenv(accProjectEnv, "proj-alpha")
 
 	// Call newTestContext which will build a config from the env vars.
-	tc := newTestContext(t)
+	tc := NewAccTestContext(t)
 
 	// Retrieve the underlying config via TestContext.Config()
 	cfg, err := tc.Config()
@@ -119,11 +119,7 @@ func TestNewTestContext_Config(t *testing.T) {
 
 // TestTestContextValueStore ensures SetValue/Value share data between steps.
 func TestTestContextValueStore(t *testing.T) {
-	t.Setenv(accOrgEnv, "org")
-	t.Setenv(accPATEnv, "pat")
-	t.Setenv(accProjectEnv, "project")
-
-	tc := newTestContext(t)
+	tc := NewTestContext(t)
 
 	tc.SetValue("key", 42)
 	if v, ok := tc.Value("missing"); ok || v != nil {
