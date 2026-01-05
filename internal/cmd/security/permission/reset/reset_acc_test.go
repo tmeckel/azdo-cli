@@ -13,6 +13,7 @@ import (
 	"github.com/tmeckel/azdo-cli/internal/cmd/security/permission/shared"
 	inttest "github.com/tmeckel/azdo-cli/internal/test"
 	"github.com/tmeckel/azdo-cli/internal/types"
+	pollutil "github.com/tmeckel/azdo-cli/internal/util"
 )
 
 type aceContainer struct {
@@ -44,6 +45,7 @@ func TestAccResetPermission(t *testing.T) {
 	)
 
 	inttest.Test(t, inttest.TestCase{
+		AcceptanceTest: true,
 		Steps: []inttest.Step{
 			{
 				PreRun: func(ctx inttest.TestContext) error {
@@ -119,7 +121,7 @@ func TestAccResetPermission(t *testing.T) {
 						return err
 					}
 
-					return inttest.Poll(func() error {
+					return pollutil.Poll(ctx.Context(), func() error {
 						ace, err := shared.FindAccessControlEntry(ctx.Context(), secClient, nsUUID, token, groupIdentity)
 						if err != nil {
 							return err
@@ -135,7 +137,7 @@ func TestAccResetPermission(t *testing.T) {
 							return fmt.Errorf("unexpected permission state allow=0x%X deny=0x%X", allow, deny)
 						}
 						return nil
-					}, inttest.PollOptions{
+					}, pollutil.PollOptions{
 						Tries:   10,
 						Timeout: 30 * time.Second,
 					})
