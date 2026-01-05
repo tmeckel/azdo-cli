@@ -83,9 +83,21 @@ This command is modeled after the Azure DevOps Terraform Provider's implementati
 
 	Azure tenant ID (e.g., GUID)
 
-* `-y`, `--yes`
+* `--timeout` `duration` (default `&#34;2m0s&#34;`)
 
-	Skip confirmation prompts
+	Maximum time to wait when --wait or --validate-connection is enabled
+
+* `--validate-connection`
+
+	Run TestConnection after creation (opt-in)
+
+* `--validate-schema`
+
+	Validate auth scheme/params against endpoint type metadata (opt-in)
+
+* `--wait`
+
+	Wait until the endpoint reports ready/failed
 
 
 ### ALIASES
