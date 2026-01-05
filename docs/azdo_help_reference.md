@@ -1089,7 +1089,10 @@ Create an Azure Resource Manager service connection
     --subscription-name string            Azure subscription name
 -t, --template string                     Format JSON output using a Go template; see "azdo help formatting"
     --tenant-id string                    Azure tenant ID (e.g., GUID)
--y, --yes                                 Skip confirmation prompts
+    --timeout duration                    Maximum time to wait when --wait or --validate-connection is enabled (default 2m0s)
+    --validate-connection                 Run TestConnection after creation (opt-in)
+    --validate-schema                     Validate auth scheme/params against endpoint type metadata (opt-in)
+    --wait                                Wait until the endpoint reports ready/failed
 ```
 
 Aliases
@@ -1103,13 +1106,19 @@ cr, c, new, n, add, a
 Create a GitHub service endpoint
 
 ```
-    --configuration-id string   Configuration for connecting to the endpoint (use an OAuth/installation configuration). Mutually exclusive with --token.
--q, --jq expression             Filter JSON output using a jq expression
-    --json fields[=*]           Output JSON with the specified fields. Prefix a field with '-' to exclude it.
-    --name string               Name of the service endpoint
--t, --template string           Format JSON output using a Go template; see "azdo help formatting"
-    --token string              Visit https://github.com/settings/tokens to create personal access tokens. Recommended scopes: repo, user, admin:repo_hook. If omitted, you will be prompted for a token when interactive.
-    --url string                GitHub URL (defaults to https://github.com)
+    --configuration-id string             Configuration for connecting to the endpoint (use an OAuth/installation configuration). Mutually exclusive with --token.
+    --description string                  Description for the service endpoint
+    --grant-permission-to-all-pipelines   Grant access permission to all pipelines to use the service connection
+-q, --jq expression                       Filter JSON output using a jq expression
+    --json fields[=*]                     Output JSON with the specified fields. Prefix a field with '-' to exclude it.
+    --name string                         Name of the service endpoint
+-t, --template string                     Format JSON output using a Go template; see "azdo help formatting"
+    --timeout duration                    Maximum time to wait when --wait or --validate-connection is enabled (default 2m0s)
+    --token string                        Visit https://github.com/settings/tokens to create personal access tokens. Recommended scopes: repo, user, admin:repo_hook. If omitted, you will be prompted for a token when interactive.
+    --url string                          GitHub URL (defaults to https://github.com)
+    --validate-connection                 Run TestConnection after creation (opt-in)
+    --validate-schema                     Validate auth scheme/params against endpoint type metadata (opt-in)
+    --wait                                Wait until the endpoint reports ready/failed
 ```
 
 ### `azdo service-endpoint delete [ORGANIZATION/]PROJECT/ID_OR_NAME [flags]`

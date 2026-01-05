@@ -14,6 +14,14 @@ Create a GitHub service endpoint using a personal access token (PAT) or an insta
 
 	Configuration for connecting to the endpoint (use an OAuth/installation configuration). Mutually exclusive with --token.
 
+* `--description` `string`
+
+	Description for the service endpoint
+
+* `--grant-permission-to-all-pipelines`
+
+	Grant access permission to all pipelines to use the service connection
+
 * `-q`, `--jq` `expression`
 
 	Filter JSON output using a jq expression
@@ -30,6 +38,10 @@ Create a GitHub service endpoint using a personal access token (PAT) or an insta
 
 	Format JSON output using a Go template; see &#34;azdo help formatting&#34;
 
+* `--timeout` `duration` (default `&#34;2m0s&#34;`)
+
+	Maximum time to wait when --wait or --validate-connection is enabled
+
 * `--token` `string`
 
 	Visit https://github.com/settings/tokens to create personal access tokens. Recommended scopes: repo, user, admin:repo_hook. If omitted, you will be prompted for a token when interactive.
@@ -37,6 +49,18 @@ Create a GitHub service endpoint using a personal access token (PAT) or an insta
 * `--url` `string`
 
 	GitHub URL (defaults to https://github.com)
+
+* `--validate-connection`
+
+	Run TestConnection after creation (opt-in)
+
+* `--validate-schema`
+
+	Validate auth scheme/params against endpoint type metadata (opt-in)
+
+* `--wait`
+
+	Wait until the endpoint reports ready/failed
 
 
 ### JSON Fields
