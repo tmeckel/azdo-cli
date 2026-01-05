@@ -11,12 +11,7 @@ import (
 	"github.com/tmeckel/azdo-cli/internal/cmd/serviceendpoint/test"
 	inttest "github.com/tmeckel/azdo-cli/internal/test"
 	"github.com/tmeckel/azdo-cli/internal/types"
-)
-
-type contextKey string
-
-const (
-	ctxKeyCreateOpts contextKey = "github/create-opts"
+	pollutil "github.com/tmeckel/azdo-cli/internal/util"
 )
 
 func TestAccCreateGitHubServiceEndpoint(t *testing.T) {
@@ -34,6 +29,7 @@ func TestAccCreateGitHubServiceEndpoint(t *testing.T) {
 		endpointName := fmt.Sprintf("azdo-cli-acc-gh-%s", uuid.New().String())
 
 		inttest.Test(t, inttest.TestCase{
+			AcceptanceTest: true,
 			Steps: []inttest.Step{
 				{
 					PreRun: func(ctx inttest.TestContext) error {
@@ -46,15 +42,14 @@ func TestAccCreateGitHubServiceEndpoint(t *testing.T) {
 						}
 						projectArg := fmt.Sprintf("%s/%s", ctx.Org(), projectName)
 
-						opts := &createOptions{
-							project: projectArg,
-							name:    endpointName,
-							url:     "https://github.com",
-							token:   uuid.New().String(),
-						}
-
-						ctx.SetValue(ctxKeyCreateOpts, opts)
-						return runCreate(ctx, opts)
+						cmd := NewCmd(ctx)
+						cmd.SetArgs([]string{
+							projectArg,
+							"--name", endpointName,
+							"--url", "https://github.com",
+							"--token", uuid.New().String(),
+						})
+						return cmd.Execute()
 					},
 					Verify: func(ctx inttest.TestContext) error {
 						client, err := ctx.ClientFactory().ServiceEndpoint(ctx.Context(), ctx.Org())
@@ -62,7 +57,7 @@ func TestAccCreateGitHubServiceEndpoint(t *testing.T) {
 							return err
 						}
 
-						return inttest.Poll(func() error {
+						return pollutil.Poll(ctx.Context(), func() error {
 							projectName, err := test.GetTestProjectName(ctx)
 							if err != nil {
 								return err
@@ -110,7 +105,7 @@ func TestAccCreateGitHubServiceEndpoint(t *testing.T) {
 							}
 
 							return nil
-						}, inttest.PollOptions{
+						}, pollutil.PollOptions{
 							Tries:   10,
 							Timeout: 30 * time.Second,
 						})
@@ -129,6 +124,7 @@ func TestAccCreateGitHubServiceEndpoint(t *testing.T) {
 		endpointName := fmt.Sprintf("azdo-cli-acc-gh-cfg-%s", uuid.New().String())
 
 		inttest.Test(t, inttest.TestCase{
+			AcceptanceTest: true,
 			Steps: []inttest.Step{
 				{
 					PreRun: func(ctx inttest.TestContext) error {
@@ -141,15 +137,14 @@ func TestAccCreateGitHubServiceEndpoint(t *testing.T) {
 						}
 						projectArg := fmt.Sprintf("%s/%s", ctx.Org(), projectName)
 
-						opts := &createOptions{
-							project:         projectArg,
-							name:            endpointName,
-							url:             "https://github.com",
-							configurationID: uuid.New().String(),
-						}
-
-						ctx.SetValue(ctxKeyCreateOpts, opts)
-						return runCreate(ctx, opts)
+						cmd := NewCmd(ctx)
+						cmd.SetArgs([]string{
+							projectArg,
+							"--name", endpointName,
+							"--url", "https://github.com",
+							"--configuration-id", uuid.New().String(),
+						})
+						return cmd.Execute()
 					},
 					Verify: func(ctx inttest.TestContext) error {
 						client, err := ctx.ClientFactory().ServiceEndpoint(ctx.Context(), ctx.Org())
@@ -157,7 +152,7 @@ func TestAccCreateGitHubServiceEndpoint(t *testing.T) {
 							return err
 						}
 
-						return inttest.Poll(func() error {
+						return pollutil.Poll(ctx.Context(), func() error {
 							projectName, err := test.GetTestProjectName(ctx)
 							if err != nil {
 								return err
@@ -205,7 +200,7 @@ func TestAccCreateGitHubServiceEndpoint(t *testing.T) {
 							}
 
 							return nil
-						}, inttest.PollOptions{
+						}, pollutil.PollOptions{
 							Tries:   10,
 							Timeout: 30 * time.Second,
 						})
