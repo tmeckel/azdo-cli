@@ -15,7 +15,7 @@ import (
 	"github.com/tmeckel/azdo-cli/internal/types"
 )
 
-func TestRunCreate_WithTokenFlag(t *testing.T) {
+func TestNewCmd_WithTokenFlag(t *testing.T) {
 	t.Parallel()
 
 	ctrl := gomock.NewController(t)
@@ -32,19 +32,14 @@ func TestRunCreate_WithTokenFlag(t *testing.T) {
 	// Core client is used by ResolveProjectReference to fetch project metadata
 	mockCore := mocks.NewMockCoreClient(ctrl)
 	mClientFactory.EXPECT().Core(gomock.Any(), "org1").Return(mockCore, nil).AnyTimes()
-	mockCore.EXPECT().GetProject(gomock.Any(), gomock.Any()).Return(&core.TeamProject{Id: types.ToPtr(uuid.New())}, nil).AnyTimes()
+	mockCore.EXPECT().GetProject(gomock.Any(), gomock.Any()).Return(&core.TeamProject{
+		Id:   types.ToPtr(uuid.New()),
+		Name: types.ToPtr("proj1"),
+	}, nil).AnyTimes()
 
 	mockSEClient := mocks.NewMockServiceEndpointClient(ctrl)
 	// The connection factory mock exposes ServiceEndpoint via ClientFactory mock
 	mClientFactory.EXPECT().ServiceEndpoint(gomock.Any(), "org1").Return(mockSEClient, nil).AnyTimes()
-
-	// Printer mock for table output
-	mPrinter := mocks.NewMockPrinter(ctrl)
-	mCmdCtx.EXPECT().Printer(gomock.Any()).Return(mPrinter, nil).AnyTimes()
-	mPrinter.EXPECT().AddColumns(gomock.Any()).AnyTimes()
-	mPrinter.EXPECT().AddField(gomock.Any()).AnyTimes()
-	mPrinter.EXPECT().EndRow().AnyTimes()
-	mPrinter.EXPECT().Render().AnyTimes()
 
 	// Expect CreateServiceEndpoint to be called and return a created endpoint
 	created := &serviceendpoint.ServiceEndpoint{
@@ -59,25 +54,31 @@ func TestRunCreate_WithTokenFlag(t *testing.T) {
 			if args.Endpoint == nil {
 				t.Fatalf("expected endpoint payload")
 			}
+			if args.Endpoint.Authorization == nil || args.Endpoint.Authorization.Scheme == nil {
+				t.Fatalf("expected endpoint authorization")
+			}
+			if types.GetValue(args.Endpoint.Authorization.Scheme, "") != "Token" {
+				t.Fatalf("expected Token scheme, got %q", types.GetValue(args.Endpoint.Authorization.Scheme, ""))
+			}
+			if args.Endpoint.Authorization.Parameters == nil {
+				t.Fatalf("expected authorization parameters")
+			}
+			if got := (*args.Endpoint.Authorization.Parameters)["AccessToken"]; got != "tok-flag" {
+				t.Fatalf("expected AccessToken=tok-flag, got %q", got)
+			}
 			return created, nil
 		},
 	).Times(1)
 
 	mCmdCtx.EXPECT().Prompter().Return(nil, nil).AnyTimes()
 
-	opts := &createOptions{
-		project: "org1/proj1",
-		name:    "ep-name",
-		url:     "",
-		token:   "tok-flag",
-	}
-
-	// run
-	err := runCreate(mCmdCtx, opts)
+	cmd := NewCmd(mCmdCtx)
+	cmd.SetArgs([]string{"org1/proj1", "--name", "ep-name", "--token", "tok-flag"})
+	err := cmd.Execute()
 	assert.NoError(t, err)
 }
 
-func TestRunCreate_PromptForToken(t *testing.T) {
+func TestNewCmd_PromptForToken(t *testing.T) {
 	t.Parallel()
 
 	ctrl := gomock.NewController(t)
@@ -96,18 +97,13 @@ func TestRunCreate_PromptForToken(t *testing.T) {
 
 	mockCore := mocks.NewMockCoreClient(ctrl)
 	mClientFactory.EXPECT().Core(gomock.Any(), "org1").Return(mockCore, nil).AnyTimes()
-	mockCore.EXPECT().GetProject(gomock.Any(), gomock.Any()).Return(&core.TeamProject{Id: types.ToPtr(uuid.New())}, nil).AnyTimes()
+	mockCore.EXPECT().GetProject(gomock.Any(), gomock.Any()).Return(&core.TeamProject{
+		Id:   types.ToPtr(uuid.New()),
+		Name: types.ToPtr("proj1"),
+	}, nil).AnyTimes()
 
 	mockSEClient := mocks.NewMockServiceEndpointClient(ctrl)
 	mClientFactory.EXPECT().ServiceEndpoint(gomock.Any(), "org1").Return(mockSEClient, nil).AnyTimes()
-
-	// Printer mock for table output
-	mPrinter := mocks.NewMockPrinter(ctrl)
-	mCmdCtx.EXPECT().Printer(gomock.Any()).Return(mPrinter, nil).AnyTimes()
-	mPrinter.EXPECT().AddColumns(gomock.Any()).AnyTimes()
-	mPrinter.EXPECT().AddField(gomock.Any()).AnyTimes()
-	mPrinter.EXPECT().EndRow().AnyTimes()
-	mPrinter.EXPECT().Render().AnyTimes()
 
 	created := &serviceendpoint.ServiceEndpoint{
 		Id:   types.ToPtr(uuid.New()),
@@ -122,18 +118,13 @@ func TestRunCreate_PromptForToken(t *testing.T) {
 	prom.EXPECT().Password(gomock.Any()).Return("sometoken", nil).Times(1)
 	mCmdCtx.EXPECT().Prompter().Return(prom, nil).AnyTimes()
 
-	opts := &createOptions{
-		project: "org1/proj1",
-		name:    "ep-name",
-		url:     "",
-		token:   "",
-	}
-
-	err := runCreate(mCmdCtx, opts)
+	cmd := NewCmd(mCmdCtx)
+	cmd.SetArgs([]string{"org1/proj1", "--name", "ep-name"})
+	err := cmd.Execute()
 	assert.NoError(t, err)
 }
 
-func TestRunCreate_WithConfigurationID(t *testing.T) {
+func TestNewCmd_WithConfigurationID(t *testing.T) {
 	t.Parallel()
 
 	ctrl := gomock.NewController(t)
@@ -149,18 +140,13 @@ func TestRunCreate_WithConfigurationID(t *testing.T) {
 
 	mockCore := mocks.NewMockCoreClient(ctrl)
 	mClientFactory.EXPECT().Core(gomock.Any(), "org1").Return(mockCore, nil).AnyTimes()
-	mockCore.EXPECT().GetProject(gomock.Any(), gomock.Any()).Return(&core.TeamProject{Id: types.ToPtr(uuid.New())}, nil).AnyTimes()
+	mockCore.EXPECT().GetProject(gomock.Any(), gomock.Any()).Return(&core.TeamProject{
+		Id:   types.ToPtr(uuid.New()),
+		Name: types.ToPtr("proj1"),
+	}, nil).AnyTimes()
 
 	mockSEClient := mocks.NewMockServiceEndpointClient(ctrl)
 	mClientFactory.EXPECT().ServiceEndpoint(gomock.Any(), "org1").Return(mockSEClient, nil).AnyTimes()
-
-	// Printer mock for table output
-	mPrinter := mocks.NewMockPrinter(ctrl)
-	mCmdCtx.EXPECT().Printer(gomock.Any()).Return(mPrinter, nil).AnyTimes()
-	mPrinter.EXPECT().AddColumns(gomock.Any()).AnyTimes()
-	mPrinter.EXPECT().AddField(gomock.Any()).AnyTimes()
-	mPrinter.EXPECT().EndRow().AnyTimes()
-	mPrinter.EXPECT().Render().AnyTimes()
 
 	// Expect CreateServiceEndpoint and validate Authorization scheme/params
 	mockSEClient.EXPECT().CreateServiceEndpoint(gomock.Any(), gomock.Any()).DoAndReturn(
@@ -189,13 +175,8 @@ func TestRunCreate_WithConfigurationID(t *testing.T) {
 
 	mCmdCtx.EXPECT().Prompter().Return(nil, nil).AnyTimes()
 
-	opts := &createOptions{
-		project:         "org1/proj1",
-		name:            "ep-name",
-		url:             "",
-		configurationID: "cfg-123",
-	}
-
-	err := runCreate(mCmdCtx, opts)
+	cmd := NewCmd(mCmdCtx)
+	cmd.SetArgs([]string{"org1/proj1", "--name", "ep-name", "--configuration-id", "cfg-123"})
+	err := cmd.Execute()
 	assert.NoError(t, err)
 }
