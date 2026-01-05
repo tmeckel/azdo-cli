@@ -14,13 +14,13 @@ import (
 	"github.com/tmeckel/azdo-cli/internal/cmd/serviceendpoint/test"
 	inttest "github.com/tmeckel/azdo-cli/internal/test"
 	"github.com/tmeckel/azdo-cli/internal/types"
+	pollutil "github.com/tmeckel/azdo-cli/internal/util"
 )
 
 type contextKey string
 
 const (
-	ctxKeyCreateOpts contextKey = "azurerm/create-opts"
-	ctxKeyCertPath   contextKey = "azurerm/cert-path"
+	ctxKeyCertPath contextKey = "azurerm/cert-path"
 )
 
 const (
@@ -33,6 +33,11 @@ ZXJuZXQgV2lkZ2l0cyBQdHkgTHRkMIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBC
 gKCAQEAwuTanj/Uo5Yhq7ckmL5jycB3Z/zPBuZjviQ4fAar/7xeOUe7/y2Kpls=
 -----END CERTIFICATE-----`
 )
+
+type createTestOptions struct {
+	servicePrincipalKey string
+	certificateFileName string
+}
 
 func TestAccCreateAzureRMServiceEndpoint(t *testing.T) {
 	t.Parallel()
@@ -48,7 +53,7 @@ func TestAccCreateAzureRMServiceEndpoint(t *testing.T) {
 	// Test Service Principal with Secret
 	t.Run("ServicePrincipalWithSecret", func(t *testing.T) {
 		t.Parallel()
-		testAccCreateAzureRMServiceEndpoint(t, sharedProj, AuthSchemeServicePrincipal, CreationModeManual, func(opts *createOptions) {
+		testAccCreateAzureRMServiceEndpoint(t, sharedProj, AuthSchemeServicePrincipal, CreationModeManual, func(opts *createTestOptions) {
 			opts.servicePrincipalKey = "test-secret-123"
 		})
 	})
@@ -56,8 +61,8 @@ func TestAccCreateAzureRMServiceEndpoint(t *testing.T) {
 	// Test Service Principal with Certificate
 	t.Run("ServicePrincipalWithCertificate", func(t *testing.T) {
 		t.Parallel()
-		testAccCreateAzureRMServiceEndpoint(t, sharedProj, AuthSchemeServicePrincipal, CreationModeManual, func(opts *createOptions) {
-			opts.certificatePath = "test-cert.pem"
+		testAccCreateAzureRMServiceEndpoint(t, sharedProj, AuthSchemeServicePrincipal, CreationModeManual, func(opts *createTestOptions) {
+			opts.certificateFileName = "test-cert.pem"
 		})
 	})
 
@@ -80,14 +85,20 @@ func TestAccCreateAzureRMServiceEndpoint(t *testing.T) {
 	})
 }
 
-func testAccCreateAzureRMServiceEndpoint(t *testing.T, sharedProj *test.SharedProject, authScheme string, creationMode string, setupFunc func(*createOptions)) {
+func testAccCreateAzureRMServiceEndpoint(t *testing.T, sharedProj *test.SharedProject, authScheme string, creationMode string, setupFunc func(*createTestOptions)) {
 	// Generate unique names for each test run
 	endpointName := fmt.Sprintf("azdo-cli-test-ep-%s-%s", authScheme, uuid.New().String())
 	subscriptionID := uuid.New().String()
 	subscriptionName := fmt.Sprintf("Test Subscription %s", authScheme)
 	resourceGroup := fmt.Sprintf("test-rg-%s", uuid.New().String())
 
+	testOpts := &createTestOptions{}
+	if setupFunc != nil {
+		setupFunc(testOpts)
+	}
+
 	inttest.Test(t, inttest.TestCase{
+		AcceptanceTest: true,
 		Steps: []inttest.Step{
 			{
 				PreRun: func(ctx inttest.TestContext) error {
@@ -100,57 +111,61 @@ func testAccCreateAzureRMServiceEndpoint(t *testing.T, sharedProj *test.SharedPr
 					}
 					projectArg := fmt.Sprintf("%s/%s", ctx.Org(), projectName)
 
-					opts := &createOptions{
-						project:                       projectArg,
-						name:                          endpointName,
-						description:                   fmt.Sprintf("Test AzureRM endpoint with %s auth", authScheme),
-						authenticationScheme:          authScheme,
-						servicePrincipalID:            uuid.New().String(), // Random SPN ID
-						servicePrincipalKey:           "",
-						certificatePath:               "",
-						tenantID:                      uuid.New().String(), // Random tenant ID
-						subscriptionID:                subscriptionID,
-						subscriptionName:              subscriptionName,
-						resourceGroup:                 resourceGroup,
-						environment:                   "AzureCloud",
-						serviceEndpointCreationMode:   creationMode,
-						grantPermissionToAllPipelines: true,
-						yes:                           true,
-					}
-
-					if setupFunc != nil {
-						setupFunc(opts)
-					}
-
-					if opts.certificatePath != "" {
-						// create a temporary certificate file using the test helper
-						certPath, err := inttest.WriteTestFileWithName(t, opts.certificatePath, strings.NewReader(testCertificatePEM))
+					var certPath string
+					if strings.TrimSpace(testOpts.certificateFileName) != "" {
+						path, err := inttest.WriteTestFileWithName(t, testOpts.certificateFileName, strings.NewReader(testCertificatePEM))
 						if err != nil {
 							return fmt.Errorf("failed to write certificate file: %w", err)
 						}
-						// override the path in opts so the command uses the generated file
-						opts.certificatePath = certPath
-						ctx.SetValue(ctxKeyCertPath, certPath)
+						certPath = path
+						ctx.SetValue(ctxKeyCertPath, path)
 					}
 
-					ctx.SetValue(ctxKeyCreateOpts, opts)
+					var servicePrincipalID string
+					switch authScheme {
+					case AuthSchemeServicePrincipal:
+						servicePrincipalID = uuid.New().String()
+					case AuthSchemeWorkloadIdentityFederation:
+						if creationMode == CreationModeManual {
+							servicePrincipalID = uuid.New().String()
+						}
+					}
 
-					// Execute the command
-					return runCreate(ctx, opts)
+					args := []string{
+						projectArg,
+						"--name", endpointName,
+						"--description", fmt.Sprintf("Test AzureRM endpoint with %s auth", authScheme),
+						"--authentication-scheme", authScheme,
+						"--tenant-id", uuid.New().String(),
+						"--subscription-id", subscriptionID,
+						"--subscription-name", subscriptionName,
+						"--resource-group", resourceGroup,
+						"--environment", "AzureCloud",
+						"--grant-permission-to-all-pipelines",
+					}
+
+					if servicePrincipalID != "" {
+						args = append(args, "--service-principal-id", servicePrincipalID)
+					}
+					if authScheme == AuthSchemeServicePrincipal {
+						if strings.TrimSpace(testOpts.servicePrincipalKey) != "" {
+							args = append(args, "--service-principal-key", testOpts.servicePrincipalKey)
+						} else if certPath != "" {
+							args = append(args, "--certificate-path", certPath)
+						}
+					}
+
+					cmd := NewCmd(ctx)
+					cmd.SetArgs(args)
+					return cmd.Execute()
 				},
 				Verify: func(ctx inttest.TestContext) error {
-					storedOpts, ok := ctx.Value(ctxKeyCreateOpts)
-					if !ok {
-						return fmt.Errorf("test context missing create options")
-					}
-					opts := storedOpts.(*createOptions)
-
 					client, err := ctx.ClientFactory().ServiceEndpoint(ctx.Context(), ctx.Org())
 					if err != nil {
 						return fmt.Errorf("failed to create service endpoint client: %w", err)
 					}
 
-					return inttest.Poll(func() error {
+					return pollutil.Poll(ctx.Context(), func() error {
 						projectName, err := test.GetTestProjectName(ctx)
 						if err != nil {
 							return err
@@ -160,6 +175,7 @@ func testAccCreateAzureRMServiceEndpoint(t *testing.T, sharedProj *test.SharedPr
 							Project:        &projectName,
 							Type:           types.ToPtr("azurerm"),
 							IncludeDetails: types.ToPtr(true),
+							IncludeFailed:  types.ToPtr(true),
 						})
 						if err != nil {
 							return fmt.Errorf("failed to list service endpoints: %w", err)
@@ -230,11 +246,11 @@ func testAccCreateAzureRMServiceEndpoint(t *testing.T, sharedProj *test.SharedPr
 							if _, ok := params["serviceprincipalid"]; !ok {
 								return fmt.Errorf("serviceprincipalid not found in auth parameters")
 							}
-							if opts.servicePrincipalKey != "" {
+							if strings.TrimSpace(testOpts.servicePrincipalKey) != "" {
 								if _, ok := params["authenticationType"]; !ok || params["authenticationType"] != "spnKey" {
 									return fmt.Errorf("expected authenticationType 'spnKey' for service principal with secret")
 								}
-							} else if opts.certificatePath != "" {
+							} else if strings.TrimSpace(testOpts.certificateFileName) != "" {
 								if _, ok := params["authenticationType"]; !ok || params["authenticationType"] != "spnCertificate" {
 									return fmt.Errorf("expected authenticationType 'spnCertificate' for service principal with certificate")
 								}
@@ -248,7 +264,7 @@ func testAccCreateAzureRMServiceEndpoint(t *testing.T, sharedProj *test.SharedPr
 						}
 
 						return nil
-					}, inttest.PollOptions{
+					}, pollutil.PollOptions{
 						Tries:   10,
 						Timeout: 30 * time.Second,
 					})
