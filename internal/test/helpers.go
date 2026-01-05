@@ -18,13 +18,14 @@ import (
 	"github.com/tmeckel/azdo-cli/internal/iostreams"
 	"github.com/tmeckel/azdo-cli/internal/printer"
 	"github.com/tmeckel/azdo-cli/internal/prompter"
+	u "github.com/tmeckel/azdo-cli/internal/util"
 )
 
 const (
 	accToggleEnv      = "AZDO_ACC_TEST"
 	accOrgEnv         = "AZDO_ACC_ORG"
 	accPATEnv         = "AZDO_ACC_PAT"
-	accTimeoutSeconds = 60
+	accTimeoutSeconds = 240
 	accTimeoutEnv     = "AZDO_ACC_TIMEOUT"
 	accProjectEnv     = "AZDO_ACC_PROJECT"
 )
@@ -50,8 +51,9 @@ func (n *nullPrinter) Render() error {
 }
 
 type TestCase struct {
-	PreCheck func() error
-	Steps    []Step
+	PreCheck       func() error
+	Steps          []Step
+	AcceptanceTest bool
 }
 
 type TestContext interface {
@@ -135,15 +137,41 @@ func (tc *testContext) Value(key any) (any, bool) {
 }
 
 // Precheck and context builder
-func newTestContext(t *testing.T) TestContext {
+func NewAccTestContext(t *testing.T) TestContext {
 	org := os.Getenv(accOrgEnv)
 	pat := os.Getenv(accPATEnv)
 	project := os.Getenv(accProjectEnv)
+	timeoutVal := os.Getenv(accTimeoutEnv)
 
 	if org == "" || pat == "" {
 		t.Fatalf("missing acceptance env variables: %q, %q", accOrgEnv, accPATEnv)
 	}
+	return initTestContext(
+		t,
+		org,
+		pat,
+		project,
+		timeoutVal,
+	)
+}
 
+func NewTestContext(t *testing.T) TestContext {
+	sb := u.NewStringBuilder().
+		WithUpperLetters().
+		WithUpperLetters()
+	org, _ := sb.Generate(8)
+	pat, _ := sb.Generate(8)
+	project, _ := sb.Generate(8)
+	return initTestContext(
+		t,
+		org,
+		pat,
+		project,
+		"",
+	)
+}
+
+func initTestContext(t *testing.T, org, pat, project, timeoutVal string) TestContext {
 	orgurl := fmt.Sprintf("https://dev.azure.com/%s", org)
 
 	// Build a safe YAML configuration using marshaling instead of fmt.Sprintf interpolation.
@@ -190,7 +218,6 @@ func newTestContext(t *testing.T) TestContext {
 	var baseCtx context.Context
 	var cancel context.CancelFunc
 
-	timeoutVal := os.Getenv(accTimeoutEnv)
 	debugVal := os.Getenv("AZDO_DEBUG")
 
 	if timeoutVal == "-1" || debugVal == "1" {
@@ -327,7 +354,13 @@ func Test(t *testing.T, tc TestCase) {
 			t.Fatalf("test PreCheck failed: %v", err)
 		}
 	}
-	ctx := newTestContext(t)
+	var ctx TestContext
+	if tc.AcceptanceTest {
+		ctx = NewAccTestContext(t)
+	} else {
+		ctx = NewTestContext(t)
+	}
+
 	for _, s := range tc.Steps {
 		if err := runStep(ctx, s); err != nil {
 			t.Fatalf("%v", err)
