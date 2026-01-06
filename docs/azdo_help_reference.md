@@ -122,6 +122,34 @@ Aliases
 ls, l
 ```
 
+### `azdo boards work-item <command>`
+
+Work with Azure Boards work items.
+
+#### `azdo boards work-item list [ORGANIZATION/]PROJECT [flags]`
+
+List work items belonging to a project.
+
+```
+    --area strings             Filter by area path (repeatable); prefix with Under: to include subtree (e.g., Under:Web/Payments)
+-a, --assigned-to strings      Filter by assigned-to identity (repeatable); supports emails, descriptors, and @me
+-c, --classification strings   Filter by severity classification (repeatable): 1 - Critical, 2 - High, 3 - Medium, 4 - Low
+    --iteration strings        Filter by iteration path (repeatable); prefix with Under: to include subtree (e.g., Under:Release 2025/Sprint 1)
+-q, --jq expression            Filter JSON output using a jq expression
+    --json fields[=*]          Output JSON with the specified fields. Prefix a field with '-' to exclude it.
+-L, --limit int                Maximum number of results to return (>=1) (default 50)
+-p, --priority ints            Filter by priority (repeatable): 1-4
+-s, --status strings           Filter by state category: open, closed, resolved, all (repeatable) (default [open])
+-t, --template string          Format JSON output using a Go template; see "azdo help formatting"
+-T, --type strings             Filter by work item type (repeatable)
+```
+
+Aliases
+
+```
+ls, l
+```
+
 ## `azdo co`
 
 Alias for "pr checkout"
