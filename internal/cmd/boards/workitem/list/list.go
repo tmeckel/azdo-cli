@@ -13,6 +13,7 @@ import (
 	"github.com/spf13/cobra"
 	"go.uber.org/zap"
 
+	"github.com/tmeckel/azdo-cli/internal/azdo/extensions"
 	"github.com/tmeckel/azdo-cli/internal/cmd/util"
 	"github.com/tmeckel/azdo-cli/internal/types"
 )
@@ -33,10 +34,7 @@ type listOptions struct {
 }
 
 func NewCmd(ctx util.CmdContext) *cobra.Command {
-	opts := &listOptions{
-		status: []string{"open"},
-		limit:  50,
-	}
+	opts := &listOptions{}
 
 	cmd := &cobra.Command{
 		Use:   "list [ORGANIZATION/]PROJECT",
@@ -71,14 +69,14 @@ func NewCmd(ctx util.CmdContext) *cobra.Command {
 		},
 	}
 
-	cmd.Flags().StringSliceVarP(&opts.status, "status", "s", opts.status, "Filter by state category: open, closed, resolved, all (repeatable)")
+	cmd.Flags().StringSliceVarP(&opts.status, "status", "s", []string{"open"}, "Filter by state category: open, closed, resolved, all (repeatable)")
 	cmd.Flags().StringSliceVarP(&opts.workItemTypes, "type", "T", nil, "Filter by work item type (repeatable)")
 	cmd.Flags().StringSliceVarP(&opts.assignedTo, "assigned-to", "a", nil, "Filter by assigned-to identity (repeatable); supports emails, descriptors, and @me")
 	cmd.Flags().StringSliceVarP(&opts.classification, "classification", "c", nil, "Filter by severity classification (repeatable): 1 - Critical, 2 - High, 3 - Medium, 4 - Low")
 	cmd.Flags().IntSliceVarP(&opts.priority, "priority", "p", nil, "Filter by priority (repeatable): 1-4")
 	cmd.Flags().StringSliceVar(&opts.area, "area", nil, "Filter by area path (repeatable); prefix with Under: to include subtree (e.g., Under:Web/Payments)")
 	cmd.Flags().StringSliceVar(&opts.iteration, "iteration", nil, "Filter by iteration path (repeatable); prefix with Under: to include subtree (e.g., Under:Release 2025/Sprint 1)")
-	cmd.Flags().IntVarP(&opts.limit, "limit", "L", opts.limit, "Maximum number of results to return (>=1)")
+	cmd.Flags().IntVarP(&opts.limit, "limit", "L", 0, "Maximum number of results to return (>=1)")
 
 	util.AddJSONFlags(cmd, &opts.exporter, []string{"url", "_links", "commentVersionRef", "fields", "id", "relations", "rev"})
 
@@ -94,20 +92,7 @@ func runList(ctx util.CmdContext, opts *listOptions) error {
 	ios.StartProgressIndicator()
 	defer ios.StopProgressIndicator()
 
-	if opts.limit < 1 {
-		return util.FlagErrorf("invalid value for --limit: %v", opts.limit)
-	}
-
-	if err := validateClassification(opts.classification); err != nil {
-		return err
-	}
-	if err := validatePriority(opts.priority); err != nil {
-		return err
-	}
-	if err := validateUnderPaths("--area", opts.area); err != nil {
-		return err
-	}
-	if err := validateUnderPaths("--iteration", opts.iteration); err != nil {
+	if err := validateListOptions(opts); err != nil {
 		return err
 	}
 
@@ -139,12 +124,16 @@ func runList(ctx util.CmdContext, opts *listOptions) error {
 		zap.Int("limit", opts.limit),
 	)
 
-	top := opts.limit
-	result, err := witClient.QueryByWiql(ctx.Context(), workitemtracking.QueryByWiqlArgs{
+	wiqlQueryArgs := workitemtracking.QueryByWiqlArgs{
 		Wiql:    &workitemtracking.Wiql{Query: &query},
 		Project: &scope.Project,
-		Top:     &top,
-	})
+	}
+
+	if opts.limit > 0 {
+		wiqlQueryArgs.Top = &opts.limit
+	}
+
+	result, err := witClient.QueryByWiql(ctx.Context(), wiqlQueryArgs)
 	if err != nil {
 		return fmt.Errorf("failed to execute WIQL query: %w", err)
 	}
@@ -152,9 +141,6 @@ func runList(ctx util.CmdContext, opts *listOptions) error {
 	ids := extractWorkItemIDs(result)
 	if len(ids) == 0 {
 		return util.NewNoResultsError("no work items matched the provided filters")
-	}
-	if len(ids) > opts.limit {
-		ids = ids[:opts.limit]
 	}
 
 	workItems, err := fetchWorkItems(ctx, witClient, scope.Project, ids, result.AsOf, opts.exporter != nil)
@@ -171,6 +157,29 @@ func runList(ctx util.CmdContext, opts *listOptions) error {
 		return opts.exporter.Write(ios, workItems)
 	}
 
+	return renderWorkItemsTable(ctx, workItems)
+}
+
+func validateListOptions(opts *listOptions) error {
+	if opts == nil {
+		return util.FlagErrorf("invalid options")
+	}
+	if err := validateClassification(opts.classification); err != nil {
+		return err
+	}
+	if err := validatePriority(opts.priority); err != nil {
+		return err
+	}
+	if err := validateUnderPaths("--area", opts.area); err != nil {
+		return err
+	}
+	if err := validateUnderPaths("--iteration", opts.iteration); err != nil {
+		return err
+	}
+	return nil
+}
+
+func renderWorkItemsTable(ctx util.CmdContext, workItems []workitemtracking.WorkItem) error {
 	tp, err := ctx.Printer("table")
 	if err != nil {
 		return err
@@ -192,67 +201,29 @@ func runList(ctx util.CmdContext, opts *listOptions) error {
 	return tp.Render()
 }
 
-func buildStateCategoryPredicate(raw []string) (string, error) {
-	// Deprecated: WIQL does not support filtering on [System.StateCategory] in all organizations.
-	// This helper is kept for compatibility with older iterations but should not be used.
-	if len(raw) == 0 {
-		raw = []string{"open"}
-	}
-
-	normalized := make([]string, 0, len(raw))
-	for _, v := range raw {
-		v = strings.TrimSpace(v)
-		if v == "" {
-			continue
-		}
-		normalized = append(normalized, strings.ToLower(v))
-	}
-	if len(normalized) == 0 {
-		normalized = []string{"open"}
-	}
-
-	if slices.Contains(normalized, "all") {
-		return "", nil
-	}
-
-	categories := make([]string, 0)
-	for _, s := range normalized {
-		switch s {
-		case "open":
-			categories = append(categories, "Proposed", "InProgress")
-		case "closed":
-			categories = append(categories, "Completed", "Removed")
-		case "resolved":
-			categories = append(categories, "Resolved")
-		default:
-			return "", util.FlagErrorf("invalid value for --status: %q (valid: open, closed, resolved, all)", s)
-		}
-	}
-
-	categories = types.UniqueComparable(categories, strings.ToLower)
-	return fmt.Sprintf("[System.StateCategory] IN (%s)", wiqlQuoteList(categories)), nil
-}
-
 func resolveStatePredicate(ctx util.CmdContext, client workitemtracking.Client, project string, rawStatus []string, rawTypes []string) (string, error) {
 	statuses := normalizeStatuses(rawStatus)
 	if slices.Contains(statuses, "all") {
 		return "", nil
 	}
 
-	wantedCategories := make([]string, 0)
+	wantedCategories := make(map[string]struct{})
 	for _, s := range statuses {
 		switch s {
 		case "open":
-			wantedCategories = append(wantedCategories, "Proposed", "InProgress")
+			addWantedCategory(wantedCategories, "New")
+			addWantedCategory(wantedCategories, "Active")
+			addWantedCategory(wantedCategories, "Proposed")
+			addWantedCategory(wantedCategories, "InProgress")
 		case "closed":
-			wantedCategories = append(wantedCategories, "Completed", "Removed")
+			addWantedCategory(wantedCategories, "Completed")
+			addWantedCategory(wantedCategories, "Removed")
 		case "resolved":
-			wantedCategories = append(wantedCategories, "Resolved")
+			addWantedCategory(wantedCategories, "Resolved")
 		default:
 			return "", util.FlagErrorf("invalid value for --status: %q (valid: open, closed, resolved, all)", s)
 		}
 	}
-	wantedCategories = types.UniqueComparable(wantedCategories, strings.ToLower)
 
 	stateNames := make([]string, 0)
 
@@ -267,7 +238,7 @@ func resolveStatePredicate(ctx util.CmdContext, client workitemtracking.Client, 
 			if err != nil {
 				return "", fmt.Errorf("failed to resolve states for work item type %q: %w", localType, err)
 			}
-			stateNames = append(stateNames, collectStateNamesByCategory(states, wantedCategories)...)
+			appendStateNamesByCategory(&stateNames, states, wantedCategories)
 		}
 	} else {
 		typesList, err := client.GetWorkItemTypes(ctx.Context(), workitemtracking.GetWorkItemTypesArgs{
@@ -286,7 +257,7 @@ func resolveStatePredicate(ctx util.CmdContext, client workitemtracking.Client, 
 			}
 
 			if t.States != nil {
-				stateNames = append(stateNames, collectStateNamesByCategory(t.States, wantedCategories)...)
+				appendStateNamesByCategory(&stateNames, t.States, wantedCategories)
 				continue
 			}
 
@@ -302,7 +273,7 @@ func resolveStatePredicate(ctx util.CmdContext, client workitemtracking.Client, 
 			if err != nil {
 				return "", fmt.Errorf("failed to resolve states for work item type %q: %w", localType, err)
 			}
-			stateNames = append(stateNames, collectStateNamesByCategory(states, wantedCategories)...)
+			appendStateNamesByCategory(&stateNames, states, wantedCategories)
 		}
 	}
 
@@ -314,23 +285,21 @@ func resolveStatePredicate(ctx util.CmdContext, client workitemtracking.Client, 
 	return fmt.Sprintf("[System.State] IN (%s)", wiqlQuoteList(stateNames)), nil
 }
 
-func collectStateNamesByCategory(states *[]workitemtracking.WorkItemStateColor, wantedCategories []string) []string {
-	if states == nil || len(*states) == 0 {
-		return nil
+func appendStateNamesByCategory(stateNames *[]string, states *[]workitemtracking.WorkItemStateColor, wantedCategories map[string]struct{}) {
+	if stateNames == nil || states == nil || len(*states) == 0 {
+		return
 	}
 
-	matched := make([]string, 0, len(*states))
 	for _, st := range *states {
 		category := types.GetValue(st.Category, "")
 		name := types.GetValue(st.Name, "")
 		if category == "" || name == "" {
 			continue
 		}
-		if containsFold(wantedCategories, category) {
-			matched = append(matched, name)
+		if _, ok := wantedCategories[canonCategory(category)]; ok {
+			*stateNames = append(*stateNames, name)
 		}
 	}
-	return matched
 }
 
 func normalizeStatuses(raw []string) []string {
@@ -350,17 +319,14 @@ func normalizeStatuses(raw []string) []string {
 		normalized = []string{"open"}
 	}
 
-	return types.UniqueComparable(normalized, strings.ToLower)
+	return types.Unique(normalized)
 }
 
-func containsFold(haystack []string, needle string) bool {
-	needleCanon := canonCategory(needle)
-	for _, v := range haystack {
-		if canonCategory(v) == needleCanon {
-			return true
-		}
+func addWantedCategory(categories map[string]struct{}, category string) {
+	if categories == nil {
+		return
 	}
-	return false
+	categories[canonCategory(category)] = struct{}{}
 }
 
 func canonCategory(raw string) string {
@@ -417,27 +383,42 @@ func resolveAssignedToFilter(ctx util.CmdContext, organization string, assignedT
 		return nil, nil
 	}
 
-	extensionsClient, err := ctx.ClientFactory().Extensions(ctx.Context(), organization)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create Extensions client: %w", err)
+	needsLookup := false
+	for _, raw := range assignedTo {
+		raw = strings.TrimSpace(raw)
+		if raw == "" {
+			continue
+		}
+		if strings.EqualFold(raw, "@me") {
+			needsLookup = true
+			break
+		}
+		if shouldResolveIdentity(raw) {
+			needsLookup = true
+			break
+		}
 	}
 
-	identityClient, err := ctx.ClientFactory().Identity(ctx.Context(), organization)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create Identity client: %w", err)
+	var extensionsClient extensions.Client
+	var identityClient identity.Client
+	if needsLookup {
+		ext, err := ctx.ClientFactory().Extensions(ctx.Context(), organization)
+		if err != nil {
+			return nil, fmt.Errorf("failed to create Extensions client: %w", err)
+		}
+		extensionsClient = ext
+
+		idc, err := ctx.ClientFactory().Identity(ctx.Context(), organization)
+		if err != nil {
+			return nil, fmt.Errorf("failed to create Identity client: %w", err)
+		}
+		identityClient = idc
 	}
 
 	resolved := make([]string, 0, len(assignedTo))
 	for _, raw := range assignedTo {
 		raw = strings.TrimSpace(raw)
 		if raw == "" {
-			continue
-		}
-
-		// WIQL identity fields accept display names/emails directly. Keep those values unchanged and
-		// only resolve aliases/descriptors when needed.
-		if strings.Contains(raw, " ") || strings.Contains(raw, "@") {
-			resolved = append(resolved, raw)
 			continue
 		}
 
@@ -449,10 +430,6 @@ func resolveAssignedToFilter(ctx util.CmdContext, organization string, assignedT
 			identityIds := selfID.String()
 			identities, err := identityClient.ReadIdentities(ctx.Context(), identity.ReadIdentitiesArgs{
 				IdentityIds: &identityIds,
-				QueryMembership: func() *identity.QueryMembership {
-					qm := identity.QueryMembershipValues.None
-					return &qm
-				}(),
 			})
 			if err != nil {
 				return nil, fmt.Errorf("failed to resolve @me identity details: %w", err)
@@ -465,6 +442,13 @@ func resolveAssignedToFilter(ctx util.CmdContext, organization string, assignedT
 				return nil, fmt.Errorf("authenticated identity is missing account or display name")
 			}
 			resolved = append(resolved, value)
+			continue
+		}
+
+		// WIQL identity fields accept display names/emails directly. Keep those values unchanged and
+		// only resolve aliases/descriptors when needed.
+		if !shouldResolveIdentity(raw) {
+			resolved = append(resolved, raw)
 			continue
 		}
 
@@ -486,36 +470,35 @@ func resolveAssignedToFilter(ctx util.CmdContext, organization string, assignedT
 	return resolved, nil
 }
 
+func shouldResolveIdentity(raw string) bool {
+	// Keep values that already look like display names/emails unchanged.
+	return !(strings.Contains(raw, " ") || strings.Contains(raw, "@"))
+}
+
 func identityAccountOrDisplay(ident identity.Identity) string {
-	account := identityAccount(ident.Properties)
-	if account != "" {
+	if account := identityAccount(ident.Properties); account != "" {
 		return account
 	}
 	return types.GetValue(ident.ProviderDisplayName, "")
 }
 
 func identityAccount(properties any) string {
-	switch typed := properties.(type) {
-	case map[string]any:
-		return extractAccountFromPropertiesMap(typed)
-	default:
+	props, ok := properties.(map[string]any)
+	if !ok {
 		return ""
 	}
-}
-
-func extractAccountFromPropertiesMap(properties map[string]any) string {
-	raw, ok := properties["Account"]
+	raw, ok := props["Account"]
 	if !ok || raw == nil {
 		return ""
 	}
 
-	switch typed := raw.(type) {
-	case map[string]any:
-		if v, ok := typed["$value"].(string); ok {
-			return v
-		}
+	account, ok := raw.(map[string]any)
+	if !ok {
+		return ""
 	}
-
+	if value, ok := account["$value"].(string); ok {
+		return value
+	}
 	return ""
 }
 
@@ -604,11 +587,11 @@ func wiqlQuoteList(values []string) string {
 }
 
 func wiqlIntList(values []int) string {
+	values = types.Unique(values)
 	parts := make([]string, 0, len(values))
 	for _, v := range values {
 		parts = append(parts, strconv.Itoa(v))
 	}
-	parts = types.UniqueComparable(parts, strings.ToLower)
 	return strings.Join(parts, ", ")
 }
 
