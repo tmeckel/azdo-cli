@@ -1,9 +1,5 @@
 package types
 
-import (
-	"slices"
-)
-
 func FilterSlice[T comparable](slice []T, filters ...func(value T, index int) (bool, error)) ([]T, error) {
 	if len(filters) == 0 {
 		return slice, nil
@@ -29,21 +25,41 @@ func FilterSlice[T comparable](slice []T, filters ...func(value T, index int) (b
 }
 
 func Unique[T comparable](items []T) []T {
-	return slices.CompactFunc(items, func(s1 T, s2 T) bool {
+	return uniqueByEq(items, func(s1 T, s2 T) bool {
 		return s1 == s2
 	})
 }
 
 func UniqueComparable[T any, C comparable](items []T, cmp func(T) C) []T {
-	return slices.CompactFunc(items, func(s1 T, s2 T) bool {
+	return uniqueByEq(items, func(s1 T, s2 T) bool {
 		return cmp(s1) == cmp(s2)
 	})
 }
 
 func UniqueFunc[T any](items []T, cmp func(T, T) bool) []T {
-	return slices.CompactFunc(items, func(s1 T, s2 T) bool {
-		return cmp(s1, s2)
-	})
+	return uniqueByEq(items, cmp)
+}
+
+func uniqueByEq[T any](items []T, eq func(T, T) bool) []T {
+	if len(items) == 0 {
+		return []T{}
+	}
+
+	unique := make([]T, 0, len(items))
+	for _, item := range items {
+		duplicate := false
+		for i := range unique {
+			if eq(unique[i], item) {
+				duplicate = true
+				break
+			}
+		}
+		if duplicate {
+			continue
+		}
+		unique = append(unique, item)
+	}
+	return unique
 }
 
 func MapSlice[S any, T any](items []S, mapper func(S) T) []T {
