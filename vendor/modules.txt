@@ -9,7 +9,7 @@ github.com/AlecAivazis/survey/v2/terminal
 # github.com/MakeNowJust/heredoc v1.0.0
 ## explicit; go 1.12
 github.com/MakeNowJust/heredoc
-# github.com/PuerkitoBio/purell v1.2.1
+# github.com/PuerkitoBio/purell v1.2.2
 ## explicit; go 1.21
 github.com/PuerkitoBio/purell
 # github.com/alecthomas/chroma/v2 v2.14.0
