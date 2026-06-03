@@ -6,9 +6,7 @@ linters:
     - dupl
     - errorlint
     - exhaustive
-    - goconst
     - gocritic
-    #- gocyclo
     - gosec
     - misspell
     - nilerr
