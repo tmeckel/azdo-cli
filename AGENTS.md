@@ -17,28 +17,55 @@ Developer: # Repository Guidelines
 - **Housekeeping:** `make tidy` (`go mod tidy`), `make clean` (removes binaries/distribution files).
 - **Run Locally:** `go run cmd/azdo/azdo.go --version` (no installation required).
 
+## Go Coding Skills
+
+This project relies on the [samber/cc-skills-golang](https://github.com/samber/cc-skills-golang) skill packs for general Go conventions. The full skill catalog, error-rate impact per skill, and the recommended ⭐️ list are documented in the [samber README](https://github.com/samber/cc-skills-golang#-skills). Install with the [vercel-labs/skills](https://github.com/vercel-labs/skills) CLI:
+
+```bash
+# Inspect which Go skills are currently installed
+npx skills list | grep golang-
+
+# Install a single skill
+npx skills add samber/cc-skills-golang --skill golang-code-style -y
+```
+
+**Workflow:**
+
+1. Before writing or modifying Go code, run `npx skills list | grep golang-` to see which skills are installed in this project or globally. The agent loads them automatically based on description matching; if `golang-how-to` is installed it also force-loads relevant secondary skills (e.g. Cobra review → `golang-spf13-cobra` + `golang-cli` + `golang-error-handling`).
+2. Treat the installed samber skills as the source of truth for general Go rules (style, naming, error wrapping, nil safety, testing patterns, concurrency, context propagation, etc.).
+3. Apply the project-specific rules in the sections below only where they **deviate** from samber. Every such section declares `> Supersedes samber/cc-skills-golang@<skill> for this project.` at the top — samber's ⚙️ override mechanism is honored automatically.
+4. If a section below does not declare a supersession, the samber skills win on that topic.
+
+> **When in doubt:** trust the samber skill that triggers. Project-specific sections exist to add or restrict, not to re-teach.
+
 ## Coding Style & Naming Conventions
 
-- **Language:** Go 1.22; use `gofmt` and `goimports` for code formatting; keep diffs minimal.
-- **Linting:** Follow `golangci-lint` guidance; wrap errors using `%w` for error chains.
-- **Naming:** Packages use lowercase; exported identifiers in CamelCase; files use lower_snake_case.
+> Supersedes `samber/cc-skills-golang@golang-code-style`, `@golang-naming`, and `@golang-error-handling` for this project.
+
+For the general rules (gofmt, goimports, MixedCaps, `Get`-prefix, `errors.Is/As`, `%w` wrapping), defer to the installed samber skills. Project-specific deviations:
+
+- **Linting:** `make lint` runs `golangci-lint` against `.golangci.yml`. Always run before submission.
+- **Logging:** Use `zap.L()` with structured messages. Do not introduce `log` or `slog` without approval.
+- **Error wrapping:** Always propagate with `fmt.Errorf("...: %w", err)`.
+- **Variables:** Variable names must never collide with any import or the name of a Go package.
 - **CLI Flags:** Use kebab-case (e.g., `--organization-url`).
-- **Multi-value flag conventions:** When supporting “remove all” semantics on list flags, reserve `*` as the exclusive sentinel. Commands must reject combinations like `--remove-label foo,*` and treat a lone `*` as “remove every existing entry.”
-- **Editing Tools:** Modify files using git-aware patches (e.g., `apply_patch`). Do not rely on ad-hoc scripts (Python, sed, etc.) to edit tracked files so diffs stay reviewable.
-- **Logging:** Use `zap.L()` with structured messages; prefer `%w` for wrapping errors.
-- **Variables:** Variable names must never collide with any imports or name of GO packages
-- **Indentation During Drafts:** Cosmetic indentation mismatches are acceptable while implementing changes. Final formatting is applied with `gofumpt` after coding is complete, so focus on correctness first.
+- **Multi-value flag sentinel:** When supporting "remove all" semantics on list flags, reserve `*` as the exclusive sentinel. Commands must reject combinations like `--remove-label foo,*` and treat a lone `*` as "remove every existing entry."
+- **Editing tools:** Modify files using git-aware patches (e.g., `apply_patch`). Do not use ad-hoc scripts (Python, sed) to edit tracked files — diffs must stay reviewable.
+- **Indentation during drafts:** Cosmetic indentation mismatches are acceptable while implementing changes. Final formatting is applied with `gofumpt` after coding is complete, so focus on correctness first.
 
 ## Testing Guidelines
 
-- **Frameworks:** Use standard `testing` package and `testify` tools.
-- **Conventions:** Place tests in `*_test.go`; follow `TestXxx` function format; prefer table-driven tests.
-- **Execution:** tests **must** be hermetic and use mocks (`internal/mocks`). Create new mocks as needed. All tests must use a simulated API via mocks, no calling the Azure DevOps REST API directly.
-- **Coverage:** Add tests for new features and edge cases (e.g., authentication, URL parsing, remote operations).
-- **Imports:** Review and understand structs and functions from the `vendor` directory to maintain correct imports.
-- **REST API Commands:** For commands that interact with Azure DevOps REST API endpoints (`internal/cmd`), always add black box tests informed by Azure DevOps REST API 7.1 documentation.
+> Supersedes `samber/cc-skills-golang@golang-testing` and `@golang-stretchr-testify` for this project.
 
-For a complete guidance on how to implement tests refer to [TESTING.md](./TESTING.mds)
+For the general patterns (table-driven, parallel, fuzzing, coverage, `assert` vs `require`), defer to the installed samber skills. Project-specific deviations:
+
+- **Frameworks:** `testing` + `testify` (`require` for fatal preconditions, `assert` for non-fatal).
+- **Hermetic:** All tests **must** be hermetic and use mocks under `internal/mocks`. **Never** call the Azure DevOps REST API directly in tests — generate or extend a mock instead.
+- **REST API commands:** For commands that touch Azure DevOps REST API endpoints (`internal/cmd`), always add black-box tests informed by Azure DevOps REST API 7.1 documentation.
+- **Imports:** Review and understand structs and functions in `vendor/` to maintain correct imports.
+- **Coverage:** Add tests for new features and edge cases (e.g., authentication, URL parsing, remote operations).
+
+For a complete guide, refer to [TESTING.md](./TESTING.md).
 
 ## Commit & Pull Request Guidelines
 
@@ -207,38 +234,20 @@ Do not hand-roll HTTP calls or add new `internal/azdo/extensions` methods as a s
 
 ## Code Generation Best Practices
 
-To ensure high-quality, production-ready code and prevent common errors, adhere to the following guidelines when generating or modifying Go code:
+> Supersedes `samber/cc-skills-golang@golang-code-style`, `@golang-error-handling`, `@golang-safety`, and `@golang-structs-interfaces` for this project.
 
-### Explicit Import Management
+For the general Go rules (gofmt, goimports, error wrapping, nil safety, struct/interface design, embedding, pointer-vs-value receivers), defer to the installed samber skills. The following project-specific helpers and imports must be used in addition:
 
-- **Mandate:** When generating or modifying Go code, **always explicitly list and verify all required import statements**. Before writing the file, perform a dry run or a mental check to ensure all types, functions, and packages used in the new/modified code are correctly imported.
+### Helpers (use these — do not reinvent)
 
-- **Detail:** Ensure imports for standard library packages (e.g., `fmt`, `strings`, `context`), third-party libraries (e.g., `github.com/spf13/cobra`, `github.com/MakeNowJust/heredoc`), and internal project modules (e.g., `github.com/tmeckel/azdo-cli/internal/cmd/util`, `github.com/tmeckel/azdo-cli/internal/azdo`) are present. If unsure, err on the side of including common imports for the context.
+- **`types.GetValue[T]`** (`internal/types`): Safe pointer dereference. Required for Azure DevOps API fields that may be nil — do not use `*ptr` directly.
+- **`types.MapSlice` / `types.MapSlicePtr`** (`internal/types`): Generic slice transforms that handle nil pointers. Use instead of manual mapping loops.
+- **`util.AddJSONFlags(cmd, &opts.exporter, ...)`**: Register `--json` / `--jq` / `--template` on every command that emits structured output. The string slice you pass **must** list every JSON field you expose.
+- **`util.ErrCancel`**: Return this — not `util.SilentExit` — when the user cancels a confirmation prompt.
+- **`util.CmdContext`**: Always retrieve `IOStreams`, `Prompter`, `Config`, `ConnectionFactory`, and `ClientFactory` via this. Never reach for globals.
 
-### Reuse Existing Helpers
+### Imported packages (use only the canonical set)
 
-- Prefer the generic helpers in `internal/types` (e.g., `MapSlice`, `MapSlicePtr`) when transforming SDK slices instead of rewriting mapping loops. These helpers already handle nil pointers and keep slice code consistent across commands.
-
-### Idiomatic Go Code & Error Handling
-
-- **Context & IOStreams:** When interacting with `util.CmdContext`, always retrieve `IOStreams` and `Prompter` into local variables to handle potential errors immediately.
-    ```go
-    // GOOD:
-    // iostreams, err := ctx.IOStreams()
-    // if err != nil { return err }
-    // p, err := ctx.Prompter()
-    // if err != nil { return err }
-
-    // BAD:
-    // if !ctx.IOStreams().CanPrompt() { ... }
-    ```
-- **Safely Dereference Pointers:** The Azure DevOps API often returns pointers for fields that can be null. To prevent `nil pointer dereference` panics, use the generic helper `types.GetValue[T](ptr *T, defaultVal T) T`. This is the preferred way to safely access the value of a pointer.
-
-    ```go
-    // BAD: This will panic if project.Description is nil
-    // description := *project.Description
-
-    // GOOD: This safely returns the description or an empty string
-    description := types.GetValue(project.Description, "")
-    ```
--   **User Cancellation:** For operations that can be cancelled by the user (e.g., confirmation prompts), prefer returning `util.ErrCancel` over `util.SilentExit` to clearly distinguish user-initiated cancellations from other silent exits.
+- Standard library: `fmt`, `strings`, `context`
+- Third-party: `github.com/spf13/cobra`, `github.com/MakeNowJust/heredoc`, `go.uber.org/zap`
+- Internal: `github.com/tmeckel/azdo-cli/internal/cmd/util`, `github.com/tmeckel/azdo-cli/internal/azdo`, `github.com/tmeckel/azdo-cli/internal/types`
