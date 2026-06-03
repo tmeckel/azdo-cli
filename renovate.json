@@ -1,7 +1,11 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
   "extends": [
-    "group:allNonMajor",
     ":dependencyDashboard"
+  ],
+  "separateMajorMinor": true,
+  "separateMinorPatch": true,
+  "ignorePaths": [
+    "vendor/**"
   ]
 }
