@@ -144,7 +144,7 @@ List work items belonging to a project.
 -L, --limit int                Maximum number of results to return (>=1)
     --order string             Sort direction for all --sort fields: asc or desc (default "desc")
 -p, --priority ints            Filter by priority (repeatable): 1-4
-    --sort strings             Sort by field (repeatable): changed, created, id, state, title, assigned-to, type, tags
+    --sort strings             Sort by field (repeatable): changed, created, id, priority, state, title, assigned-to, type, tags
     --state strings            Filter by exact workflow state name (repeatable; combines with --status)
 -s, --status strings           Filter by state category: open, closed, resolved, all (repeatable) (default [open])
     --tag strings              Filter by tag (repeatable); items must contain all specified tags
