@@ -53,13 +53,9 @@ work item details in batches.
 
 	Output JSON with the specified fields. Prefix a field with &#39;-&#39; to exclude it.
 
-* `-L`, `--limit` `int` (default `0`)
+* `-L`, `--limit` `int` (default `50`)
 
 	Maximum number of results to return (&gt;=1)
-
-* `--order` `string` (default `&#34;desc&#34;`)
-
-	Sort direction for all --sort fields: asc or desc
 
 * `-p`, `--priority` `ints`
 
@@ -67,7 +63,7 @@ work item details in batches.
 
 * `--sort` `strings`
 
-	Sort by field (repeatable): changed, created, id, priority, state, title, assigned-to, type, tags
+	Sort by field with optional direction (repeatable): changed[:asc|:desc], created[:asc|:desc], id[:asc|:desc], state[:asc|:desc], title[:asc|:desc], assigned-to[:asc|:desc], type[:asc|:desc], tags[:asc|:desc]
 
 * `--state` `strings`
 

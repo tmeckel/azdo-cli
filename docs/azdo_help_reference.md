@@ -141,10 +141,9 @@ List work items belonging to a project.
     --iteration strings        Filter by iteration path (repeatable); prefix with Under: to include subtree (e.g., Under:Release 2025/Sprint 1)
 -q, --jq expression            Filter JSON output using a jq expression
     --json fields[=*]          Output JSON with the specified fields. Prefix a field with '-' to exclude it.
--L, --limit int                Maximum number of results to return (>=1)
-    --order string             Sort direction for all --sort fields: asc or desc (default "desc")
+-L, --limit int                Maximum number of results to return (>=1) (default 50)
 -p, --priority ints            Filter by priority (repeatable): 1-4
-    --sort strings             Sort by field (repeatable): changed, created, id, priority, state, title, assigned-to, type, tags
+    --sort strings             Sort by field with optional direction (repeatable): changed[:asc|:desc], created[:asc|:desc], id[:asc|:desc], state[:asc|:desc], title[:asc|:desc], assigned-to[:asc|:desc], type[:asc|:desc], tags[:asc|:desc]
     --state strings            Filter by exact workflow state name (repeatable; combines with --status)
 -s, --status strings           Filter by state category: open, closed, resolved, all (repeatable) (default [open])
     --tag strings              Filter by tag (repeatable); items must contain all specified tags
