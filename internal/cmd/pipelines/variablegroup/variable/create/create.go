@@ -130,7 +130,7 @@ func run(cmdCtx util.CmdContext, opts *opts) error {
 	}
 
 	// Insert into variables map
-	newVars := map[string]interface{}{}
+	newVars := map[string]any{}
 	if group.Variables != nil {
 		for k, v := range *group.Variables {
 			newVars[k] = v

@@ -36,8 +36,8 @@ func TestUpdateVariable_ValueAndFlags_JSON(t *testing.T) {
 			require.Equal(t, "project", types.GetValue(args.Project, ""))
 			require.Len(t, types.GetValue(args.GroupIds, []int{}), 1)
 			assert.Equal(t, 123, types.GetValue(&types.GetValue(args.GroupIds, []int{})[0], 0))
-			vars := map[string]interface{}{
-				"FOO": map[string]interface{}{
+			vars := map[string]any{
+				"FOO": map[string]any{
 					"value":      "old",
 					"isSecret":   false,
 					"isReadOnly": false,
@@ -54,8 +54,8 @@ func TestUpdateVariable_ValueAndFlags_JSON(t *testing.T) {
 		func(_ context.Context, args taskagent.UpdateVariableGroupArgs) (*taskagent.VariableGroup, error) {
 			require.NotNil(t, args.VariableGroupParameters)
 			require.NotNil(t, args.VariableGroupParameters.Variables)
-			updated := types.GetValue(args.VariableGroupParameters.Variables, map[string]interface{}{})
-			val, ok := updated["FOO"].(map[string]interface{})
+			updated := types.GetValue(args.VariableGroupParameters.Variables, map[string]any{})
+			val, ok := updated["FOO"].(map[string]any)
 			require.True(t, ok)
 			assert.Equal(t, "new", val["value"])
 			assert.Equal(t, false, val["isSecret"])
@@ -96,8 +96,8 @@ func TestUpdateVariable_SecretPrompt_RedactsJSON(t *testing.T) {
 		&[]taskagent.VariableGroup{{
 			Id:   types.ToPtr(123),
 			Name: types.ToPtr("group"),
-			Variables: &map[string]interface{}{
-				"SECRET": map[string]interface{}{
+			Variables: &map[string]any{
+				"SECRET": map[string]any{
 					"value":      nil,
 					"isSecret":   true,
 					"isReadOnly": false,
@@ -108,8 +108,8 @@ func TestUpdateVariable_SecretPrompt_RedactsJSON(t *testing.T) {
 	prompter.EXPECT().Secret("Value for secret \"secret\":").Return("s3cr3t", nil)
 	taskClient.EXPECT().UpdateVariableGroup(gomock.Any(), gomock.Any()).DoAndReturn(
 		func(_ context.Context, args taskagent.UpdateVariableGroupArgs) (*taskagent.VariableGroup, error) {
-			updated := types.GetValue(args.VariableGroupParameters.Variables, map[string]interface{}{})
-			val, _ := updated["SECRET"].(map[string]interface{})
+			updated := types.GetValue(args.VariableGroupParameters.Variables, map[string]any{})
+			val, _ := updated["SECRET"].(map[string]any)
 			assert.Equal(t, "s3cr3t", val["value"])
 			assert.Equal(t, true, val["isSecret"])
 			return &taskagent.VariableGroup{}, nil
@@ -154,8 +154,8 @@ func TestUpdateVariable_ClearValue_YesSkipsPrompt(t *testing.T) {
 		&[]taskagent.VariableGroup{{
 			Id:   types.ToPtr(123),
 			Name: types.ToPtr("group"),
-			Variables: &map[string]interface{}{
-				"FOO": map[string]interface{}{
+			Variables: &map[string]any{
+				"FOO": map[string]any{
 					"value":      "keepme",
 					"isSecret":   false,
 					"isReadOnly": false,
@@ -165,7 +165,7 @@ func TestUpdateVariable_ClearValue_YesSkipsPrompt(t *testing.T) {
 	)
 	taskClient.EXPECT().UpdateVariableGroup(gomock.Any(), gomock.Any()).DoAndReturn(
 		func(_ context.Context, args taskagent.UpdateVariableGroupArgs) (*taskagent.VariableGroup, error) {
-			val, _ := types.GetValue(args.VariableGroupParameters.Variables, map[string]interface{}{})["FOO"].(map[string]interface{})
+			val, _ := types.GetValue(args.VariableGroupParameters.Variables, map[string]any{})["FOO"].(map[string]any)
 			assert.Nil(t, val["value"])
 			return &taskagent.VariableGroup{}, nil
 		},
@@ -248,9 +248,9 @@ func TestUpdateVariable_RenameCollision(t *testing.T) {
 		&[]taskagent.VariableGroup{{
 			Id:   types.ToPtr(123),
 			Name: types.ToPtr("group"),
-			Variables: &map[string]interface{}{
-				"FOO": map[string]interface{}{"value": "v"},
-				"BAR": map[string]interface{}{"value": "x"},
+			Variables: &map[string]any{
+				"FOO": map[string]any{"value": "v"},
+				"BAR": map[string]any{"value": "x"},
 			},
 		}}, nil,
 	)
@@ -284,8 +284,8 @@ func TestUpdateVariable_ClearSecretValueFails(t *testing.T) {
 		&[]taskagent.VariableGroup{{
 			Id:   types.ToPtr(123),
 			Name: types.ToPtr("group"),
-			Variables: &map[string]interface{}{
-				"SECRET": map[string]interface{}{
+			Variables: &map[string]any{
+				"SECRET": map[string]any{
 					"value":      nil,
 					"isSecret":   true,
 					"isReadOnly": false,
@@ -321,7 +321,7 @@ func TestUpdateVariable_KeyVaultRejectsValueChange(t *testing.T) {
 			Id:        types.ToPtr(123),
 			Name:      types.ToPtr("group"),
 			Type:      types.ToPtr("AzureKeyVault"),
-			Variables: &map[string]interface{}{"FOO": map[string]interface{}{"value": "old", "isSecret": false}},
+			Variables: &map[string]any{"FOO": map[string]any{"value": "old", "isSecret": false}},
 		}}, nil,
 	)
 	taskClient.EXPECT().UpdateVariableGroup(gomock.Any(), gomock.Any()).Times(0)
@@ -352,8 +352,8 @@ func TestUpdateVariable_FromJSON_SecretTrueWithoutValue(t *testing.T) {
 		&[]taskagent.VariableGroup{{
 			Id:   types.ToPtr(123),
 			Name: types.ToPtr("group"),
-			Variables: &map[string]interface{}{
-				"FOO": map[string]interface{}{"value": "old", "isSecret": false},
+			Variables: &map[string]any{
+				"FOO": map[string]any{"value": "old", "isSecret": false},
 			},
 		}}, nil,
 	)
@@ -385,8 +385,8 @@ func TestUpdateVariable_PromptValue_DisabledPrompt(t *testing.T) {
 		&[]taskagent.VariableGroup{{
 			Id:   types.ToPtr(123),
 			Name: types.ToPtr("group"),
-			Variables: &map[string]interface{}{
-				"SECRET": map[string]interface{}{"value": nil, "isSecret": true},
+			Variables: &map[string]any{
+				"SECRET": map[string]any{"value": nil, "isSecret": true},
 			},
 		}}, nil,
 	)
@@ -449,15 +449,15 @@ func TestUpdateVariable_SecretValueFlag_RedactsJSON(t *testing.T) {
 		&[]taskagent.VariableGroup{{
 			Id:   types.ToPtr(123),
 			Name: types.ToPtr("group"),
-			Variables: &map[string]interface{}{
-				"SECRET": map[string]interface{}{"value": nil, "isSecret": true, "isReadOnly": false},
+			Variables: &map[string]any{
+				"SECRET": map[string]any{"value": nil, "isSecret": true, "isReadOnly": false},
 			},
 		}}, nil,
 	)
 	taskClient.EXPECT().UpdateVariableGroup(gomock.Any(), gomock.Any()).DoAndReturn(
 		func(_ context.Context, args taskagent.UpdateVariableGroupArgs) (*taskagent.VariableGroup, error) {
-			valMap := types.GetValue(args.VariableGroupParameters.Variables, map[string]interface{}{})
-			val, _ := valMap["SECRET"].(map[string]interface{})
+			valMap := types.GetValue(args.VariableGroupParameters.Variables, map[string]any{})
+			val, _ := valMap["SECRET"].(map[string]any)
 			assert.Equal(t, "rotated", val["value"])
 			assert.Equal(t, true, val["isSecret"])
 			assert.Equal(t, false, val["isReadOnly"])
@@ -494,8 +494,8 @@ func TestUpdateVariable_ClearValue_PromptCancel(t *testing.T) {
 		&[]taskagent.VariableGroup{{
 			Id:   types.ToPtr(123),
 			Name: types.ToPtr("group"),
-			Variables: &map[string]interface{}{
-				"FOO": map[string]interface{}{"value": "keep", "isSecret": false},
+			Variables: &map[string]any{
+				"FOO": map[string]any{"value": "keep", "isSecret": false},
 			},
 		}}, nil,
 	)
@@ -528,7 +528,7 @@ func TestUpdateVariable_VariableNotFound(t *testing.T) {
 		&[]taskagent.VariableGroup{{
 			Id:        types.ToPtr(123),
 			Name:      types.ToPtr("group"),
-			Variables: &map[string]interface{}{"BAR": map[string]interface{}{"value": "x"}},
+			Variables: &map[string]any{"BAR": map[string]any{"value": "x"}},
 		}}, nil,
 	)
 	taskClient.EXPECT().UpdateVariableGroup(gomock.Any(), gomock.Any()).Times(0)
@@ -559,7 +559,7 @@ func TestUpdateVariable_FromJSON_DisallowedNameKey(t *testing.T) {
 		&[]taskagent.VariableGroup{{
 			Id:        types.ToPtr(123),
 			Name:      types.ToPtr("group"),
-			Variables: &map[string]interface{}{"FOO": map[string]interface{}{"value": "x"}},
+			Variables: &map[string]any{"FOO": map[string]any{"value": "x"}},
 		}}, nil,
 	)
 	taskClient.EXPECT().UpdateVariableGroup(gomock.Any(), gomock.Any()).Times(0)

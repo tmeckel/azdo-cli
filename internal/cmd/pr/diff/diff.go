@@ -107,7 +107,7 @@ func runCmd(ctx util.CmdContext, opts *diffOptions) (err error) {
 		return fmt.Errorf("failed to get pull request diff: %w", err)
 	}
 
-	// Process and display the diff, handling both GitItem and map[string]interface{} types
+	// Process and display the diff, handling both GitItem and map[string]any types
 	if opts.nameOnly {
 		for _, change := range *diffs.ChangeEntries {
 			if gitItem, ok := change.Item.(*git.GitItem); ok && gitItem.Path != nil {

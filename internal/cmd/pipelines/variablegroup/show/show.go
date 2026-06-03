@@ -232,7 +232,7 @@ func run(cmdCtx util.CmdContext, o *opts) error {
 			},
 			"hasText": func(v *string) bool { return strings.TrimSpace(types.GetValue(v, "")) != "" },
 			"hasAny":  func(v any) bool { return v != nil },
-			"vars": func(v *map[string]interface{}) []variableView {
+			"vars": func(v *map[string]any) []variableView {
 				return expandVariables(v)
 			},
 			"pipelines": func() []authorizedPipelineView {
@@ -320,8 +320,8 @@ func pipelinePermissionIDs(perms *pipelinepermissions.ResourcePipelinePermission
 	return ids
 }
 
-func expandVariables(vars *map[string]interface{}) []variableView {
-	varMap := types.GetValue(vars, map[string]interface{}{})
+func expandVariables(vars *map[string]any) []variableView {
+	varMap := types.GetValue(vars, map[string]any{})
 	if len(varMap) == 0 {
 		return nil
 	}

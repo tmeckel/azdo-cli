@@ -161,7 +161,7 @@ func run(cmdCtx util.CmdContext, o *opts) error {
 		}
 		if o.providerDataJSONChanged {
 			// parse JSON
-			var pd interface{}
+			var pd any
 			if err := json.Unmarshal([]byte(o.providerDataJSON), &pd); err != nil {
 				return util.FlagErrorWrap(fmt.Errorf("invalid provider-data-json: %w", err))
 			}

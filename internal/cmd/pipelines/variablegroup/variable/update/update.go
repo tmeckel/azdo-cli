@@ -189,7 +189,7 @@ func run(cmdCtx util.CmdContext, cmd *cobra.Command, opts *opts) error {
 	var isSecret bool
 	var isReadOnly bool
 	var currentValue any
-	if m, ok := origVal.(map[string]interface{}); ok {
+	if m, ok := origVal.(map[string]any); ok {
 		if s, ok := m["isSecret"].(bool); ok {
 			isSecret = s
 		}
@@ -216,7 +216,7 @@ func run(cmdCtx util.CmdContext, cmd *cobra.Command, opts *opts) error {
 	}
 
 	// Prepare mutated variables map
-	newVars := map[string]interface{}{}
+	newVars := map[string]any{}
 	if group.Variables != nil {
 		for k, v := range *group.Variables {
 			newVars[k] = v
@@ -307,7 +307,7 @@ func run(cmdCtx util.CmdContext, cmd *cobra.Command, opts *opts) error {
 	}
 
 	// Insert updated entry
-	newVars[finalKey] = map[string]interface{}{
+	newVars[finalKey] = map[string]any{
 		"value":      finalValue,
 		"isSecret":   finalIsSecret,
 		"isReadOnly": finalIsReadOnly,

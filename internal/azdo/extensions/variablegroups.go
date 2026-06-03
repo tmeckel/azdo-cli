@@ -27,14 +27,14 @@ type VariableValue struct {
 }
 
 // ToVariableValues converts a map of raw variable data into a slice of VariableValue structs.
-func ToVariableValues(vars *map[string]interface{}) []VariableValue {
+func ToVariableValues(vars *map[string]any) []VariableValue {
 	if vars == nil {
 		return nil
 	}
 	variables := make([]VariableValue, 0, len(*vars))
 	for name, val := range *vars {
 		v := VariableValue{Name: name}
-		if varMap, ok := val.(map[string]interface{}); ok {
+		if varMap, ok := val.(map[string]any); ok {
 			if isSecret, ok := varMap["isSecret"].(bool); ok {
 				v.IsSecret = isSecret
 			}
@@ -48,10 +48,10 @@ func ToVariableValues(vars *map[string]interface{}) []VariableValue {
 }
 
 // FromVariableValues converts a slice of VariableValue structs back into a map for API consumption.
-func FromVariableValues(variables []VariableValue) *map[string]interface{} {
-	vars := make(map[string]interface{})
+func FromVariableValues(variables []VariableValue) *map[string]any {
+	vars := make(map[string]any)
 	for _, v := range variables {
-		vars[v.Name] = map[string]interface{}{
+		vars[v.Name] = map[string]any{
 			"value":    v.Value,
 			"isSecret": v.IsSecret,
 		}

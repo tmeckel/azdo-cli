@@ -41,7 +41,7 @@ type variableGroupJSON struct {
 	ModifiedBy  *identityJSON                              `json:"modifiedBy,omitempty"`
 	ModifiedOn  *string                                    `json:"modifiedOn,omitempty"`
 	ProjectRefs *[]taskagent.VariableGroupProjectReference `json:"projectReferences,omitempty"`
-	Variables   *map[string]interface{}                    `json:"variables,omitempty"`
+	Variables   *map[string]any                            `json:"variables,omitempty"`
 }
 
 func NewCmd(ctx util.CmdContext) *cobra.Command {

@@ -1,10 +1,10 @@
 package util
 
 import (
-    "context"
-    "fmt"
-    "math"
-    "time"
+	"context"
+	"fmt"
+	"math"
+	"time"
 )
 
 // PollFunc is the function to be executed by the Poll function.
@@ -31,66 +31,66 @@ type PollOptions struct {
 // The function respects the provided context for cancellation. If `opts.Timeout`
 // is non-zero, the timeout is applied in addition to the provided context.
 func Poll(ctx context.Context, fn PollFunc, opts PollOptions) error {
-    var lastErr error
+	var lastErr error
 
-    // If neither tries nor timeout are set, default to a single try (legacy behavior)
-    if opts.Tries == 0 && opts.Timeout == 0 {
-        opts.Tries = 1
-    }
+	// If neither tries nor timeout are set, default to a single try (legacy behavior)
+	if opts.Tries == 0 && opts.Timeout == 0 {
+		opts.Tries = 1
+	}
 
-    // If a timeout is specified, derive a child context so we can cancel after timeout.
-    if opts.Timeout > 0 {
-        var cancel context.CancelFunc
-        ctx, cancel = context.WithTimeout(ctx, opts.Timeout)
-        defer cancel()
-    }
+	// If a timeout is specified, derive a child context so we can cancel after timeout.
+	if opts.Timeout > 0 {
+		var cancel context.CancelFunc
+		ctx, cancel = context.WithTimeout(ctx, opts.Timeout)
+		defer cancel()
+	}
 
-    const maxDelay = 30 * time.Second
+	const maxDelay = 30 * time.Second
 
-    for i := 0; opts.Tries == 0 || i < opts.Tries; i++ {
-        select {
-        case <-ctx.Done():
-            // prefer returning the context error
-            return ctx.Err()
-        default:
-        }
+	for i := 0; opts.Tries == 0 || i < opts.Tries; i++ {
+		select {
+		case <-ctx.Done():
+			// prefer returning the context error
+			return ctx.Err()
+		default:
+		}
 
-        err := fn()
-        if err == nil {
-            return nil
-        }
-        lastErr = err
+		err := fn()
+		if err == nil {
+			return nil
+		}
+		lastErr = err
 
-        if opts.Tries > 0 && i == opts.Tries-1 {
-            break
-        }
+		if opts.Tries > 0 && i == opts.Tries-1 {
+			break
+		}
 
-        var wait time.Duration
-        if opts.Delay > 0 {
-            wait = opts.Delay
-        } else {
-            // Binary exponential backoff with initial 2 seconds: 2^i * 2s
-            wait = time.Duration(math.Pow(2, float64(i))) * 2 * time.Second
-            if wait > maxDelay {
-                wait = maxDelay
-            }
-        }
+		var wait time.Duration
+		if opts.Delay > 0 {
+			wait = opts.Delay
+		} else {
+			// Binary exponential backoff with initial 2 seconds: 2^i * 2s
+			wait = time.Duration(math.Pow(2, float64(i))) * 2 * time.Second
+			if wait > maxDelay {
+				wait = maxDelay
+			}
+		}
 
-        // Sleep but wake early if context is done
-        select {
-        case <-time.After(wait):
-            // continue to next iteration
-        case <-ctx.Done():
-            return ctx.Err()
-        }
-    }
+		// Sleep but wake early if context is done
+		select {
+		case <-time.After(wait):
+			// continue to next iteration
+		case <-ctx.Done():
+			return ctx.Err()
+		}
+	}
 
-    if lastErr != nil {
-        if opts.Tries > 0 {
-            return fmt.Errorf("after %d attempts, last error: %w", opts.Tries, lastErr)
-        }
-        return fmt.Errorf("last error: %w", lastErr)
-    }
+	if lastErr != nil {
+		if opts.Tries > 0 {
+			return fmt.Errorf("after %d attempts, last error: %w", opts.Tries, lastErr)
+		}
+		return fmt.Errorf("last error: %w", lastErr)
+	}
 
-    return fmt.Errorf("polling failed without returning an error")
+	return fmt.Errorf("polling failed without returning an error")
 }

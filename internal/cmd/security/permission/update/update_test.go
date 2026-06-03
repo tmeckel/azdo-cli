@@ -63,7 +63,7 @@ func TestUpdate_SetsACE_Success(t *testing.T) {
 
 	// Expect SetAccessControlEntries to be called with a container containing token, merge flag and ACE with descriptor "acl-descriptor"
 	mSecurityClient.EXPECT().SetAccessControlEntries(gomock.Any(), gomock.Any()).DoAndReturn(
-		func(ctx context.Context, args security.SetAccessControlEntriesArgs) (*[]interface{}, error) {
+		func(ctx context.Context, args security.SetAccessControlEntriesArgs) (*[]any, error) {
 			// Basic runtime checks to ensure arguments look correct
 			if args.SecurityNamespaceId == nil {
 				return nil, fmt.Errorf("SecurityNamespaceId is nil")
@@ -75,7 +75,7 @@ func TestUpdate_SetsACE_Success(t *testing.T) {
 			if args.Container == nil {
 				return nil, fmt.Errorf("container is nil")
 			}
-			// Verify token present - Container is typed as interface{} in the SDK, so assert via type switch
+			// Verify token present - Container is typed as any in the SDK, so assert via type switch
 			switch c := args.Container.(type) {
 			case AccessControlEntryUpdate:
 				if c.Token != o.token {
@@ -183,12 +183,12 @@ func TestUpdate_SetsDenyBit(t *testing.T) {
 
 	// Expect SetAccessControlEntries and assert deny bit presence
 	mSecurityClient.EXPECT().SetAccessControlEntries(gomock.Any(), gomock.Any()).DoAndReturn(
-		func(ctx context.Context, args security.SetAccessControlEntriesArgs) (*[]interface{}, error) {
+		func(ctx context.Context, args security.SetAccessControlEntriesArgs) (*[]any, error) {
 			if args.Container == nil {
 				return nil, fmt.Errorf("container is nil")
 			}
 			switch c := args.Container.(type) {
-			case map[string]interface{}:
+			case map[string]any:
 				// check deny exists on ACE
 				if acesI, ok := c["accessControlEntries"]; ok {
 					switch a := acesI.(type) {
@@ -251,12 +251,12 @@ func TestUpdate_NoMergeFlag(t *testing.T) {
 
 	// Expect SetAccessControlEntries and assert merge flag false
 	mSecurityClient.EXPECT().SetAccessControlEntries(gomock.Any(), gomock.Any()).DoAndReturn(
-		func(ctx context.Context, args security.SetAccessControlEntriesArgs) (*[]interface{}, error) {
+		func(ctx context.Context, args security.SetAccessControlEntriesArgs) (*[]any, error) {
 			if args.Container == nil {
 				return nil, fmt.Errorf("container is nil")
 			}
 			switch c := args.Container.(type) {
-			case map[string]interface{}:
+			case map[string]any:
 				if mv, ok := c["merge"].(bool); !ok {
 					return nil, fmt.Errorf("merge flag missing or not bool")
 				} else if mv {
