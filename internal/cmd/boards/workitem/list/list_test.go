@@ -48,7 +48,7 @@ func TestResolveSort(t *testing.T) {
 		{name: "invalid order", fields: []string{"id"}, order: "sideways", wantErr: "invalid --order"},
 		{name: "default direction is desc for changed/created/id", fields: []string{"id"}, order: "", want: "ORDER BY [System.Id] DESC"},
 		{name: "default direction is asc for others", fields: []string{"state"}, order: "", want: "ORDER BY [System.State] ASC"},
-		{name: "all field mappings", fields: []string{"created", "assigned-to", "type", "tags"}, order: "asc", want: "ORDER BY [System.CreatedDate] ASC, [System.AssignedTo] ASC, [System.WorkItemType] ASC, [System.Tags] ASC"},
+		{name: "all field mappings", fields: []string{"created", "priority", "assigned-to", "type", "tags"}, order: "asc", want: "ORDER BY [System.CreatedDate] ASC, [Microsoft.VSTS.Common.Priority] ASC, [System.AssignedTo] ASC, [System.WorkItemType] ASC, [System.Tags] ASC"},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {

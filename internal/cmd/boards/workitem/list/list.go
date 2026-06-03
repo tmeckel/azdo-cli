@@ -89,7 +89,7 @@ func NewCmd(ctx util.CmdContext) *cobra.Command {
 	cmd.Flags().StringVar(&opts.changedAfter, "changed-after", "", "Lower bound on System.ChangedDate (RFC3339, YYYY-MM-DD, or 'today')")
 	cmd.Flags().StringVar(&opts.createdAfter, "created-after", "", "Lower bound on System.CreatedDate (RFC3339, YYYY-MM-DD, or 'today')")
 	cmd.Flags().StringVar(&opts.sortOrder, "order", "desc", "Sort direction for all --sort fields: asc or desc")
-	cmd.Flags().StringSliceVar(&opts.sortFields, "sort", nil, "Sort by field (repeatable): changed, created, id, state, title, assigned-to, type, tags")
+	cmd.Flags().StringSliceVar(&opts.sortFields, "sort", nil, "Sort by field (repeatable): changed, created, id, priority, state, title, assigned-to, type, tags")
 	cmd.Flags().StringSliceVarP(&opts.status, "status", "s", []string{"open"}, "Filter by state category: open, closed, resolved, all (repeatable)")
 	cmd.Flags().StringSliceVarP(&opts.workItemTypes, "type", "T", nil, "Filter by work item type (repeatable)")
 	cmd.Flags().StringSliceVarP(&opts.assignedTo, "assigned-to", "a", nil, "Filter by assigned-to identity (repeatable); supports emails, descriptors, and @me")
@@ -703,7 +703,7 @@ func resolveSort(fields []string, order string) (string, error) {
 		key := strings.ToLower(strings.TrimSpace(raw))
 		ref, ok := sortFieldMap[key]
 		if !ok {
-			return "", util.FlagErrorf("invalid --sort field %q (valid: changed, created, id, state, title, assigned-to, type, tags)", raw)
+			return "", util.FlagErrorf("invalid --sort field %q (valid: changed, created, id, priority, state, title, assigned-to, type, tags)", raw)
 		}
 		parts = append(parts, ref+" "+strings.ToUpper(dir))
 	}
