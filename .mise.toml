@@ -1,0 +1,9 @@
+[env]
+_.file = ".env"
+
+[tools]
+go = "1.24"
+"golangci-lint" = "2.12.2"
+goreleaser = "latest"
+prek = "latest"
+gofumpt = "latest"
