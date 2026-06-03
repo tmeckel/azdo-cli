@@ -2,8 +2,9 @@
 _.file = ".env"
 
 [tools]
-go = "1.24"
+go = "1.25"
 "golangci-lint" = "2.12.2"
 goreleaser = "latest"
 prek = "latest"
 gofumpt = "latest"
+"github:oligot/go-mod-upgrade" = "latest"
