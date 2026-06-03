@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/microsoft/azure-devops-go-api/azuredevops/v7/identity"
@@ -22,6 +23,389 @@ import (
 	"github.com/tmeckel/azdo-cli/internal/printer"
 	"github.com/tmeckel/azdo-cli/internal/types"
 )
+
+func ctrlFromT(t *testing.T) *gomock.Controller {
+	c := gomock.NewController(t)
+	t.Cleanup(c.Finish)
+	return c
+}
+
+func TestResolveSort(t *testing.T) {
+	t.Parallel()
+	cases := []struct {
+		name    string
+		fields  []string
+		order   string
+		want    string
+		wantErr string
+	}{
+		{name: "no fields returns empty", fields: nil, want: ""},
+		{name: "single field default desc", fields: []string{"changed"}, order: "", want: "ORDER BY [System.ChangedDate] DESC"},
+		{name: "single field explicit desc", fields: []string{"changed"}, order: "desc", want: "ORDER BY [System.ChangedDate] DESC"},
+		{name: "single field asc", fields: []string{"title"}, order: "asc", want: "ORDER BY [System.Title] ASC"},
+		{name: "multiple fields", fields: []string{"priority", "id"}, order: "asc", want: "ORDER BY [Microsoft.VSTS.Common.Priority] ASC, [System.Id] ASC"},
+		{name: "invalid field", fields: []string{"banana"}, wantErr: "invalid --sort field"},
+		{name: "invalid order", fields: []string{"id"}, order: "sideways", wantErr: "invalid --order"},
+		{name: "default direction is desc for changed/created/id", fields: []string{"id"}, order: "", want: "ORDER BY [System.Id] DESC"},
+		{name: "default direction is asc for others", fields: []string{"state"}, order: "", want: "ORDER BY [System.State] ASC"},
+		{name: "all field mappings", fields: []string{"created", "assigned-to", "type", "tags"}, order: "asc", want: "ORDER BY [System.CreatedDate] ASC, [System.AssignedTo] ASC, [System.WorkItemType] ASC, [System.Tags] ASC"},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			got, err := resolveSort(tc.fields, tc.order)
+			if tc.wantErr != "" {
+				require.Error(t, err)
+				assert.Contains(t, err.Error(), tc.wantErr)
+				return
+			}
+			require.NoError(t, err)
+			assert.Equal(t, tc.want, got)
+		})
+	}
+}
+
+func TestRunList_SortDefaultUnchanged(t *testing.T) {
+	t.Parallel()
+	deps := setupFakeDeps(t, "org")
+	stubDefaultOpenTypes(deps)
+	stubBatch(t, deps, false)
+
+	var captured string
+	deps.wit.EXPECT().QueryByWiql(gomock.Any(), gomock.Any()).DoAndReturn(
+		func(_ context.Context, args workitemtracking.QueryByWiqlArgs) (*workitemtracking.WorkItemQueryResult, error) {
+			captured = *args.Wiql.Query
+			ids := []int{1}
+			return &workitemtracking.WorkItemQueryResult{WorkItems: &[]workitemtracking.WorkItemReference{{Id: &ids[0]}}}, nil
+		},
+	)
+
+	err := runList(deps.cmd, &listOptions{scopeArg: "org/Fabrikam"})
+	require.NoError(t, err)
+	assert.Contains(t, captured, "ORDER BY [System.ChangedDate] DESC")
+}
+
+func TestRunList_SortTitleAsc(t *testing.T) {
+	t.Parallel()
+	deps := setupFakeDeps(t, "org")
+	stubDefaultOpenTypes(deps)
+	stubBatch(t, deps, false)
+
+	var captured string
+	deps.wit.EXPECT().QueryByWiql(gomock.Any(), gomock.Any()).DoAndReturn(
+		func(_ context.Context, args workitemtracking.QueryByWiqlArgs) (*workitemtracking.WorkItemQueryResult, error) {
+			captured = *args.Wiql.Query
+			ids := []int{1}
+			return &workitemtracking.WorkItemQueryResult{WorkItems: &[]workitemtracking.WorkItemReference{{Id: &ids[0]}}}, nil
+		},
+	)
+
+	err := runList(deps.cmd, &listOptions{
+		scopeArg:   "org/Fabrikam",
+		sortFields: []string{"title"},
+		sortOrder:  "asc",
+	})
+	require.NoError(t, err)
+	assert.Contains(t, captured, "ORDER BY [System.Title] ASC")
+}
+
+func TestRunList_SortInvalidField(t *testing.T) {
+	t.Parallel()
+	ios, _, _, _ := iostreams.Test()
+	deps := &fakeListDeps{
+		cmd:    mocks.NewMockCmdContext(ctrlFromT(t)),
+		stdout: &bytes.Buffer{},
+	}
+	deps.cmd.EXPECT().IOStreams().Return(ios, nil).AnyTimes()
+
+	err := runList(deps.cmd, &listOptions{
+		scopeArg:   "org/Fabrikam",
+		sortFields: []string{"banana"},
+	})
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "invalid --sort field")
+}
+
+func TestParseDateBound(t *testing.T) {
+	t.Parallel()
+	cases := []struct {
+		name    string
+		raw     string
+		flag    string
+		want    string
+		wantErr string
+	}{
+		{name: "empty returns empty", raw: "", flag: "--changed-after", want: ""},
+		{name: "RFC3339", raw: "2025-01-18T12:34:56Z", flag: "--changed-after", want: "2025-01-18T12:34:56Z"},
+		{name: "date only", raw: "2025-01-18", flag: "--changed-after", want: "2025-01-18T00:00:00Z"},
+		{name: "today UTC midnight", raw: "today", flag: "--created-after", want: time.Now().UTC().Format("2006-01-02") + "T00:00:00Z"},
+		{name: "TODAY case insensitive", raw: "TODAY", flag: "--created-after", want: time.Now().UTC().Format("2006-01-02") + "T00:00:00Z"},
+		{name: "invalid string", raw: "not-a-date", flag: "--changed-after", wantErr: "invalid --changed-after"},
+		{name: "flag name in error", raw: "garbage", flag: "--created-after", wantErr: "--created-after"},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			got, err := parseDateBound(tc.raw, tc.flag)
+			if tc.wantErr != "" {
+				require.Error(t, err)
+				assert.Contains(t, err.Error(), tc.wantErr)
+				return
+			}
+			require.NoError(t, err)
+			assert.Equal(t, tc.want, got)
+		})
+	}
+}
+
+func TestRunList_ChangedAfterRFC3339(t *testing.T) {
+	t.Parallel()
+	deps := setupFakeDeps(t, "org")
+	stubDefaultOpenTypes(deps)
+	stubBatch(t, deps, false)
+
+	var captured string
+	deps.wit.EXPECT().QueryByWiql(gomock.Any(), gomock.Any()).DoAndReturn(
+		func(_ context.Context, args workitemtracking.QueryByWiqlArgs) (*workitemtracking.WorkItemQueryResult, error) {
+			captured = *args.Wiql.Query
+			ids := []int{1}
+			return &workitemtracking.WorkItemQueryResult{WorkItems: &[]workitemtracking.WorkItemReference{{Id: &ids[0]}}}, nil
+		},
+	)
+
+	err := runList(deps.cmd, &listOptions{
+		scopeArg:     "org/Fabrikam",
+		changedAfter: "2025-01-18T00:00:00Z",
+	})
+	require.NoError(t, err)
+	assert.Contains(t, captured, "[System.ChangedDate] >= '2025-01-18T00:00:00Z'")
+}
+
+func TestRunList_InvalidDateFlag(t *testing.T) {
+	t.Parallel()
+	ios, _, _, _ := iostreams.Test()
+	ctrl := gomock.NewController(t)
+	t.Cleanup(ctrl.Finish)
+	deps := &fakeListDeps{
+		cmd:    mocks.NewMockCmdContext(ctrl),
+		stdout: &bytes.Buffer{},
+	}
+	deps.cmd.EXPECT().IOStreams().Return(ios, nil).AnyTimes()
+
+	err := runList(deps.cmd, &listOptions{
+		scopeArg:     "org/Fabrikam",
+		changedAfter: "not-a-date",
+	})
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "--changed-after")
+}
+
+func TestBuildTagPredicate(t *testing.T) {
+	t.Parallel()
+	cases := []struct {
+		name string
+		tags []string
+		want string
+	}{
+		{name: "empty returns empty", tags: nil, want: ""},
+		{name: "single tag", tags: []string{"web"}, want: "[System.Tags] CONTAINS 'web'"},
+		{name: "multiple tags AND", tags: []string{"web", "security"}, want: "[System.Tags] CONTAINS 'web' AND [System.Tags] CONTAINS 'security'"},
+		{name: "trims whitespace", tags: []string{" web ", "  "}, want: "[System.Tags] CONTAINS 'web'"},
+		{name: "empty in middle skips", tags: []string{"web", "  ", "sec"}, want: "[System.Tags] CONTAINS 'web' AND [System.Tags] CONTAINS 'sec'"},
+		{name: "dedupes case-insensitively", tags: []string{"Web", "web"}, want: "[System.Tags] CONTAINS 'Web'"},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			got := buildTagPredicate(tc.tags)
+			assert.Equal(t, tc.want, got)
+		})
+	}
+}
+
+func TestValidateTags(t *testing.T) {
+	t.Parallel()
+	assert.NoError(t, validateTags("--tag", nil))
+	assert.NoError(t, validateTags("--tag", []string{"web"}))
+	assert.Error(t, validateTags("--tag", []string{" "}))
+}
+
+func TestRunList_TagFilter(t *testing.T) {
+	t.Parallel()
+	deps := setupFakeDeps(t, "org")
+	stubDefaultOpenTypes(deps)
+	stubBatch(t, deps, false)
+
+	var captured string
+	deps.wit.EXPECT().QueryByWiql(gomock.Any(), gomock.Any()).DoAndReturn(
+		func(_ context.Context, args workitemtracking.QueryByWiqlArgs) (*workitemtracking.WorkItemQueryResult, error) {
+			captured = *args.Wiql.Query
+			ids := []int{1}
+			return &workitemtracking.WorkItemQueryResult{WorkItems: &[]workitemtracking.WorkItemReference{{Id: &ids[0]}}}, nil
+		},
+	)
+
+	err := runList(deps.cmd, &listOptions{
+		scopeArg: "org/Fabrikam",
+		tags:     []string{"web", "security"},
+	})
+	require.NoError(t, err)
+	assert.Contains(t, captured, "[System.Tags] CONTAINS 'web' AND [System.Tags] CONTAINS 'security'")
+}
+
+func TestRunList_CreatedByMe(t *testing.T) {
+	t.Parallel()
+	deps := setupFakeDeps(t, "org")
+	stubDefaultOpenTypes(deps)
+	stubBatch(t, deps, false)
+
+	selfID := uuid.New()
+	deps.clientFact.EXPECT().Extensions(gomock.Any(), "org").Return(deps.ext, nil)
+	deps.ext.EXPECT().GetSelfID(gomock.Any()).Return(selfID, nil)
+	deps.clientFact.EXPECT().Identity(gomock.Any(), "org").Return(deps.ident, nil)
+	deps.ident.EXPECT().ReadIdentities(gomock.Any(), gomock.Any()).DoAndReturn(
+		func(_ context.Context, args identity.ReadIdentitiesArgs) (*[]identity.Identity, error) {
+			require.NotNil(t, args.IdentityIds)
+			assert.Equal(t, selfID.String(), *args.IdentityIds)
+			id := identity.Identity{
+				Properties: map[string]any{
+					"Account": map[string]any{"$value": "Alice <alice@x.com>"},
+				},
+			}
+			return &[]identity.Identity{id}, nil
+		},
+	)
+
+	var captured string
+	deps.wit.EXPECT().QueryByWiql(gomock.Any(), gomock.Any()).DoAndReturn(
+		func(_ context.Context, args workitemtracking.QueryByWiqlArgs) (*workitemtracking.WorkItemQueryResult, error) {
+			captured = *args.Wiql.Query
+			ids := []int{1}
+			return &workitemtracking.WorkItemQueryResult{WorkItems: &[]workitemtracking.WorkItemReference{{Id: &ids[0]}}}, nil
+		},
+	)
+
+	err := runList(deps.cmd, &listOptions{
+		scopeArg:  "org/Fabrikam",
+		createdBy: []string{"@me"},
+	})
+	require.NoError(t, err)
+	assert.Contains(t, captured, "[System.CreatedBy] IN ('Alice <alice@x.com>')")
+}
+
+func TestRunList_AuthoredByAlias(t *testing.T) {
+	t.Parallel()
+	deps := setupFakeDeps(t, "org")
+	stubDefaultOpenTypes(deps)
+	stubBatch(t, deps, false)
+
+	var captured string
+	deps.wit.EXPECT().QueryByWiql(gomock.Any(), gomock.Any()).DoAndReturn(
+		func(_ context.Context, args workitemtracking.QueryByWiqlArgs) (*workitemtracking.WorkItemQueryResult, error) {
+			captured = *args.Wiql.Query
+			ids := []int{1}
+			return &workitemtracking.WorkItemQueryResult{WorkItems: &[]workitemtracking.WorkItemReference{{Id: &ids[0]}}}, nil
+		},
+	)
+
+	err := runList(deps.cmd, &listOptions{
+		scopeArg:  "org/Fabrikam",
+		createdBy: []string{"bob@x.com"},
+	})
+	require.NoError(t, err)
+	assert.Contains(t, captured, "[System.CreatedBy] IN ('bob@x.com')")
+}
+
+func TestValidateState(t *testing.T) {
+	t.Parallel()
+	assert.NoError(t, validateState(nil))
+	assert.NoError(t, validateState([]string{"Active"}))
+	assert.NoError(t, validateState([]string{"  Active  ", "Resolved"}))
+	assert.Error(t, validateState([]string{"  "}))
+	assert.Error(t, validateState([]string{"Active", "  "}))
+}
+
+func TestBuildStateClause(t *testing.T) {
+	t.Parallel()
+	cases := []struct {
+		name    string
+		states  []string
+		want    string
+		wantErr string
+	}{
+		{name: "empty", states: nil, want: ""},
+		{name: "single", states: []string{"Active"}, want: "[System.State] IN ('Active')"},
+		{name: "multiple", states: []string{"Active", "Ready for Review"}, want: "[System.State] IN ('Active', 'Ready for Review')"},
+		{name: "trims", states: []string{"  Active  "}, want: "[System.State] IN ('Active')"},
+		{name: "empty in middle errors", states: []string{"Active", "  "}, wantErr: "--state value cannot be empty"},
+		{name: "dedupes case-insensitively", states: []string{"Active", "ACTIVE"}, want: "[System.State] IN ('Active')"},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			got, err := buildStateClause(tc.states)
+			if tc.wantErr != "" {
+				require.Error(t, err)
+				assert.Contains(t, err.Error(), tc.wantErr)
+				return
+			}
+			require.NoError(t, err)
+			assert.Equal(t, tc.want, got)
+		})
+	}
+}
+
+func TestRunList_StateExactOnly(t *testing.T) {
+	t.Parallel()
+	deps := setupFakeDeps(t, "org")
+	// no stubDefaultOpenTypes — we don't want state resolution.
+	stubBatch(t, deps, false)
+
+	var captured string
+	deps.wit.EXPECT().QueryByWiql(gomock.Any(), gomock.Any()).DoAndReturn(
+		func(_ context.Context, args workitemtracking.QueryByWiqlArgs) (*workitemtracking.WorkItemQueryResult, error) {
+			captured = *args.Wiql.Query
+			ids := []int{1}
+			return &workitemtracking.WorkItemQueryResult{WorkItems: &[]workitemtracking.WorkItemReference{{Id: &ids[0]}}}, nil
+		},
+	)
+
+	err := runList(deps.cmd, &listOptions{
+		scopeArg: "org/Fabrikam",
+		status:   []string{"all"},
+		state:    []string{"Active"},
+	})
+	require.NoError(t, err)
+	assert.Contains(t, captured, "[System.State] IN ('Active')")
+	// With status=all, the category predicate is empty, so no "(...) AND" wrapping.
+	assert.NotContains(t, captured, ") AND")
+}
+
+func TestRunList_StatusAndStateIntersect(t *testing.T) {
+	t.Parallel()
+	deps := setupFakeDeps(t, "org")
+	stubDefaultOpenTypes(deps) // needed because --status=open triggers state resolution
+	stubBatch(t, deps, false)
+
+	var captured string
+	deps.wit.EXPECT().QueryByWiql(gomock.Any(), gomock.Any()).DoAndReturn(
+		func(_ context.Context, args workitemtracking.QueryByWiqlArgs) (*workitemtracking.WorkItemQueryResult, error) {
+			captured = *args.Wiql.Query
+			ids := []int{1}
+			return &workitemtracking.WorkItemQueryResult{WorkItems: &[]workitemtracking.WorkItemReference{{Id: &ids[0]}}}, nil
+		},
+	)
+
+	err := runList(deps.cmd, &listOptions{
+		scopeArg: "org/Fabrikam",
+		state:    []string{"Active"},
+	})
+	require.NoError(t, err)
+	// We expect the category predicate (e.g. from "New","Active","Proposed","InProgress")
+	// ANDed with the state predicate, both inside the state segment.
+	// The exact form: ( [System.State] IN ('New','Active','Proposed','InProgress') ) AND ( [System.State] IN ('Active') )
+	assert.Contains(t, captured, ") AND ([System.State] IN ('Active')")
+}
 
 func TestBuildWiqlQuery(t *testing.T) {
 	t.Parallel()
@@ -83,7 +467,7 @@ func TestBuildWiqlQuery(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
-			got := buildWiqlQuery(tc.project, tc.stateCategory, tc.types, tc.assignedTo, tc.severity, tc.priority, tc.area, tc.iteration)
+			got := buildWiqlQuery(tc.project, tc.stateCategory, tc.types, tc.assignedTo, tc.severity, tc.priority, tc.area, tc.iteration, "", "", "", "", nil)
 			for _, want := range tc.mustContain {
 				assert.Contains(t, got, want)
 			}
@@ -352,6 +736,14 @@ func TestNewCmd_FlagShortcuts(t *testing.T) {
 	for _, want := range []flagCheck{
 		// --type uses -T because --template (registered by util.AddJSONFlags)
 		// already owns -t across all azdo commands.
+		{"changed-after", ""},
+		{"created-after", ""},
+		{"created-by", ""},
+		{"authored-by", ""},
+		{"sort", ""},
+		{"order", ""},
+		{"state", ""},
+		{"tag", ""},
 		{"status", "s"},
 		{"type", "T"},
 		{"assigned-to", "a"},
