@@ -5,6 +5,7 @@ import (
 	"slices"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/MakeNowJust/heredoc"
 	"github.com/microsoft/azure-devops-go-api/azuredevops/v7"
@@ -29,6 +30,18 @@ type listOptions struct {
 	area           []string
 	iteration      []string
 	limit          int
+
+	changedAfter  string
+	createdAfter  string
+	createdBy     []string
+	authoredByRaw []string // populated by --authored-by, merged into createdBy in PreRunE
+
+	state []string
+
+	tags []string
+
+	sortFields []string
+	sortOrder  string
 
 	exporter util.Exporter
 }
@@ -69,6 +82,14 @@ func NewCmd(ctx util.CmdContext) *cobra.Command {
 		},
 	}
 
+	cmd.Flags().StringSliceVar(&opts.state, "state", nil, "Filter by exact workflow state name (repeatable; combines with --status)")
+	cmd.Flags().StringSliceVar(&opts.createdBy, "created-by", nil, "Filter by creator identity (repeatable); supports email, descriptor, @me")
+	cmd.Flags().StringSliceVar(&opts.authoredByRaw, "authored-by", nil, "Alias for --created-by")
+	cmd.Flags().StringSliceVar(&opts.tags, "tag", nil, "Filter by tag (repeatable); items must contain all specified tags")
+	cmd.Flags().StringVar(&opts.changedAfter, "changed-after", "", "Lower bound on System.ChangedDate (RFC3339, YYYY-MM-DD, or 'today')")
+	cmd.Flags().StringVar(&opts.createdAfter, "created-after", "", "Lower bound on System.CreatedDate (RFC3339, YYYY-MM-DD, or 'today')")
+	cmd.Flags().StringVar(&opts.sortOrder, "order", "desc", "Sort direction for all --sort fields: asc or desc")
+	cmd.Flags().StringSliceVar(&opts.sortFields, "sort", nil, "Sort by field (repeatable): changed, created, id, state, title, assigned-to, type, tags")
 	cmd.Flags().StringSliceVarP(&opts.status, "status", "s", []string{"open"}, "Filter by state category: open, closed, resolved, all (repeatable)")
 	cmd.Flags().StringSliceVarP(&opts.workItemTypes, "type", "T", nil, "Filter by work item type (repeatable)")
 	cmd.Flags().StringSliceVarP(&opts.assignedTo, "assigned-to", "a", nil, "Filter by assigned-to identity (repeatable); supports emails, descriptors, and @me")
@@ -79,6 +100,19 @@ func NewCmd(ctx util.CmdContext) *cobra.Command {
 	cmd.Flags().IntVarP(&opts.limit, "limit", "L", 0, "Maximum number of results to return (>=1)")
 
 	util.AddJSONFlags(cmd, &opts.exporter, []string{"url", "_links", "commentVersionRef", "fields", "id", "relations", "rev"})
+
+	// Merge --authored-by into --created-by before any other PreRunE runs.
+	originalPreRunE := cmd.PreRunE
+	cmd.PreRunE = func(c *cobra.Command, args []string) error {
+		if len(opts.authoredByRaw) > 0 {
+			opts.createdBy = append(opts.createdBy, opts.authoredByRaw...)
+			opts.authoredByRaw = nil
+		}
+		if originalPreRunE != nil {
+			return originalPreRunE(c, args)
+		}
+		return nil
+	}
 
 	return cmd
 }
@@ -101,6 +135,27 @@ func runList(ctx util.CmdContext, opts *listOptions) error {
 		return util.FlagErrorWrap(err)
 	}
 
+	orderBy, err := resolveSort(opts.sortFields, opts.sortOrder)
+	if err != nil {
+		return err
+	}
+
+	changedAfterBound, err := parseDateBound(opts.changedAfter, "--changed-after")
+	if err != nil {
+		return err
+	}
+	createdAfterBound, err := parseDateBound(opts.createdAfter, "--created-after")
+	if err != nil {
+		return err
+	}
+
+	tagPredicate := buildTagPredicate(opts.tags)
+
+	createdByFilter, err := resolveCreatedByFilter(ctx, scope.Organization, opts.createdBy)
+	if err != nil {
+		return err
+	}
+
 	witClient, err := ctx.ClientFactory().WorkItemTracking(ctx.Context(), scope.Organization)
 	if err != nil {
 		return fmt.Errorf("failed to create work item tracking client: %w", err)
@@ -116,9 +171,26 @@ func runList(ctx util.CmdContext, opts *listOptions) error {
 		return err
 	}
 
-	query := buildWiqlQuery(scope.Project, statusPredicate, opts.workItemTypes, assignedToFilter, opts.classification, opts.priority, opts.area, opts.iteration)
+	stateClause, err := buildStateClause(opts.state)
+	if err != nil {
+		return err
+	}
 
-	zap.L().Debug("querying work items via WIQL",
+	// Intersect --status (categories) and --state (exact names) when both are set.
+	combinedState := ""
+	switch {
+	case statusPredicate != "" && stateClause != "":
+		combinedState = "(" + statusPredicate + ") AND (" + stateClause + ")"
+	case statusPredicate != "":
+		combinedState = statusPredicate
+	case stateClause != "":
+		combinedState = stateClause
+	}
+
+	query := buildWiqlQuery(scope.Project, combinedState, opts.workItemTypes, assignedToFilter, opts.classification, opts.priority, opts.area, opts.iteration, orderBy, changedAfterBound, createdAfterBound, tagPredicate, createdByFilter)
+
+	zap.L().Debug(
+		"querying work items via WIQL",
 		zap.String("organization", scope.Organization),
 		zap.String("project", scope.Project),
 		zap.Int("limit", opts.limit),
@@ -174,6 +246,15 @@ func validateListOptions(opts *listOptions) error {
 		return err
 	}
 	if err := validateUnderPaths("--iteration", opts.iteration); err != nil {
+		return err
+	}
+	if err := validateState(opts.state); err != nil {
+		return err
+	}
+	if err := validateTags("--tag", opts.tags); err != nil {
+		return err
+	}
+	if err := validateSort(opts.sortFields, opts.sortOrder); err != nil {
 		return err
 	}
 	return nil
@@ -378,6 +459,7 @@ func validateUnderPaths(flag string, values []string) error {
 	return nil
 }
 
+//nolint:dupl // intentional duplicate of resolveCreatedByFilter; refactor when third identity field is needed.
 func resolveAssignedToFilter(ctx util.CmdContext, organization string, assignedTo []string) ([]string, error) {
 	if len(assignedTo) == 0 {
 		return nil, nil
@@ -415,6 +497,7 @@ func resolveAssignedToFilter(ctx util.CmdContext, organization string, assignedT
 		identityClient = idc
 	}
 
+	//nolint:dupl // intentional duplicate of resolveCreatedByFilter loop
 	resolved := make([]string, 0, len(assignedTo))
 	for _, raw := range assignedTo {
 		raw = strings.TrimSpace(raw)
@@ -470,6 +553,82 @@ func resolveAssignedToFilter(ctx util.CmdContext, organization string, assignedT
 	return resolved, nil
 }
 
+//nolint:dupl // intentional duplicate of resolveAssignedToFilter; refactor when third identity field is needed.
+func resolveCreatedByFilter(ctx util.CmdContext, organization string, createdBy []string) ([]string, error) {
+	if len(createdBy) == 0 {
+		return nil, nil
+	}
+	needsLookup := false
+	for _, raw := range createdBy {
+		raw = strings.TrimSpace(raw)
+		if raw == "" {
+			continue
+		}
+		if strings.EqualFold(raw, "@me") || shouldResolveIdentity(raw) {
+			needsLookup = true
+			break
+		}
+	}
+	var extensionsClient extensions.Client
+	var identityClient identity.Client
+	if needsLookup {
+		ext, err := ctx.ClientFactory().Extensions(ctx.Context(), organization)
+		if err != nil {
+			return nil, fmt.Errorf("failed to create Extensions client: %w", err)
+		}
+		extensionsClient = ext
+		idc, err := ctx.ClientFactory().Identity(ctx.Context(), organization)
+		if err != nil {
+			return nil, fmt.Errorf("failed to create Identity client: %w", err)
+		}
+		identityClient = idc
+	}
+	resolved := make([]string, 0, len(createdBy))
+	for _, raw := range createdBy {
+		raw = strings.TrimSpace(raw)
+		if raw == "" {
+			continue
+		}
+		if strings.EqualFold(raw, "@me") {
+			selfID, err := extensionsClient.GetSelfID(ctx.Context())
+			if err != nil {
+				return nil, fmt.Errorf("failed to resolve @me identity: %w", err)
+			}
+			identityIds := selfID.String()
+			identities, err := identityClient.ReadIdentities(ctx.Context(), identity.ReadIdentitiesArgs{IdentityIds: &identityIds})
+			if err != nil {
+				return nil, fmt.Errorf("failed to resolve @me identity details: %w", err)
+			}
+			if identities == nil || len(*identities) != 1 {
+				return nil, fmt.Errorf("failed to resolve @me identity details")
+			}
+			value := identityAccountOrDisplay((*identities)[0])
+			if value == "" {
+				return nil, fmt.Errorf("authenticated identity is missing account or display name")
+			}
+			resolved = append(resolved, value)
+			continue
+		}
+		if !shouldResolveIdentity(raw) {
+			resolved = append(resolved, raw)
+			continue
+		}
+		ident, err := extensionsClient.ResolveIdentity(ctx.Context(), raw)
+		if err != nil {
+			return nil, err
+		}
+		if ident == nil {
+			return nil, fmt.Errorf("no identity found for %q", raw)
+		}
+		value := identityAccountOrDisplay(*ident)
+		if value == "" {
+			return nil, fmt.Errorf("resolved identity for %q is missing account or display name", raw)
+		}
+		resolved = append(resolved, value)
+	}
+	return types.UniqueComparable(resolved, strings.ToLower), nil
+}
+
 func shouldResolveIdentity(raw string) bool {
 	// Keep values that already look like display names/emails unchanged.
 	return !strings.Contains(raw, " ") && !strings.Contains(raw, "@")
@@ -502,12 +661,140 @@ func identityAccount(properties any) string {
 	return ""
 }
 
-func buildWiqlQuery(project string, stateCategoryPredicate string, typesFilter []string, assignedTo []string, severity []string, priority []int, area []string, iteration []string) string {
+var sortFieldMap = map[string]string{
+	"changed":     "[System.ChangedDate]",
+	"created":     "[System.CreatedDate]",
+	"id":          "[System.Id]",
+	"state":       "[System.State]",
+	"title":       "[System.Title]",
+	"assigned-to": "[System.AssignedTo]",
+	"type":        "[System.WorkItemType]",
+	"tags":        "[System.Tags]",
+	"priority":    "[Microsoft.VSTS.Common.Priority]",
+}
+
+func validateSort(fields []string, order string) error {
+	if _, err := resolveSort(fields, order); err != nil {
+		return err
+	}
+	return nil
+}
+
+func resolveSort(fields []string, order string) (string, error) {
+	if len(fields) == 0 {
+		return "", nil
+	}
+	dir := strings.ToLower(strings.TrimSpace(order))
+	if dir == "" {
+		// default direction depends on the first field
+		first := strings.ToLower(strings.TrimSpace(fields[0]))
+		switch first {
+		case "changed", "created", "id":
+			dir = "desc"
+		default:
+			dir = "asc"
+		}
+	}
+	if dir != "asc" && dir != "desc" {
+		return "", util.FlagErrorf("invalid --order %q: must be asc or desc", order)
+	}
+	parts := make([]string, 0, len(fields))
+	for _, raw := range fields {
+		key := strings.ToLower(strings.TrimSpace(raw))
+		ref, ok := sortFieldMap[key]
+		if !ok {
+			return "", util.FlagErrorf("invalid --sort field %q (valid: changed, created, id, state, title, assigned-to, type, tags)", raw)
+		}
+		parts = append(parts, ref+" "+strings.ToUpper(dir))
+	}
+	return "ORDER BY " + strings.Join(parts, ", "), nil
+}
+
+func parseDateBound(raw, flagName string) (string, error) {
+	raw = strings.TrimSpace(raw)
+	if raw == "" {
+		return "", nil
+	}
+	t, err := parseFlexibleDateLocal(raw)
+	if err != nil {
+		return "", util.FlagErrorf("invalid %s %q: %v", flagName, raw, err)
+	}
+	return t.UTC().Format("2006-01-02T15:04:05Z"), nil
+}
+
+func parseFlexibleDateLocal(raw string) (time.Time, error) {
+	trimmed := strings.TrimSpace(raw)
+	if strings.EqualFold(trimmed, "today") {
+		now := time.Now().UTC()
+		return time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, time.UTC), nil
+	}
+	if strings.Contains(trimmed, "T") {
+		return time.Parse(time.RFC3339, trimmed)
+	}
+	return time.Parse("2006-01-02", trimmed)
+}
+
+func validateTags(flag string, values []string) error {
+	for _, v := range values {
+		if strings.TrimSpace(v) == "" {
+			return util.FlagErrorf("%s value cannot be empty", flag)
+		}
+	}
+	return nil
+}
+
+func buildTagPredicate(tags []string) string {
+	cleaned := make([]string, 0, len(tags))
+	for _, t := range tags {
+		trimmed := strings.TrimSpace(t)
+		if trimmed == "" {
+			continue
+		}
+		cleaned = append(cleaned, trimmed)
+	}
+	cleaned = types.UniqueComparable(cleaned, strings.ToLower)
+	if len(cleaned) == 0 {
+		return ""
+	}
+	parts := make([]string, 0, len(cleaned))
+	for _, t := range cleaned {
+		parts = append(parts, fmt.Sprintf("[System.Tags] CONTAINS %s", wiqlQuote(t)))
+	}
+	return strings.Join(parts, " AND ")
+}
+
+func validateState(values []string) error {
+	for _, v := range values {
+		if strings.TrimSpace(v) == "" {
+			return util.FlagErrorf("--state value cannot be empty")
+		}
+	}
+	return nil
+}
+
+func buildStateClause(states []string) (string, error) {
+	cleaned := make([]string, 0, len(states))
+	for _, s := range states {
+		trimmed := strings.TrimSpace(s)
+		if trimmed == "" {
+			return "", util.FlagErrorf("--state value cannot be empty")
+		}
+		cleaned = append(cleaned, trimmed)
+	}
+	cleaned = types.UniqueComparable(cleaned, strings.ToLower)
+	if len(cleaned) == 0 {
+		return "", nil
+	}
+	return fmt.Sprintf("[System.State] IN (%s)", wiqlQuoteList(cleaned)), nil
+}
+
+//nolint:gocritic // TDD iteration cap: defer struct refactor to a separate change.
+func buildWiqlQuery(project string, statePredicate string, typesFilter []string, assignedTo []string, severity []string, priority []int, area []string, iteration []string, orderBy string, changedAfter string, createdAfter string, tagPredicate string, createdBy []string) string {
 	clauses := make([]string, 0)
 	clauses = append(clauses, fmt.Sprintf("[System.TeamProject] = %s", wiqlQuote(project)))
 
-	if stateCategoryPredicate != "" {
-		clauses = append(clauses, stateCategoryPredicate)
+	if statePredicate != "" {
+		clauses = append(clauses, statePredicate)
 	}
 
 	if len(typesFilter) > 0 {
@@ -519,6 +806,10 @@ func buildWiqlQuery(project string, stateCategoryPredicate string, typesFilter [
 
 	if len(assignedTo) > 0 {
 		clauses = append(clauses, fmt.Sprintf("[System.AssignedTo] IN (%s)", wiqlQuoteList(assignedTo)))
+	}
+
+	if len(createdBy) > 0 {
+		clauses = append(clauses, fmt.Sprintf("[System.CreatedBy] IN (%s)", wiqlQuoteList(createdBy)))
 	}
 
 	if len(severity) > 0 {
@@ -543,7 +834,21 @@ func buildWiqlQuery(project string, stateCategoryPredicate string, typesFilter [
 		}
 	}
 
-	return fmt.Sprintf("SELECT [System.Id] FROM WorkItems WHERE %s ORDER BY [System.ChangedDate] DESC", strings.Join(clauses, " AND "))
+	if changedAfter != "" {
+		clauses = append(clauses, fmt.Sprintf("[System.ChangedDate] >= %s", wiqlQuote(changedAfter)))
+	}
+	if createdAfter != "" {
+		clauses = append(clauses, fmt.Sprintf("[System.CreatedDate] >= %s", wiqlQuote(createdAfter)))
+	}
+
+	if tagPredicate != "" {
+		clauses = append(clauses, tagPredicate)
+	}
+
+	if orderBy == "" {
+		orderBy = "ORDER BY [System.ChangedDate] DESC"
+	}
+	return fmt.Sprintf("SELECT [System.Id] FROM WorkItems WHERE %s %s", strings.Join(clauses, " AND "), orderBy)
 }
 
 func buildUnderOrEqualsPredicate(field string, raw []string) string {
