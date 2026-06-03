@@ -40,8 +40,7 @@ type listOptions struct {
 
 	tags []string
 
-	sortFields []string
-	sortOrder  string
+	sort []string
 
 	exporter util.Exporter
 }
@@ -88,8 +87,7 @@ func NewCmd(ctx util.CmdContext) *cobra.Command {
 	cmd.Flags().StringSliceVar(&opts.tags, "tag", nil, "Filter by tag (repeatable); items must contain all specified tags")
 	cmd.Flags().StringVar(&opts.changedAfter, "changed-after", "", "Lower bound on System.ChangedDate (RFC3339, YYYY-MM-DD, or 'today')")
 	cmd.Flags().StringVar(&opts.createdAfter, "created-after", "", "Lower bound on System.CreatedDate (RFC3339, YYYY-MM-DD, or 'today')")
-	cmd.Flags().StringVar(&opts.sortOrder, "order", "desc", "Sort direction for all --sort fields: asc or desc")
-	cmd.Flags().StringSliceVar(&opts.sortFields, "sort", nil, "Sort by field (repeatable): changed, created, id, priority, state, title, assigned-to, type, tags")
+	cmd.Flags().StringSliceVar(&opts.sort, "sort", nil, "Sort by field with optional direction (repeatable): changed[:asc|:desc], created[:asc|:desc], id[:asc|:desc], state[:asc|:desc], title[:asc|:desc], assigned-to[:asc|:desc], type[:asc|:desc], tags[:asc|:desc]")
 	cmd.Flags().StringSliceVarP(&opts.status, "status", "s", []string{"open"}, "Filter by state category: open, closed, resolved, all (repeatable)")
 	cmd.Flags().StringSliceVarP(&opts.workItemTypes, "type", "T", nil, "Filter by work item type (repeatable)")
 	cmd.Flags().StringSliceVarP(&opts.assignedTo, "assigned-to", "a", nil, "Filter by assigned-to identity (repeatable); supports emails, descriptors, and @me")
@@ -97,7 +95,7 @@ func NewCmd(ctx util.CmdContext) *cobra.Command {
 	cmd.Flags().IntSliceVarP(&opts.priority, "priority", "p", nil, "Filter by priority (repeatable): 1-4")
 	cmd.Flags().StringSliceVar(&opts.area, "area", nil, "Filter by area path (repeatable); prefix with Under: to include subtree (e.g., Under:Web/Payments)")
 	cmd.Flags().StringSliceVar(&opts.iteration, "iteration", nil, "Filter by iteration path (repeatable); prefix with Under: to include subtree (e.g., Under:Release 2025/Sprint 1)")
-	cmd.Flags().IntVarP(&opts.limit, "limit", "L", 0, "Maximum number of results to return (>=1)")
+	cmd.Flags().IntVarP(&opts.limit, "limit", "L", 50, "Maximum number of results to return (>=1)")
 
 	util.AddJSONFlags(cmd, &opts.exporter, []string{"url", "_links", "commentVersionRef", "fields", "id", "relations", "rev"})
 
@@ -135,7 +133,7 @@ func runList(ctx util.CmdContext, opts *listOptions) error {
 		return util.FlagErrorWrap(err)
 	}
 
-	orderBy, err := resolveSort(opts.sortFields, opts.sortOrder)
+	orderBy, err := resolveSort(opts.sort)
 	if err != nil {
 		return err
 	}
@@ -254,7 +252,7 @@ func validateListOptions(opts *listOptions) error {
 	if err := validateTags("--tag", opts.tags); err != nil {
 		return err
 	}
-	if err := validateSort(opts.sortFields, opts.sortOrder); err != nil {
+	if err := validateSort(opts.sort); err != nil {
 		return err
 	}
 	return nil
@@ -670,41 +668,51 @@ var sortFieldMap = map[string]string{
 	"assigned-to": "[System.AssignedTo]",
 	"type":        "[System.WorkItemType]",
 	"tags":        "[System.Tags]",
-	"priority":    "[Microsoft.VSTS.Common.Priority]",
 }
 
-func validateSort(fields []string, order string) error {
-	if _, err := resolveSort(fields, order); err != nil {
+func validateSort(values []string) error {
+	if _, err := resolveSort(values); err != nil {
 		return err
 	}
 	return nil
 }
 
-func resolveSort(fields []string, order string) (string, error) {
-	if len(fields) == 0 {
-		return "", nil
+func resolveSort(values []string) (string, error) {
+	if len(values) == 0 {
+		return "ORDER BY [System.ChangedDate] DESC", nil
 	}
-	dir := strings.ToLower(strings.TrimSpace(order))
-	if dir == "" {
-		// default direction depends on the first field
-		first := strings.ToLower(strings.TrimSpace(fields[0]))
-		switch first {
-		case "changed", "created", "id":
-			dir = "desc"
-		default:
-			dir = "asc"
+	parts := make([]string, 0, len(values))
+	resolvedFields := make(map[string]string, len(values))
+	for _, raw := range values {
+		value := strings.ToLower(strings.TrimSpace(raw))
+		field := value
+		dir := ""
+		if before, after, found := strings.Cut(value, ":"); found {
+			field = strings.TrimSpace(before)
+			dir = strings.TrimSpace(after)
 		}
-	}
-	if dir != "asc" && dir != "desc" {
-		return "", util.FlagErrorf("invalid --order %q: must be asc or desc", order)
-	}
-	parts := make([]string, 0, len(fields))
-	for _, raw := range fields {
-		key := strings.ToLower(strings.TrimSpace(raw))
-		ref, ok := sortFieldMap[key]
+		ref, ok := sortFieldMap[field]
 		if !ok {
-			return "", util.FlagErrorf("invalid --sort field %q (valid: changed, created, id, priority, state, title, assigned-to, type, tags)", raw)
+			return "", util.FlagErrorf("invalid --sort field %q (valid: changed, created, id, state, title, assigned-to, type, tags)", raw)
 		}
+		if dir == "" {
+			switch field {
+			case "changed", "created", "id":
+				dir = "desc"
+			default:
+				dir = "asc"
+			}
+		}
+		if dir != "asc" && dir != "desc" {
+			return "", util.FlagErrorf("invalid --sort direction %q in %q: must be asc or desc", dir, raw)
+		}
+		if existing, ok := resolvedFields[field]; ok {
+			if existing == dir {
+				continue
+			}
+			return "", util.FlagErrorf("conflicting --sort directives for %q: %s and %s", field, existing, dir)
+		}
+		resolvedFields[field] = dir
 		parts = append(parts, ref+" "+strings.ToUpper(dir))
 	}
 	return "ORDER BY " + strings.Join(parts, ", "), nil
