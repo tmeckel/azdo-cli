@@ -27,7 +27,7 @@ lint: ## lint source
 	@echo "Check for golangci-lint"; [ -e "$(shell which golangci-lint)" ]
 	@echo "Executing golangci-lint"; golangci-lint run -v --timeout $(TIMEOUT)
 
-.PHONY: help
+.PHONY: tidy
 tidy: ## call go mod tidy on all existing go.mod files
 	find . -name go.mod -execdir go mod tidy \;
 
