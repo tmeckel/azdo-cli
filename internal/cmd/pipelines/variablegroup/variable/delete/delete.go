@@ -81,7 +81,7 @@ func run(cmdCtx util.CmdContext, opts *opts) error {
 
 	// Find variable key case-insensitively
 	var foundKey string
-	var vars map[string]interface{}
+	var vars map[string]any
 	if group.Variables != nil {
 		vars = *group.Variables
 		for k := range vars {
@@ -118,7 +118,7 @@ func run(cmdCtx util.CmdContext, opts *opts) error {
 	}
 
 	// Remove the variable and call UpdateVariableGroup
-	newVars := make(map[string]interface{})
+	newVars := make(map[string]any)
 	for k, v := range vars {
 		if k == foundKey {
 			continue

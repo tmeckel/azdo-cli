@@ -176,7 +176,7 @@ func TestRunCreate_APIInvocationAndOutput(t *testing.T) {
 	// Expect repository creation call
 	uuidPtr := uuid.New()
 	mockGitClient.EXPECT().CreateRepository(gomock.Any(), gomock.Any()).DoAndReturn(
-		func(_ interface{}, args git.CreateRepositoryArgs) (*git.GitRepository, error) {
+		func(_ any, args git.CreateRepositoryArgs) (*git.GitRepository, error) {
 			// Spec‑driven assertions
 			require.NotNil(t, args.GitRepositoryToCreate)
 			require.Equal(t, "repo1", *args.GitRepositoryToCreate.Name)

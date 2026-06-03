@@ -873,13 +873,13 @@ func TestPullRequest_CreatesWithReviewers_RequiredAndOptional(t *testing.T) {
 	bobID := uuid.New()
 
 	// Mock for alice
-	mIdentity.EXPECT().ReadIdentities(gomock.Any(), gomock.Cond(func(x interface{}) bool {
+	mIdentity.EXPECT().ReadIdentities(gomock.Any(), gomock.Cond(func(x any) bool {
 		args, ok := x.(aidentity.ReadIdentitiesArgs)
 		return ok && args.FilterValue != nil && *args.FilterValue == "alice@example.org"
 	})).Return(&[]aidentity.Identity{{Id: &aliceID}}, nil)
 
 	// Mock for bob
-	mIdentity.EXPECT().ReadIdentities(gomock.Any(), gomock.Cond(func(x interface{}) bool {
+	mIdentity.EXPECT().ReadIdentities(gomock.Any(), gomock.Cond(func(x any) bool {
 		args, ok := x.(aidentity.ReadIdentitiesArgs)
 		return ok && args.FilterValue != nil && *args.FilterValue == "bob@example.org"
 	})).Return(&[]aidentity.Identity{{Id: &bobID}}, nil)

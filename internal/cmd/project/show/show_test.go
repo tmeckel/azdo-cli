@@ -19,7 +19,7 @@ import (
 )
 
 func TestProjectShow(t *testing.T) {
-	type D = map[string]interface{}
+	type D = map[string]any
 	projectID := uuid.New()
 	projectName := "TestProject"
 	orgName := "TestOrg"

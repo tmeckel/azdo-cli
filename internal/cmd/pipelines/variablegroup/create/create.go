@@ -166,7 +166,7 @@ func run(cmdCtx util.CmdContext, opts *options) error {
 	)
 	logger.Debug("creating variable group")
 
-	var providerData interface{}
+	var providerData any
 	if keyVaultRequested {
 		providerData, err = buildKeyVaultProviderData(cmdCtx, target.Scope, opts)
 		if err != nil {
@@ -248,14 +248,14 @@ func run(cmdCtx util.CmdContext, opts *options) error {
 	return tp.Render()
 }
 
-func buildVariables(cmdCtx util.CmdContext, ios *iostreams.IOStreams, opts *options, keyVault bool) (*map[string]interface{}, error) {
+func buildVariables(cmdCtx util.CmdContext, ios *iostreams.IOStreams, opts *options, keyVault bool) (*map[string]any, error) {
 	if keyVault {
 		return buildKeyVaultVariables(opts)
 	}
 	if len(opts.variableInputs) == 0 && len(opts.secretInputs) == 0 {
 		return nil, nil
 	}
-	variables := make(map[string]interface{})
+	variables := make(map[string]any)
 	seen := make(map[string]string)
 
 	for _, raw := range opts.variableInputs {
@@ -298,11 +298,11 @@ func buildVariables(cmdCtx util.CmdContext, ios *iostreams.IOStreams, opts *opti
 	return &variables, nil
 }
 
-func buildKeyVaultVariables(opts *options) (*map[string]interface{}, error) {
+func buildKeyVaultVariables(opts *options) (*map[string]any, error) {
 	if len(opts.keyVaultSecrets) == 0 {
 		return nil, util.FlagErrorf("at least one --keyvault-secret is required when configuring a Key Vault-backed group")
 	}
-	variables := make(map[string]interface{}, len(opts.keyVaultSecrets))
+	variables := make(map[string]any, len(opts.keyVaultSecrets))
 	seen := make(map[string]struct{})
 	for _, raw := range opts.keyVaultSecrets {
 		parts := strings.SplitN(raw, keyValueSeparator, 2)
@@ -537,8 +537,8 @@ func resolveSecretValue(
 	return prompter.Secret(fmt.Sprintf("Value for secret %q:", name))
 }
 
-func parseProviderDataJSON(raw string) (interface{}, error) {
-	var payload interface{}
+func parseProviderDataJSON(raw string) (any, error) {
+	var payload any
 	if err := json.Unmarshal([]byte(raw), &payload); err != nil {
 		return nil, util.FlagErrorf("invalid --provider-data-json: %v", err)
 	}
