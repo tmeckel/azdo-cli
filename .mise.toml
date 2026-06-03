@@ -2,7 +2,7 @@
 _.file = ".env"
 
 [tools]
-go = "1.25"
+go = "1.26.4"
 "golangci-lint" = "2.12.2"
 goreleaser = "latest"
 prek = "latest"
