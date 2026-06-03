@@ -1,7 +1,7 @@
 package project
 
 import (
-	"github.com/MakeNowJust/heredoc"
+	"github.com/MakeNowJust/heredoc/v2"
 	"github.com/spf13/cobra"
 	"github.com/tmeckel/azdo-cli/internal/cmd/project/create"
 	"github.com/tmeckel/azdo-cli/internal/cmd/project/delete"

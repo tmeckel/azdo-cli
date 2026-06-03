@@ -8,7 +8,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/MakeNowJust/heredoc"
+	"github.com/MakeNowJust/heredoc/v2"
 )
 
 func ExampleTablePrinter() {
@@ -128,7 +128,7 @@ func Test_ttyTablePrinter_WithPadding(t *testing.T) {
 	}
 
 	expected := heredoc.Doc(`
-		  A        B        C   
+		  A        B        C
 		hello  beautiful  people
 	`)
 	if buf.String() != expected {

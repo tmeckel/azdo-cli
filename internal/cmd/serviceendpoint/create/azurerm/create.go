@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/MakeNowJust/heredoc"
+	"github.com/MakeNowJust/heredoc/v2"
 	"github.com/microsoft/azure-devops-go-api/azuredevops/v7/serviceendpoint"
 	"github.com/spf13/cobra"
 

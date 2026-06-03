@@ -1,7 +1,7 @@
 package repo
 
 import (
-	"github.com/MakeNowJust/heredoc"
+	"github.com/MakeNowJust/heredoc/v2"
 	"github.com/spf13/cobra"
 	"github.com/tmeckel/azdo-cli/internal/cmd/repo/clone"
 	"github.com/tmeckel/azdo-cli/internal/cmd/repo/create"

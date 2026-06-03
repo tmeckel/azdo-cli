@@ -1,7 +1,7 @@
 package area
 
 import (
-	"github.com/MakeNowJust/heredoc"
+	"github.com/MakeNowJust/heredoc/v2"
 	"github.com/spf13/cobra"
 	projectcmd "github.com/tmeckel/azdo-cli/internal/cmd/boards/area/project"
 	"github.com/tmeckel/azdo-cli/internal/cmd/util"

@@ -4,7 +4,7 @@ import (
 	"errors"
 	"strings"
 
-	"github.com/MakeNowJust/heredoc"
+	"github.com/MakeNowJust/heredoc/v2"
 	"github.com/microsoft/azure-devops-go-api/azuredevops/v7/git"
 	"github.com/samber/lo"
 	"github.com/spf13/cobra"

@@ -5,7 +5,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/MakeNowJust/heredoc"
+	"github.com/MakeNowJust/heredoc/v2"
 	"github.com/microsoft/azure-devops-go-api/azuredevops/v7/core"
 	"github.com/spf13/cobra"
 	"github.com/tmeckel/azdo-cli/internal/azdo"

@@ -7,7 +7,7 @@ import (
 	"reflect"
 	"strings"
 
-	"github.com/MakeNowJust/heredoc"
+	"github.com/MakeNowJust/heredoc/v2"
 	azgit "github.com/microsoft/azure-devops-go-api/azuredevops/v7/git"
 	"github.com/spf13/cobra"
 	"github.com/tmeckel/azdo-cli/internal/cmd/pr/shared"

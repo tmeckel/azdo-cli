@@ -6,7 +6,7 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/MakeNowJust/heredoc"
+	"github.com/MakeNowJust/heredoc/v2"
 	"github.com/google/uuid"
 	"github.com/microsoft/azure-devops-go-api/azuredevops/v7/security"
 	"github.com/samber/lo"

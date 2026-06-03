@@ -1,7 +1,7 @@
 package user
 
 import (
-	"github.com/MakeNowJust/heredoc"
+	"github.com/MakeNowJust/heredoc/v2"
 	"github.com/spf13/cobra"
 	"github.com/tmeckel/azdo-cli/internal/cmd/graph/user/list"
 	"github.com/tmeckel/azdo-cli/internal/cmd/util"
