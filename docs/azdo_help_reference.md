@@ -133,13 +133,21 @@ List work items belonging to a project.
 ```
     --area strings             Filter by area path (repeatable); prefix with Under: to include subtree (e.g., Under:Web/Payments)
 -a, --assigned-to strings      Filter by assigned-to identity (repeatable); supports emails, descriptors, and @me
+    --authored-by strings      Alias for --created-by
+    --changed-after string     Lower bound on System.ChangedDate (RFC3339, YYYY-MM-DD, or 'today')
 -c, --classification strings   Filter by severity classification (repeatable): 1 - Critical, 2 - High, 3 - Medium, 4 - Low
+    --created-after string     Lower bound on System.CreatedDate (RFC3339, YYYY-MM-DD, or 'today')
+    --created-by strings       Filter by creator identity (repeatable); supports email, descriptor, @me
     --iteration strings        Filter by iteration path (repeatable); prefix with Under: to include subtree (e.g., Under:Release 2025/Sprint 1)
 -q, --jq expression            Filter JSON output using a jq expression
     --json fields[=*]          Output JSON with the specified fields. Prefix a field with '-' to exclude it.
--L, --limit int                Maximum number of results to return (>=1) (default 50)
+-L, --limit int                Maximum number of results to return (>=1)
+    --order string             Sort direction for all --sort fields: asc or desc (default "desc")
 -p, --priority ints            Filter by priority (repeatable): 1-4
+    --sort strings             Sort by field (repeatable): changed, created, id, state, title, assigned-to, type, tags
+    --state strings            Filter by exact workflow state name (repeatable; combines with --status)
 -s, --status strings           Filter by state category: open, closed, resolved, all (repeatable) (default [open])
+    --tag strings              Filter by tag (repeatable); items must contain all specified tags
 -t, --template string          Format JSON output using a Go template; see "azdo help formatting"
 -T, --type strings             Filter by work item type (repeatable)
 ```
