@@ -16,8 +16,8 @@ permissions:
   contents: read
 
 env:
-  LINT_VERSION: ${{ vars.golangci_version || '1.55.2' }}
-  GO_VERSION: ${{ vars.golang_version || '1.24' }}
+  LINT_VERSION: ${{ vars.golangci_version || '2.12.2' }}
+  GO_VERSION: ${{ vars.golang_version || '1.25' }}
 
 jobs:
   lint:
