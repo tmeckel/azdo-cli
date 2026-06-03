@@ -67,7 +67,7 @@ work item details in batches.
 
 * `--sort` `strings`
 
-	Sort by field (repeatable): changed, created, id, state, title, assigned-to, type, tags
+	Sort by field (repeatable): changed, created, id, priority, state, title, assigned-to, type, tags
 
 * `--state` `strings`
 
