@@ -472,7 +472,7 @@ func resolveAssignedToFilter(ctx util.CmdContext, organization string, assignedT
 
 func shouldResolveIdentity(raw string) bool {
 	// Keep values that already look like display names/emails unchanged.
-	return !(strings.Contains(raw, " ") || strings.Contains(raw, "@"))
+	return !strings.Contains(raw, " ") && !strings.Contains(raw, "@")
 }
 
 func identityAccountOrDisplay(ident identity.Identity) string {
