@@ -22,4 +22,3 @@ func NewCmd(ctx util.CmdContext) *cobra.Command {
 
 	return cmd
 }
-
