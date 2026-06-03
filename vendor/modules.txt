@@ -1,6 +1,5 @@
 # al.essio.dev/pkg/shellescape v1.5.1
 ## explicit; go 1.18
-al.essio.dev/pkg/shellescape
 # github.com/AlecAivazis/survey/v2 v2.3.7
 ## explicit; go 1.13
 github.com/AlecAivazis/survey/v2
@@ -71,7 +70,7 @@ github.com/clipperhouse/uax29/v2/internal/iterators
 # github.com/cpuguy83/go-md2man/v2 v2.0.7
 ## explicit; go 1.12
 github.com/cpuguy83/go-md2man/v2/md2man
-# github.com/danieljoos/wincred v1.2.2
+# github.com/danieljoos/wincred v1.2.3
 ## explicit; go 1.18
 github.com/danieljoos/wincred
 # github.com/davecgh/go-spew v1.1.1
@@ -90,8 +89,8 @@ github.com/emirpasic/gods/utils
 # github.com/fatih/color v1.7.0
 ## explicit
 github.com/fatih/color
-# github.com/godbus/dbus/v5 v5.1.0
-## explicit; go 1.12
+# github.com/godbus/dbus/v5 v5.2.2
+## explicit; go 1.20
 github.com/godbus/dbus/v5
 # github.com/google/go-cmp v0.7.0
 ## explicit; go 1.21
@@ -225,9 +224,10 @@ github.com/yuin/goldmark/util
 github.com/yuin/goldmark-emoji
 github.com/yuin/goldmark-emoji/ast
 github.com/yuin/goldmark-emoji/definition
-# github.com/zalando/go-keyring v0.2.6
+# github.com/zalando/go-keyring v0.2.8
 ## explicit; go 1.18
 github.com/zalando/go-keyring
+github.com/zalando/go-keyring/internal/shellescape
 github.com/zalando/go-keyring/secret_service
 # go.uber.org/mock v0.6.0
 ## explicit; go 1.23.0
