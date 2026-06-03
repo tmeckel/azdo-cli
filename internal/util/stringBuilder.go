@@ -36,6 +36,24 @@ func NewStringBuilder() *StringBuilder {
 	}
 }
 
+// StringBuilderString is a pre-configured StringBuilder for generating random strings with uppercase and lowercase letters.
+var StringBuilderString = NewStringBuilder().
+	WithUpperLetters().
+	WithLowerLetters()
+
+// StringBuilderPassword is a pre-configured StringBuilder for generating random passwords with uppercase letters, lowercase letters, numbers, and special characters.
+var StringBuilderPassword = NewStringBuilder().
+	WithUpperLetters().
+	WithLowerLetters().
+	WithNumbers().
+	WithSpecialCharacters()
+
+// StringBuilderNumberedString is a pre-configured StringBuilder for generating random strings with uppercase letters, lowercase letters, and numbers.
+var StringBuilderNumberedString = NewStringBuilder().
+	WithUpperLetters().
+	WithLowerLetters().
+	WithNumbers()
+
 // WithUpperLetters adds uppercase letters (A-Z) to the character set.
 func (sb *StringBuilder) WithUpperLetters() *StringBuilder {
 	sb.includeUpper = true
@@ -120,4 +138,15 @@ func (sb *StringBuilder) Generate(length int) (string, error) {
 	default:
 		return s, nil
 	}
+}
+
+// MustGenerate creates a random string of the specified length using the configured character set.
+// It panics if generation fails (e.g., length <= 0 or no character sets selected).
+// This is a convenience method for cases where generation failure is considered a programming error.
+func (sb *StringBuilder) MustGenerate(length int) string {
+	s, err := sb.Generate(length)
+	if err != nil {
+		panic(fmt.Sprintf("StringBuilder.MustGenerate failed: %v", err))
+	}
+	return s
 }
