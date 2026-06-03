@@ -77,6 +77,136 @@ To run gofumpt from your terminal go:
 go install mvdan.cc/gofumpt@latest && gofumpt -l -w .
 ```
 
+## Maintainer onboarding
+
+If you are new to the codebase, start here before making structural changes.
+
+### Mental model
+
+`azdo` is organized as a layered CLI:
+
+1. `cmd/azdo/azdo.go` boots the binary.
+2. `internal/cmd/root/root.go` builds the root Cobra command and wires the top-level command tree.
+3. `internal/cmd/...` contains command groups and leaf commands.
+4. `internal/cmd/util/cmd_context.go` provides the shared runtime context used by commands.
+5. `internal/azdo/...` creates Azure DevOps connections and typed SDK clients.
+6. `internal/git/...`, `internal/iostreams/...`, and `internal/printer/...` handle repository discovery, terminal UX, and output formatting.
+
+When in doubt, trace a command from the root command down into its `run...` helper and then into the client factory.
+
+### Where to start reading
+
+- `internal/cmd/root/root.go` - best entry point for understanding the CLI surface area.
+- `internal/cmd/util/cmd_context.go` - central dependency-injection seam for config, I/O, prompting, printers, repo helpers, and API clients.
+- `internal/azdo/connection.go` - interfaces for Azure DevOps connections and typed clients.
+- `internal/azdo/factory.go` - concrete implementation for creating org-scoped SDK clients.
+- `internal/iostreams/iostreams.go` - pager, TTY, spinner, and stream lifecycle behavior.
+- `TESTING.md` - required testing conventions, mock usage, and acceptance-test boundaries.
+
+### Command structure conventions
+
+Most commands follow the same pattern:
+
+- each package exports `NewCmd(ctx util.CmdContext) *cobra.Command`
+- a private options struct stores flags and args
+- `RunE` does only minimal parsing and validation
+- actual behavior lives in a dedicated `run...` helper
+
+Representative examples:
+
+- `internal/cmd/repo/create/create.go`
+- `internal/cmd/project/show/show.go`
+- `internal/cmd/pr/list/list.go`
+
+Prefer this structure when adding or refactoring commands. It keeps CLI plumbing small and makes testing easier.
+
+### Working with `CmdContext`
+
+`util.CmdContext` is the main abstraction shared across commands. Use it to retrieve:
+
+- `IOStreams()` for stdout, stderr, TTY, and progress behavior
+- `Config()` for organization and auth-related settings
+- `Prompter()` for interactive flows
+- `Printer(...)` for table, list, or JSON output
+- `ConnectionFactory()` and `ClientFactory()` for Azure DevOps access
+- `RepoContext()` for local-repository-aware operations
+
+Avoid constructing these dependencies ad hoc inside commands unless there is a strong reason. The codebase is designed around the context abstraction.
+
+### Azure DevOps client flow
+
+The usual service path is:
+
+1. Parse organization/project/repo scope in a command.
+2. Call `ctx.ClientFactory().<Service>(ctx.Context(), organization)`.
+3. Build the vendored Azure DevOps SDK `Args` struct.
+4. Call the SDK client method.
+5. Map the result into printer or JSON output.
+
+The vendored SDK under `vendor/github.com/microsoft/azure-devops-go-api/azuredevops/v7/` is the source of truth for API types. Check the vendored struct definitions before adding new fields or assumptions to command code or tests.
+
+### Output and JSON conventions
+
+- Prefer `util.AddJSONFlags(...)` for commands that expose structured JSON output.
+- Keep JSON and table/plain output as separate code paths.
+- When returning JSON, define a stable view struct instead of dumping raw SDK types unless the existing command already intentionally does that.
+- For non-JSON output, prefer `ctx.Printer("list")` for tables.
+
+See `internal/cmd/util/json_flags.go` for the common implementation and `internal/cmd/repo/create/create.go` for a representative command-level use of exporter vs table output.
+
+### Progress indicator rules
+
+Progress handling is centralized in `internal/iostreams/iostreams.go`, but each command is responsible for sequencing it correctly.
+
+Use this pattern:
+
+1. Get `IOStreams()`.
+2. Start the progress indicator immediately.
+3. `defer StopProgressIndicator()`.
+4. Stop it explicitly before writing user-visible output.
+
+If you print while the spinner is still active, CLI output can become messy or hard to read.
+
+### Testing workflow
+
+Tests are expected to be hermetic.
+
+- unit tests live next to the code as `*_test.go`
+- mocks are generated under `internal/mocks/`
+- command tests typically use `gomock`, `testify`, and `iostreams.Test()`
+- acceptance tests are opt-in and documented in `TESTING.md`
+
+Before adding a new mock, update `scripts/generate_mocks.sh` and regenerate mocks as described in `TESTING.md`.
+
+### Build, docs, and day-to-day commands
+
+- `make build` - build the CLI
+- `make lint` - run `golangci-lint`
+- `go test ./...` - run tests
+- `make docs` - regenerate CLI docs from the Cobra tree
+- `make generate-mocks` - regenerate mocks after interface changes
+
+If you change command flags, examples, or hierarchy, regenerate `docs/` before opening a pull request.
+
+### Hotspots maintainers should watch
+
+- `internal/cmd/root/root.go` - top-level wiring is easy to break when adding commands or aliases.
+- `internal/cmd/util/cmd_context.go` - changes here ripple widely through the command tree.
+- `internal/azdo/connection.go` and `internal/azdo/factory.go` - client interface changes require matching updates in implementations and mocks.
+- `internal/iostreams/iostreams.go` - output and spinner lifecycle bugs can surface as UX regressions.
+- pagination helpers such as `internal/azdo/loader.go` - small mistakes here can affect many list commands.
+
+Treat these files as high-leverage areas: small changes can have wide effects.
+
+### Before you open a pull request
+
+- keep the patch focused
+- add or update tests for behavior changes
+- regenerate docs when CLI output or flags change
+- regenerate mocks when interfaces change
+- run `make lint` and `go test ./...`
+- write a Conventional Commit style message if you are creating commits in the repo workflow
+
 ## Improvements
 
 If you can think of any way to improve these docs let us know.
