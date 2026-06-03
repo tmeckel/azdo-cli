@@ -21,9 +21,25 @@ work item details in batches.
 
 	Filter by assigned-to identity (repeatable); supports emails, descriptors, and @me
 
+* `--authored-by` `strings`
+
+	Alias for --created-by
+
+* `--changed-after` `string`
+
+	Lower bound on System.ChangedDate (RFC3339, YYYY-MM-DD, or &#39;today&#39;)
+
 * `-c`, `--classification` `strings`
 
 	Filter by severity classification (repeatable): 1 - Critical, 2 - High, 3 - Medium, 4 - Low
+
+* `--created-after` `string`
+
+	Lower bound on System.CreatedDate (RFC3339, YYYY-MM-DD, or &#39;today&#39;)
+
+* `--created-by` `strings`
+
+	Filter by creator identity (repeatable); supports email, descriptor, @me
 
 * `--iteration` `strings`
 
@@ -37,17 +53,33 @@ work item details in batches.
 
 	Output JSON with the specified fields. Prefix a field with &#39;-&#39; to exclude it.
 
-* `-L`, `--limit` `int` (default `50`)
+* `-L`, `--limit` `int` (default `0`)
 
 	Maximum number of results to return (&gt;=1)
+
+* `--order` `string` (default `&#34;desc&#34;`)
+
+	Sort direction for all --sort fields: asc or desc
 
 * `-p`, `--priority` `ints`
 
 	Filter by priority (repeatable): 1-4
 
+* `--sort` `strings`
+
+	Sort by field (repeatable): changed, created, id, state, title, assigned-to, type, tags
+
+* `--state` `strings`
+
+	Filter by exact workflow state name (repeatable; combines with --status)
+
 * `-s`, `--status` `strings` (default `[open]`)
 
 	Filter by state category: open, closed, resolved, all (repeatable)
+
+* `--tag` `strings`
+
+	Filter by tag (repeatable); items must contain all specified tags
 
 * `-t`, `--template` `string`
 
