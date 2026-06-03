@@ -34,26 +34,28 @@ func TestResolveSort(t *testing.T) {
 	t.Parallel()
 	cases := []struct {
 		name    string
-		fields  []string
-		order   string
+		values  []string
 		want    string
 		wantErr string
 	}{
-		{name: "no fields returns empty", fields: nil, want: ""},
-		{name: "single field default desc", fields: []string{"changed"}, order: "", want: "ORDER BY [System.ChangedDate] DESC"},
-		{name: "single field explicit desc", fields: []string{"changed"}, order: "desc", want: "ORDER BY [System.ChangedDate] DESC"},
-		{name: "single field asc", fields: []string{"title"}, order: "asc", want: "ORDER BY [System.Title] ASC"},
-		{name: "multiple fields", fields: []string{"priority", "id"}, order: "asc", want: "ORDER BY [Microsoft.VSTS.Common.Priority] ASC, [System.Id] ASC"},
-		{name: "invalid field", fields: []string{"banana"}, wantErr: "invalid --sort field"},
-		{name: "invalid order", fields: []string{"id"}, order: "sideways", wantErr: "invalid --order"},
-		{name: "default direction is desc for changed/created/id", fields: []string{"id"}, order: "", want: "ORDER BY [System.Id] DESC"},
-		{name: "default direction is asc for others", fields: []string{"state"}, order: "", want: "ORDER BY [System.State] ASC"},
-		{name: "all field mappings", fields: []string{"created", "priority", "assigned-to", "type", "tags"}, order: "asc", want: "ORDER BY [System.CreatedDate] ASC, [Microsoft.VSTS.Common.Priority] ASC, [System.AssignedTo] ASC, [System.WorkItemType] ASC, [System.Tags] ASC"},
+		{name: "no values uses default", values: nil, want: "ORDER BY [System.ChangedDate] DESC"},
+		{name: "single field default desc", values: []string{"changed"}, want: "ORDER BY [System.ChangedDate] DESC"},
+		{name: "single field explicit desc", values: []string{"changed:desc"}, want: "ORDER BY [System.ChangedDate] DESC"},
+		{name: "single field asc", values: []string{"title:asc"}, want: "ORDER BY [System.Title] ASC"},
+		{name: "multiple fields", values: []string{"state", "id:desc"}, want: "ORDER BY [System.State] ASC, [System.Id] DESC"},
+		{name: "duplicate identical explicit ignored", values: []string{"title:asc", "title:asc"}, want: "ORDER BY [System.Title] ASC"},
+		{name: "duplicate identical effective ignored", values: []string{"title", "title:asc"}, want: "ORDER BY [System.Title] ASC"},
+		{name: "invalid field", values: []string{"banana"}, wantErr: "invalid --sort field"},
+		{name: "invalid direction", values: []string{"id:sideways"}, wantErr: "invalid --sort direction"},
+		{name: "conflicting direction", values: []string{"title:asc", "title:desc"}, wantErr: "conflicting --sort directives"},
+		{name: "default direction is desc for changed/created/id", values: []string{"id"}, want: "ORDER BY [System.Id] DESC"},
+		{name: "default direction is asc for others", values: []string{"state"}, want: "ORDER BY [System.State] ASC"},
+		{name: "all field mappings", values: []string{"created:asc", "assigned-to", "type", "tags:desc"}, want: "ORDER BY [System.CreatedDate] ASC, [System.AssignedTo] ASC, [System.WorkItemType] ASC, [System.Tags] DESC"},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := resolveSort(tc.fields, tc.order)
+			got, err := resolveSort(tc.values)
 			if tc.wantErr != "" {
 				require.Error(t, err)
 				assert.Contains(t, err.Error(), tc.wantErr)
@@ -101,9 +103,8 @@ func TestRunList_SortTitleAsc(t *testing.T) {
 	)
 
 	err := runList(deps.cmd, &listOptions{
-		scopeArg:   "org/Fabrikam",
-		sortFields: []string{"title"},
-		sortOrder:  "asc",
+		scopeArg: "org/Fabrikam",
+		sort:     []string{"title:asc"},
 	})
 	require.NoError(t, err)
 	assert.Contains(t, captured, "ORDER BY [System.Title] ASC")
@@ -119,8 +120,8 @@ func TestRunList_SortInvalidField(t *testing.T) {
 	deps.cmd.EXPECT().IOStreams().Return(ios, nil).AnyTimes()
 
 	err := runList(deps.cmd, &listOptions{
-		scopeArg:   "org/Fabrikam",
-		sortFields: []string{"banana"},
+		scopeArg: "org/Fabrikam",
+		sort:     []string{"banana"},
 	})
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "invalid --sort field")
@@ -741,7 +742,6 @@ func TestNewCmd_FlagShortcuts(t *testing.T) {
 		{"created-by", ""},
 		{"authored-by", ""},
 		{"sort", ""},
-		{"order", ""},
 		{"state", ""},
 		{"tag", ""},
 		{"status", "s"},
