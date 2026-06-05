@@ -202,14 +202,9 @@ func run(cmdCtx util.CmdContext, o *opts) error {
 				}
 				return types.ToPtr(types.GetValue(permission.Authorized, false))
 			},
-			"i": func(v *int) string { return strconv.Itoa(types.GetValue(v, 0)) },
-			"s": func(v *string) string { return types.GetValue(v, "") },
-			"b": func(v *bool) string {
-				if v == nil {
-					return ""
-				}
-				return fmt.Sprintf("%v", *v)
-			},
+			"i":  func(v *int) string { return strconv.Itoa(types.GetValue(v, 0)) },
+		"s":       template.StringOrEmpty,
+			"b":       template.BoolString,
 			"ts": func(v *azuredevops.Time) string { return types.GetValue(formatTimePtr(v), "") },
 			"identity": func(id *webapi.IdentityRef) string {
 				if id == nil {
@@ -230,11 +225,9 @@ func run(cmdCtx util.CmdContext, o *opts) error {
 					return identifier
 				}
 			},
-			"hasText": func(v *string) bool { return strings.TrimSpace(types.GetValue(v, "")) != "" },
+			"hasText": template.HasText,
 			"hasAny":  func(v any) bool { return v != nil },
-			"vars": func(v *map[string]any) []variableView {
-				return expandVariables(v)
-			},
+			"vars":    expandVariables,
 			"pipelines": func() []authorizedPipelineView {
 				return toAuthorizedPipelines(perms, idToName)
 			},

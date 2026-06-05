@@ -9,6 +9,6 @@
 {{end}}
 
 {{bold "Description:"}}
-{{if notBlank (s .Description)}}{{markdown (s .Description)}}{{else}}
+{{if hasText (s .Description)}}{{markdown (s .Description)}}{{else}}
   None
 {{end}}

@@ -8,11 +8,13 @@ import (
 	"fmt"
 	"io"
 	"math"
+	"reflect"
 	"strconv"
 	"strings"
 	"text/template"
 	"time"
 
+	"github.com/google/uuid"
 	color "github.com/mgutz/ansi"
 	"github.com/tmeckel/azdo-cli/internal/markdown"
 	"github.com/tmeckel/azdo-cli/internal/tableprinter"
@@ -313,6 +315,62 @@ func truncateMultiline(maxWidth int, s string) string {
 		s = s[:i] + ellipsis
 	}
 	return text.Truncate(maxWidth, s)
+}
+
+// HasText returns true if v is a non-nil, non-whitespace string. For non-string pointer types it
+// returns true if v is non-nil. Useful as a Go template helper via WithFuncs.
+func HasText(v any) bool {
+	if v == nil {
+		return false
+	}
+	// Typed nil pointer (e.g. (*bool)(nil) stored as any).
+	if rv := reflect.ValueOf(v); rv.Kind() == reflect.Pointer && rv.IsNil() {
+		return false
+	}
+	if s, ok := v.(*string); ok {
+		return s != nil && strings.TrimSpace(*s) != ""
+	}
+	if s, ok := v.(string); ok {
+		return strings.TrimSpace(s) != ""
+	}
+	return true
+}
+
+// StringOrEmpty is a nil-safe string dereference. Accepts any value: returns "" for nil, typed nil pointers,
+// *string, or string; returns the string value otherwise. Useful as a Go template helper via WithFuncs.
+func StringOrEmpty(v any) string {
+	if v == nil {
+		return ""
+	}
+	val := reflect.ValueOf(v)
+	if val.Kind() == reflect.Pointer {
+		if val.IsNil() {
+			return ""
+		}
+		val = val.Elem()
+	}
+	if val.Kind() == reflect.String {
+		return val.String()
+	}
+	return ""
+}
+
+// BoolString formats a *bool as a string. Returns "" for nil, "true"/"false" otherwise.
+// Useful as a Go template helper via WithFuncs.
+func BoolString(v *bool) string {
+	if v == nil {
+		return ""
+	}
+	return fmt.Sprintf("%v", *v)
+}
+
+// UUIDString formats a *uuid.UUID as a string. Returns "" for nil, the UUID string otherwise.
+// Useful as a Go template helper via WithFuncs.
+func UUIDString(v *uuid.UUID) string {
+	if v == nil {
+		return ""
+	}
+	return v.String()
 }
 
 func hyperlinkFunc(link, text string) string {

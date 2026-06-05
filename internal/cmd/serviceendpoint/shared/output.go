@@ -3,9 +3,7 @@ package shared
 import (
 	_ "embed"
 	"fmt"
-	"strings"
 
-	"github.com/google/uuid"
 	"github.com/microsoft/azure-devops-go-api/azuredevops/v7/serviceendpoint"
 	"github.com/microsoft/azure-devops-go-api/azuredevops/v7/webapi"
 
@@ -35,30 +33,10 @@ func Output(ctx util.CmdContext, endpoint *serviceendpoint.ServiceEndpoint, expo
 		ios.ColorEnabled()).
 		WithTheme(ios.TerminalTheme()).
 		WithFuncs(map[string]any{
-			"s": func(v *string) string {
-				if v == nil {
-					return ""
-				}
-				return *v
-			},
-			"hasText": func(v *string) bool {
-				if v == nil {
-					return false
-				}
-				return strings.TrimSpace(*v) != ""
-			},
-			"b": func(v *bool) string {
-				if v == nil {
-					return ""
-				}
-				return fmt.Sprintf("%v", *v)
-			},
-			"u": func(v *uuid.UUID) string {
-				if v == nil {
-					return ""
-				}
-				return v.String()
-			},
+			"s":       template.StringOrEmpty,
+			"hasText": template.HasText,
+			"b":       template.BoolString,
+			"u":       template.UUIDString,
 			"scheme": func(ep *serviceendpoint.EndpointAuthorization) string {
 				// We wrap shared.AuthorizationScheme to work with just the authorization part if needed
 				// or we can just pass the whole endpoint.

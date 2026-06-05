@@ -174,6 +174,17 @@ func ParseProjectTargetWithDefaultOrganization(ctx CmdContext, target string) (*
 	})
 }
 
+// ParsePoolAgentTargetWithDefaultOrganization resolves a pool/agent target that allows an implicit
+// organization by falling back to the configured default. Accepted formats are
+// [ORGANIZATION/]POOL/AGENT (2 or 3 segments).
+func ParsePoolAgentTargetWithDefaultOrganization(ctx CmdContext, raw string) (*Path, error) {
+	return Parse(ctx, raw, ParseOptions{
+		AllowImplicitOrg: true,
+		MinTargets:       2,
+		MaxTargets:       2,
+	})
+}
+
 // ResolveScopeDescriptor fetches the descriptor representing the project scope when a project is supplied.
 // It returns the descriptor value along with the project ID string to support callers that need to distinguish
 // between identically named groups scoped to different projects.
