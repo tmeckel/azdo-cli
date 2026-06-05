@@ -154,7 +154,7 @@ func TestParseTarget(t *testing.T) {
 		require.NoError(t, err)
 		assert.Equal(t, "org", result.Organization)
 		assert.Empty(t, result.Project)
-		assert.Equal(t, "group", result.Target)
+		assert.Equal(t, "group", result.Targets[0])
 	})
 
 	t.Run("organization project group", func(t *testing.T) {
@@ -162,7 +162,7 @@ func TestParseTarget(t *testing.T) {
 		require.NoError(t, err)
 		assert.Equal(t, "org", result.Organization)
 		assert.Equal(t, "project", result.Project)
-		assert.Equal(t, "group", result.Target)
+		assert.Equal(t, "group", result.Targets[0])
 	})
 
 	t.Run("invalid format", func(t *testing.T) {
@@ -187,7 +187,7 @@ func TestParseTargetWithDefaultOrganization(t *testing.T) {
 		result, err := util.ParseTargetWithDefaultOrganization(mockCtx, "group")
 		require.NoError(t, err)
 		assert.Equal(t, "default-org", result.Organization)
-		assert.Equal(t, "group", result.Target)
+		assert.Equal(t, "group", result.Targets[0])
 	})
 
 	t.Run("explicit organization", func(t *testing.T) {
@@ -197,7 +197,7 @@ func TestParseTargetWithDefaultOrganization(t *testing.T) {
 		result, err := util.ParseTargetWithDefaultOrganization(mocks.NewMockCmdContext(ctrl), "org/group")
 		require.NoError(t, err)
 		assert.Equal(t, "org", result.Organization)
-		assert.Equal(t, "group", result.Target)
+		assert.Equal(t, "group", result.Targets[0])
 	})
 
 	t.Run("organization project group", func(t *testing.T) {
@@ -208,7 +208,7 @@ func TestParseTargetWithDefaultOrganization(t *testing.T) {
 		require.NoError(t, err)
 		assert.Equal(t, "org", result.Organization)
 		assert.Equal(t, "project", result.Project)
-		assert.Equal(t, "group", result.Target)
+		assert.Equal(t, "group", result.Targets[0])
 	})
 
 	t.Run("missing default organization", func(t *testing.T) {
@@ -254,7 +254,7 @@ func TestParseProjectTargetWithDefaultOrganization(t *testing.T) {
 		require.NotNil(t, result)
 		assert.Equal(t, "default-org", result.Organization)
 		assert.Equal(t, "project", result.Project)
-		assert.Equal(t, "target", result.Target)
+		assert.Equal(t, "target", result.Targets[0])
 	})
 
 	t.Run("explicit organization", func(t *testing.T) {
@@ -265,7 +265,7 @@ func TestParseProjectTargetWithDefaultOrganization(t *testing.T) {
 		require.NoError(t, err)
 		assert.Equal(t, "org", result.Organization)
 		assert.Equal(t, "project", result.Project)
-		assert.Equal(t, "target", result.Target)
+		assert.Equal(t, "target", result.Targets[0])
 	})
 
 	t.Run("missing default organization", func(t *testing.T) {
@@ -299,6 +299,121 @@ func TestParseProjectTargetWithDefaultOrganization(t *testing.T) {
 		_, err := util.ParseProjectTargetWithDefaultOrganization(mocks.NewMockCmdContext(ctrl), "")
 		require.Error(t, err)
 	})
+}
+
+func TestParse(t *testing.T) {
+	tests := []struct {
+		name    string
+		raw     string
+		opts    util.ParseOptions
+		want    *util.Path
+		wantErr string
+	}{
+		{
+			name: "empty input with implicit org",
+			raw:  "",
+			opts: util.ParseOptions{AllowImplicitOrg: true},
+			want: &util.Path{Organization: "default-org"},
+		},
+		{
+			name:    "empty input without implicit org",
+			raw:     "",
+			opts:    util.ParseOptions{AllowImplicitOrg: false},
+			wantErr: "expected 1-",
+		},
+		{
+			name: "single segment with implicit org",
+			raw:  "myorg",
+			opts: util.ParseOptions{AllowImplicitOrg: true},
+			want: &util.Path{Organization: "myorg"},
+		},
+		{
+			name: "two segments with implicit org",
+			raw:  "myorg/myproject",
+			opts: util.ParseOptions{AllowImplicitOrg: true},
+			want: &util.Path{Organization: "myorg", Project: "myproject"},
+		},
+		{
+			name: "single segment without implicit org",
+			raw:  "myorg",
+			opts: util.ParseOptions{AllowImplicitOrg: false},
+			want: &util.Path{Organization: "myorg"},
+		},
+		{
+			name: "explicit org with target (no project)",
+			raw:  "org/group",
+			opts: util.ParseOptions{AllowImplicitOrg: false, MinTargets: 1, MaxTargets: 1},
+			want: &util.Path{Organization: "org", Targets: []string{"group"}},
+		},
+		{
+			name: "explicit org and project with target",
+			raw:  "org/project/group",
+			opts: util.ParseOptions{AllowImplicitOrg: false, MinTargets: 1, MaxTargets: 1},
+			want: &util.Path{Organization: "org", Project: "project", Targets: []string{"group"}},
+		},
+		{
+			name: "project target with implicit org",
+			raw:  "project/target",
+			opts: util.ParseOptions{AllowImplicitOrg: true, RequireProject: true, MinTargets: 1, MaxTargets: 1},
+			want: &util.Path{Organization: "default-org", Project: "project", Targets: []string{"target"}},
+		},
+		{
+			name: "target only with implicit org",
+			raw:  "target",
+			opts: util.ParseOptions{AllowImplicitOrg: true, MinTargets: 1, MaxTargets: 1},
+			want: &util.Path{Organization: "default-org", Targets: []string{"target"}},
+		},
+		{
+			name:    "empty segment",
+			raw:     "org/",
+			opts:    util.ParseOptions{AllowImplicitOrg: true},
+			wantErr: "contains empty segment",
+		},
+		{
+			name:    "whitespace only input",
+			raw:     "  ",
+			opts:    util.ParseOptions{AllowImplicitOrg: false},
+			wantErr: "expected 1-",
+		},
+		{
+			name:    "whitespace segment",
+			raw:     "org/ /project",
+			opts:    util.ParseOptions{AllowImplicitOrg: true},
+			wantErr: "contains empty segment",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var ctx util.CmdContext
+			if tt.opts.AllowImplicitOrg || tt.raw == "" {
+				ctrl := gomock.NewController(t)
+				t.Cleanup(ctrl.Finish)
+
+				mockCtx := mocks.NewMockCmdContext(ctrl)
+				mockConfig := mocks.NewMockConfig(ctrl)
+				mockAuth := mocks.NewMockAuthConfig(ctrl)
+
+				mockCtx.EXPECT().Config().Return(mockConfig, nil).AnyTimes()
+				mockConfig.EXPECT().Authentication().Return(mockAuth).AnyTimes()
+				mockAuth.EXPECT().GetDefaultOrganization().Return("default-org", nil).AnyTimes()
+
+				ctx = mockCtx
+			}
+
+			got, err := util.Parse(ctx, tt.raw, tt.opts)
+			if tt.wantErr != "" {
+				require.Error(t, err)
+				assert.Contains(t, err.Error(), tt.wantErr)
+				return
+			}
+			require.NoError(t, err)
+			require.NotNil(t, got)
+			assert.Equal(t, tt.want.Organization, got.Organization)
+			assert.Equal(t, tt.want.Project, got.Project)
+			assert.Equal(t, tt.want.Targets, got.Targets)
+		})
+	}
 }
 
 func TestResolveScopeDescriptor_NoProject(t *testing.T) {
