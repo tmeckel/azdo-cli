@@ -3,7 +3,6 @@ package view
 import (
 	_ "embed"
 	"fmt"
-	"reflect"
 	"regexp"
 	"sort"
 	"strings"
@@ -499,28 +498,8 @@ func runCmd(ctx util.CmdContext, opts *viewOptions) (err error) {
 				}
 				return s[start:end]
 			},
-			"notBlank": func(s string) bool {
-				return strings.TrimSpace(s) != ""
-			},
-			"s": func(v any) string {
-				if v == nil {
-					return ""
-				}
-
-				val := reflect.ValueOf(v)
-				if val.Kind() == reflect.Ptr {
-					if val.IsNil() {
-						return ""
-					}
-					val = val.Elem()
-				}
-
-				if val.Kind() == reflect.String {
-					return val.String()
-				}
-
-				return ""
-			},
+			"hasText": template.HasText,
+			"s":       template.StringOrEmpty,
 			"userReviewers": func(reviewers *[]git.IdentityRefWithVote) (*[]git.IdentityRefWithVote, error) {
 				rl := []git.IdentityRefWithVote{}
 				if len(*reviewers) > 0 {

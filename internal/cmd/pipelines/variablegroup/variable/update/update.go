@@ -297,7 +297,7 @@ func run(cmdCtx util.CmdContext, cmd *cobra.Command, opts *opts) error {
 	}
 
 	// If finalValue is unset, try to preserve currentValue unless clear was requested
-	if finalValue == nil && !((fromJSONSet && fromPayload.ClearValue != nil && *fromPayload.ClearValue) || opts.clearValue) {
+	if finalValue == nil && (!fromJSONSet || fromPayload.ClearValue == nil || !*fromPayload.ClearValue) && !opts.clearValue {
 		finalValue = currentValue
 	}
 

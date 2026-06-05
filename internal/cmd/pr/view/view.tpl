@@ -35,7 +35,7 @@
 {{bold "Status:"}} {{.Status}}
 {{- range .Comments}}
 
-{{bold (s .Author.DisplayName)}}{{if notBlank (s .Author.UniqueName)}} ({{s .Author.UniqueName}}){{end}} commented {{timeago .PublishedDate.Time}} (Type: {{s .CommentType}}):
+{{bold (s .Author.DisplayName)}}{{if hasText (s .Author.UniqueName)}} ({{s .Author.UniqueName}}){{end}} commented {{timeago .PublishedDate.Time}} (Type: {{s .CommentType}}):
 {{markdown (s .Content)}}{{end -}}{{end -}}
 {{if .Commits -}}
 {{bold "commits:"}}

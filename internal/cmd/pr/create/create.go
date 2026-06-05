@@ -4,7 +4,6 @@ import (
 	"context"
 	_ "embed"
 	"fmt"
-	"reflect"
 	"strings"
 
 	"github.com/MakeNowJust/heredoc/v2"
@@ -364,28 +363,8 @@ func runCmd(ctx util.CmdContext, opts *createOptions) (err error) {
 			iostreams.ColorEnabled()).
 			WithTheme(iostreams.TerminalTheme()).
 			WithFuncs(map[string]any{
-				"s": func(v any) string {
-					if v == nil {
-						return ""
-					}
-
-					val := reflect.ValueOf(v)
-					if val.Kind() == reflect.Ptr {
-						if val.IsNil() {
-							return ""
-						}
-						val = val.Elem()
-					}
-
-					if val.Kind() == reflect.String {
-						return val.String()
-					}
-
-					return ""
-				},
-				"notBlank": func(s string) bool {
-					return strings.TrimSpace(s) != ""
-				},
+				"s":           template.StringOrEmpty,
+				"hasText":     template.HasText,
 				"stripprefix": strings.TrimPrefix,
 			})
 		if err := t.Parse(dryRunTpl); err != nil {

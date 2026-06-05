@@ -9,9 +9,12 @@ import (
 	"time"
 
 	"github.com/MakeNowJust/heredoc/v2"
+	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
+
+func ptr(s string) *string { return &s }
 
 func TestJsonScalarToString(t *testing.T) {
 	tests := []struct {
@@ -443,4 +446,168 @@ func TestFuncs(t *testing.T) {
 	err = tmpl.Flush()
 	require.NoError(t, err)
 	assert.Equal(t, "trunc \x1b[0;32mopen\x1b[0m test", w.String())
+}
+
+func TestHasText(t *testing.T) {
+	tests := []struct {
+		name string
+		v    any
+		want bool
+	}{
+		{name: "nil", v: nil, want: false},
+		{name: "non-nil non-pointer", v: 42, want: true},
+		{name: "non-nil struct", v: struct{}{}, want: true},
+		{name: "empty string", v: "", want: false},
+		{name: "whitespace string", v: "  \t\n  ", want: false},
+		{name: "non-empty string", v: "hello", want: true},
+		{name: "nil *string", v: (*string)(nil), want: false},
+		{name: "non-nil *string with empty value", v: ptr(""), want: false},
+		{name: "non-nil *string with whitespace", v: ptr("  "), want: false},
+		{name: "non-nil *string with text", v: ptr("hello"), want: true},
+		{name: "nil *bool", v: (*bool)(nil), want: false},
+		{name: "non-nil *bool", v: func() *bool { b := true; return &b }(), want: true},
+		{name: "nil *int", v: (*int)(nil), want: false},
+		{name: "pure whitespace string single char", v: " ", want: false},
+		{name: "pure whitespace string tab", v: "\t", want: false},
+		{name: "pure whitespace string newline", v: "\n", want: false},
+		{name: "non-nil *string with newlines", v: ptr("\n\n"), want: false},
+		{name: "empty interface value", v: any(""), want: false},
+		{name: "interface with non-empty string", v: any("text"), want: true},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			assert.Equal(t, tt.want, HasText(tt.v))
+		})
+	}
+}
+
+func TestHasText_templateIntegration(t *testing.T) {
+	tests := []struct {
+		name   string
+		tpl    string
+		fields any
+		want   string
+	}{
+		{
+			name: "hasText returns false for empty string — block hidden",
+			tpl:  `{{if hasText .Name}}SHOW{{end}}`,
+			fields: struct {
+				Name string
+				Val  *string
+			}{Name: "", Val: nil},
+			want: "",
+		},
+		{
+			name: "hasText returns true for non-empty string — block shown",
+			tpl:  `{{if hasText .Name}}{{.Name}}{{end}}`,
+			fields: struct {
+				Name string
+			}{Name: "hello"},
+			want: "hello",
+		},
+		{
+			name: "hasText returns false for nil *string — block hidden",
+			tpl:  `{{if hasText .Val}}SHOW{{end}}`,
+			fields: struct {
+				Name string
+				Val  *string
+			}{Name: "hello", Val: nil},
+			want: "",
+		},
+		{
+			name: "hasText returns false for whitespace-only *string — block hidden",
+			tpl:  `{{if hasText .Val}}SHOW{{end}}`,
+			fields: struct {
+				Val *string
+			}{Val: ptr("  ")},
+			want: "",
+		},
+		{
+			name: "hasText returns true for non-empty *string — block shown",
+			tpl:  `{{if hasText .Val}}{{.Val}}{{end}}`,
+			fields: struct {
+				Val *string
+			}{Val: ptr("world")},
+			want: "world",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var w bytes.Buffer
+			tmpl := New(&w, 80, false)
+			tmpl = tmpl.WithFuncs(map[string]any{"hasText": HasText})
+			err := tmpl.Parse(tt.tpl)
+			require.NoError(t, err)
+			err = tmpl.ExecuteData(tt.fields)
+			require.NoError(t, err)
+			err = tmpl.Flush()
+			require.NoError(t, err)
+			assert.Equal(t, tt.want, w.String())
+		})
+	}
+}
+
+func TestStringOrEmpty(t *testing.T) {
+	tests := []struct {
+		name string
+		v    any
+		want string
+	}{
+		{name: "nil", v: nil, want: ""},
+		{name: "non-nil non-string", v: 42, want: ""},
+		{name: "non-nil struct", v: struct{}{}, want: ""},
+		{name: "empty string", v: "", want: ""},
+		{name: "non-empty string", v: "hello", want: "hello"},
+		{name: "nil *string", v: (*string)(nil), want: ""},
+		{name: "non-nil *string empty", v: ptr(""), want: ""},
+		{name: "non-nil *string with text", v: ptr("world"), want: "world"},
+		{name: "nil *int", v: (*int)(nil), want: ""},
+		{name: "non-nil *int with value", v: func() *int { i := 42; return &i }(), want: ""},
+		{name: "non-nil *bool", v: func() *bool { b := true; return &b }(), want: ""},
+		{name: "whitespace string", v: "  ", want: "  "},
+		{name: "nil **string", v: func() **string { return nil }(), want: ""},
+		{name: "**string with inner nil", v: func() **string { s := (*string)(nil); return &s }(), want: ""},
+		{name: "**string with inner value", v: func() **string { s := ptr("nested"); return &s }(), want: ""},
+		{name: "nil map", v: map[string]string(nil), want: ""},
+		{name: "empty slice", v: []int{}, want: ""},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			assert.Equal(t, tt.want, StringOrEmpty(tt.v))
+		})
+	}
+}
+
+func TestBoolString(t *testing.T) {
+	tests := []struct {
+		name string
+		v    *bool
+		want string
+	}{
+		{name: "nil", v: nil, want: ""},
+		{name: "true", v: func() *bool { b := true; return &b }(), want: "true"},
+		{name: "false", v: func() *bool { b := false; return &b }(), want: "false"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			assert.Equal(t, tt.want, BoolString(tt.v))
+		})
+	}
+}
+
+func TestUUIDString(t *testing.T) {
+	id := uuid.MustParse("12345678-1234-5678-1234-567812345678")
+	tests := []struct {
+		name string
+		v    *uuid.UUID
+		want string
+	}{
+		{name: "nil", v: nil, want: ""},
+		{name: "valid UUID", v: &id, want: "12345678-1234-5678-1234-567812345678"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			assert.Equal(t, tt.want, UUIDString(tt.v))
+		})
+	}
 }
