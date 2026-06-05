@@ -47,7 +47,7 @@ func ParseSubjectTarget(ctx util.CmdContext, input string) (*SubjectTarget, erro
 			return nil, err
 		}
 		return &SubjectTarget{
-			Path:   *scope,
+			Path:    *scope,
 			Subject: "",
 		}, nil
 	case 2:
@@ -60,7 +60,7 @@ func ParseSubjectTarget(ctx util.CmdContext, input string) (*SubjectTarget, erro
 			return nil, err
 		}
 		return &SubjectTarget{
-			Path:   *scope,
+			Path:    *scope,
 			Subject: subject,
 		}, nil
 	case 3:
@@ -78,7 +78,7 @@ func ParseSubjectTarget(ctx util.CmdContext, input string) (*SubjectTarget, erro
 			return nil, err
 		}
 		return &SubjectTarget{
-			Path:   *scope,
+			Path:    *scope,
 			Subject: subject,
 		}, nil
 	default:

@@ -203,8 +203,8 @@ func run(cmdCtx util.CmdContext, o *opts) error {
 				return types.ToPtr(types.GetValue(permission.Authorized, false))
 			},
 			"i":  func(v *int) string { return strconv.Itoa(types.GetValue(v, 0)) },
-		"s":       template.StringOrEmpty,
-			"b":       template.BoolString,
+			"s":  template.StringOrEmpty,
+			"b":  template.BoolString,
 			"ts": func(v *azuredevops.Time) string { return types.GetValue(formatTimePtr(v), "") },
 			"identity": func(id *webapi.IdentityRef) string {
 				if id == nil {
