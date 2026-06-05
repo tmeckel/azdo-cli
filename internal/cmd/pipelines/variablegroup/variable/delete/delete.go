@@ -65,19 +65,19 @@ func run(cmdCtx util.CmdContext, opts *opts) error {
 		return fmt.Errorf("failed to create task agent client: %w", err)
 	}
 
-	group, err := shared.ResolveVariableGroup(cmdCtx, taskClient, scope.Project, scope.Target)
+	group, err := shared.ResolveVariableGroup(cmdCtx, taskClient, scope.Project, scope.Targets[0])
 	if err != nil {
 		return err
 	}
 	if group == nil {
-		return fmt.Errorf("variable group %q not found", scope.Target)
+		return fmt.Errorf("variable group %q not found", scope.Targets[0])
 	}
 	if group.Id == nil {
 		return fmt.Errorf("resolved variable group is missing an ID")
 	}
 
 	groupID := *group.Id
-	groupName := types.GetValue(group.Name, scope.Target)
+	groupName := types.GetValue(group.Name, scope.Targets[0])
 
 	// Find variable key case-insensitively
 	var foundKey string

@@ -65,19 +65,19 @@ func runShow(ctx util.CmdContext, opts *showOptions) error {
 		return fmt.Errorf("failed to create service endpoint client: %w", err)
 	}
 
-	endpoint, err := shared.FindServiceEndpoint(ctx, client, scope.Project, scope.Target)
+	endpoint, err := shared.FindServiceEndpoint(ctx, client, scope.Project, scope.Targets[0])
 	if err != nil {
 		if errors.Is(err, shared.ErrEndpointNotFound) {
 			ios.StopProgressIndicator()
 			cs := ios.ColorScheme()
-			fmt.Fprintf(ios.Out, "%s Service endpoint %q was not found in %s/%s.\n", cs.WarningIcon(), scope.Target, scope.Organization, scope.Project)
+			fmt.Fprintf(ios.Out, "%s Service endpoint %q was not found in %s/%s.\n", cs.WarningIcon(), scope.Targets[0], scope.Organization, scope.Project)
 			return nil
 		}
 		return err
 	}
 
 	if endpoint == nil || endpoint.Id == nil {
-		return fmt.Errorf("resolved service endpoint %q is missing an identifier", scope.Target)
+		return fmt.Errorf("resolved service endpoint %q is missing an identifier", scope.Targets[0])
 	}
 
 	ios.StopProgressIndicator()

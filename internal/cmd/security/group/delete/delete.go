@@ -60,8 +60,8 @@ func run(ctx util.CmdContext, opts *deleteOpts) error {
 		return err
 	}
 
-	zap.L().Debug("Resolving group for deletion", zap.String("organization", target.Organization), zap.String("project", target.Project), zap.String("group", target.Target))
-	targetGroup, err := shared.FindGroupByName(ctx, target.Organization, target.Project, target.Target, opts.descriptor)
+	zap.L().Debug("Resolving group for deletion", zap.String("organization", target.Organization), zap.String("project", target.Project), zap.String("group", target.Targets[0]))
+	targetGroup, err := shared.FindGroupByName(ctx, target.Organization, target.Project, target.Targets[0], opts.descriptor)
 	if err != nil {
 		return err
 	}
@@ -78,7 +78,7 @@ func run(ctx util.CmdContext, opts *deleteOpts) error {
 		if err != nil {
 			return err
 		}
-		confirmed, err := p.Confirm(fmt.Sprintf("Delete security group %q?", target.Target), false)
+		confirmed, err := p.Confirm(fmt.Sprintf("Delete security group %q?", target.Targets[0]), false)
 		if err != nil {
 			return err
 		}
@@ -95,6 +95,6 @@ func run(ctx util.CmdContext, opts *deleteOpts) error {
 		return fmt.Errorf("failed to delete group: %w", err)
 	}
 
-	fmt.Fprintf(ios.Out, "Deleted security group %q.\n", target.Target)
+	fmt.Fprintf(ios.Out, "Deleted security group %q.\n", target.Targets[0])
 	return nil
 }

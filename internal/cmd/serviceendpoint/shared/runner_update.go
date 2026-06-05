@@ -36,12 +36,12 @@ func RunTypedUpdate(cmd *cobra.Command, args []string, cfg EndpointTypeConfigure
 	}
 
 	// 2. Find existing endpoint
-	endpoint, err := FindServiceEndpoint(cmdCtx, client, scope.Project, scope.Target)
+	endpoint, err := FindServiceEndpoint(cmdCtx, client, scope.Project, scope.Targets[0])
 	if err != nil {
 		if errors.Is(err, ErrEndpointNotFound) {
 			ios.StopProgressIndicator()
 			cs := ios.ColorScheme()
-			fmt.Fprintf(ios.Out, "%s Service endpoint %q was not found in %s/%s.\n", cs.WarningIcon(), scope.Target, scope.Organization, scope.Project)
+			fmt.Fprintf(ios.Out, "%s Service endpoint %q was not found in %s/%s.\n", cs.WarningIcon(), scope.Targets[0], scope.Organization, scope.Project)
 			return nil
 		}
 		return err
@@ -94,7 +94,7 @@ func RunTypedUpdate(cmd *cobra.Command, args []string, cfg EndpointTypeConfigure
 
 	// 9. Pipeline permissions
 	if cmd.Flags().Changed("grant-permission-to-all-pipelines") {
-		projectRef, err := ResolveProjectReference(cmdCtx, &scope.Scope)
+		projectRef, err := ResolveProjectReference(cmdCtx, scope)
 		if err != nil {
 			return err
 		}

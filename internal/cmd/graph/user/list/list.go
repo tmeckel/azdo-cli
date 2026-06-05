@@ -86,7 +86,7 @@ func runCmd(ctx util.CmdContext, opts *usersListOptions) error {
 	io.StartProgressIndicator()
 	defer io.StopProgressIndicator()
 
-	var scope *util.Scope
+	var scope *util.Path
 	switch {
 	case opts.projectName != "" && opts.organizationName != "":
 		scope, err = util.ParseProjectScope(ctx, fmt.Sprintf("%s/%s", opts.organizationName, opts.projectName))
@@ -97,7 +97,7 @@ func runCmd(ctx util.CmdContext, opts *usersListOptions) error {
 		if parseErr != nil {
 			return parseErr
 		}
-		scope = &util.Scope{Organization: org}
+		scope = &util.Path{Organization: org}
 	}
 	if err != nil {
 		return util.FlagErrorWrap(err)

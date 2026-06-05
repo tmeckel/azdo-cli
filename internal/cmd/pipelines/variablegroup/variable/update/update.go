@@ -86,12 +86,12 @@ func run(cmdCtx util.CmdContext, cmd *cobra.Command, opts *opts) error {
 		return fmt.Errorf("failed to create task agent client: %w", err)
 	}
 
-	group, err := shared.ResolveVariableGroup(cmdCtx, taskClient, scope.Project, scope.Target)
+	group, err := shared.ResolveVariableGroup(cmdCtx, taskClient, scope.Project, scope.Targets[0])
 	if err != nil {
 		return err
 	}
 	if group == nil {
-		return util.FlagErrorf("variable group %q not found", scope.Target)
+		return util.FlagErrorf("variable group %q not found", scope.Targets[0])
 	}
 
 	// Load --from-json if provided
@@ -174,7 +174,7 @@ func run(cmdCtx util.CmdContext, cmd *cobra.Command, opts *opts) error {
 		}
 	}
 	if origKey == "" {
-		return util.FlagErrorf("variable %q not found in group %q", opts.name, types.GetValue(group.Name, scope.Target))
+		return util.FlagErrorf("variable %q not found in group %q", opts.name, types.GetValue(group.Name, scope.Targets[0]))
 	}
 
 	// Detect if this is an Azure Key Vault-backed group
@@ -229,7 +229,7 @@ func run(cmdCtx util.CmdContext, cmd *cobra.Command, opts *opts) error {
 		// check collision
 		for k := range newVars {
 			if strings.EqualFold(k, *fromPayload.NewName) && !strings.EqualFold(k, origKey) {
-				return util.FlagErrorf("variable %q already exists in group %q", *fromPayload.NewName, types.GetValue(group.Name, scope.Target))
+				return util.FlagErrorf("variable %q already exists in group %q", *fromPayload.NewName, types.GetValue(group.Name, scope.Targets[0]))
 			}
 		}
 		finalKey = *fromPayload.NewName
@@ -237,7 +237,7 @@ func run(cmdCtx util.CmdContext, cmd *cobra.Command, opts *opts) error {
 		// check collision
 		for k := range newVars {
 			if strings.EqualFold(k, opts.newName) && !strings.EqualFold(k, origKey) {
-				return util.FlagErrorf("variable %q already exists in group %q", opts.newName, types.GetValue(group.Name, scope.Target))
+				return util.FlagErrorf("variable %q already exists in group %q", opts.newName, types.GetValue(group.Name, scope.Targets[0]))
 			}
 		}
 		finalKey = opts.newName
@@ -321,7 +321,7 @@ func run(cmdCtx util.CmdContext, cmd *cobra.Command, opts *opts) error {
 			if err != nil {
 				return err
 			}
-			ok, err := prompter.Confirm(fmt.Sprintf("Clear value of variable '%s' in group '%s'?", opts.name, types.GetValue(group.Name, scope.Target)), false)
+			ok, err := prompter.Confirm(fmt.Sprintf("Clear value of variable '%s' in group '%s'?", opts.name, types.GetValue(group.Name, scope.Targets[0])), false)
 			ios.StartProgressIndicator()
 			if err != nil {
 				return err

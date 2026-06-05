@@ -63,7 +63,7 @@ func runList(ctx util.CmdContext, o *opts) error {
 	}
 	organization := target.Organization
 	project := target.Project
-	group := target.Target
+	group := target.Targets[0]
 
 	graphClient, err := ctx.ClientFactory().Graph(ctx.Context(), organization)
 	if err != nil {

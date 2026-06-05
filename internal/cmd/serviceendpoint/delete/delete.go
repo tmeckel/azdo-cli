@@ -85,9 +85,9 @@ func runDelete(ctx util.CmdContext, opts *deleteOptions) error {
 		return util.FlagErrorWrap(err)
 	}
 
-	var additionalScopes []*util.Scope
+	var additionalScopes []*util.Path
 	if len(opts.additionalProjects) > 0 {
-		additionalScopes = make([]*util.Scope, 0, len(opts.additionalProjects))
+		additionalScopes = make([]*util.Path, 0, len(opts.additionalProjects))
 		for _, value := range opts.additionalProjects {
 			additionalScope, parseErr := util.ParseProjectScope(ctx, value)
 			if parseErr != nil {
@@ -101,7 +101,7 @@ func runDelete(ctx util.CmdContext, opts *deleteOptions) error {
 	}
 
 	if !opts.yes {
-		message := fmt.Sprintf("Delete service endpoint %q from project %s/%s?", scope.Target, scope.Organization, scope.Project)
+		message := fmt.Sprintf("Delete service endpoint %q from project %s/%s?", scope.Targets[0], scope.Organization, scope.Project)
 		var extra []string
 		if opts.deep {
 			extra = append(extra, "This will also delete the backing Azure AD application when supported.")
@@ -130,19 +130,19 @@ func runDelete(ctx util.CmdContext, opts *deleteOptions) error {
 		return fmt.Errorf("failed to create service endpoint client: %w", err)
 	}
 
-	endpoint, err := shared.FindServiceEndpoint(ctx, serviceEndpointClient, scope.Project, scope.Target)
+	endpoint, err := shared.FindServiceEndpoint(ctx, serviceEndpointClient, scope.Project, scope.Targets[0])
 	if err != nil {
 		if errors.Is(err, shared.ErrEndpointNotFound) {
 			ios.StopProgressIndicator()
 			cs := ios.ColorScheme()
-			fmt.Fprintf(ios.Out, "%s Service endpoint %q was not found in %s/%s.\n", cs.WarningIcon(), scope.Target, scope.Organization, scope.Project)
+			fmt.Fprintf(ios.Out, "%s Service endpoint %q was not found in %s/%s.\n", cs.WarningIcon(), scope.Targets[0], scope.Organization, scope.Project)
 			return nil
 		}
 		return err
 	}
 
 	if endpoint == nil || endpoint.Id == nil {
-		return fmt.Errorf("resolved service endpoint %q is missing an identifier", scope.Target)
+		return fmt.Errorf("resolved service endpoint %q is missing an identifier", scope.Targets[0])
 	}
 
 	coreClient, err := ctx.ClientFactory().Core(ctx.Context(), scope.Organization)
@@ -163,7 +163,7 @@ func runDelete(ctx util.CmdContext, opts *deleteOptions) error {
 	zap.L().Debug("Deleting service endpoint",
 		zap.String("organization", scope.Organization),
 		zap.String("project", scope.Project),
-		zap.String("identifier", scope.Target),
+		zap.String("identifier", scope.Targets[0]),
 		zap.Bool("deep", opts.deep),
 		zap.Strings("projectIds", projectIDs),
 	)
@@ -183,13 +183,13 @@ func runDelete(ctx util.CmdContext, opts *deleteOptions) error {
 	ios.StopProgressIndicator()
 
 	cs := ios.ColorScheme()
-	name := strings.TrimSpace(types.GetValue(endpoint.Name, scope.Target))
+	name := strings.TrimSpace(types.GetValue(endpoint.Name, scope.Targets[0]))
 	fmt.Fprintf(ios.Out, "%s Deleted service endpoint %q (%s) from %d project(s).\n", cs.SuccessIcon(), name, endpoint.Id.String(), len(projectTargets))
 
 	return nil
 }
 
-func buildProjectTargets(ctx util.CmdContext, coreClient core.Client, primaryScope *util.Target, endpoint *serviceendpoint.ServiceEndpoint, additionalScopes []*util.Scope) ([]projectTarget, error) {
+func buildProjectTargets(ctx util.CmdContext, coreClient core.Client, primaryScope *util.Path, endpoint *serviceendpoint.ServiceEndpoint, additionalScopes []*util.Path) ([]projectTarget, error) {
 	idSet := make(map[string]struct{})
 	var targets []projectTarget
 

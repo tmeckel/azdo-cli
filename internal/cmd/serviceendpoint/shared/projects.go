@@ -13,7 +13,7 @@ import (
 
 // ResolveProjectReference fetches the project metadata required to attach service endpoints to a project.
 // It returns a ProjectReference that includes the stable storage key (ID) and display name.
-func ResolveProjectReference(ctx util.CmdContext, scope *util.Scope) (*serviceendpoint.ProjectReference, error) {
+func ResolveProjectReference(ctx util.CmdContext, scope *util.Path) (*serviceendpoint.ProjectReference, error) {
 	if scope == nil {
 		return nil, fmt.Errorf("scope is required")
 	}

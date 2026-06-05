@@ -92,7 +92,7 @@ func run(cmdCtx util.CmdContext, opts *options) error {
 		return fmt.Errorf("failed to create task agent client: %w", err)
 	}
 
-	group, err := shared.ResolveVariableGroup(cmdCtx, taskClient, scope.Project, scope.Target)
+	group, err := shared.ResolveVariableGroup(cmdCtx, taskClient, scope.Project, scope.Targets[0])
 	if err != nil {
 		return err
 	}
@@ -101,7 +101,7 @@ func run(cmdCtx util.CmdContext, opts *options) error {
 		return fmt.Errorf("resolved variable group is missing an ID")
 	}
 	groupID := *group.Id
-	groupName := types.GetValue(group.Name, scope.Target)
+	groupName := types.GetValue(group.Name, scope.Targets[0])
 
 	projectIndex := buildProjectIndex(group)
 	projectIDs, err := selectProjectIDs(projectIndex, scope.Project, opts.projectReferences, opts.all)
@@ -115,7 +115,7 @@ func run(cmdCtx util.CmdContext, opts *options) error {
 	zap.L().Debug("resolved variable group",
 		zap.String("organization", scope.Organization),
 		zap.String("project", scope.Project),
-		zap.String("input", scope.Target),
+		zap.String("input", scope.Targets[0]),
 		zap.Int("groupId", groupID),
 		zap.String("name", groupName),
 	)
