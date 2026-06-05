@@ -205,7 +205,7 @@ func run(cmdCtx util.CmdContext, o *opts) error {
 			"i":  func(v *int) string { return strconv.Itoa(types.GetValue(v, 0)) },
 			"s":  template.StringOrEmpty,
 			"b":  template.BoolString,
-			"ts": func(v *azuredevops.Time) string { return types.GetValue(formatTimePtr(v), "") },
+			"ts": func(v *azuredevops.Time) string { return types.GetValue(util.FormatTimePtr(v), "") },
 			"identity": func(id *webapi.IdentityRef) string {
 				if id == nil {
 					return ""
@@ -243,17 +243,6 @@ func run(cmdCtx util.CmdContext, o *opts) error {
 	}
 
 	return t.ExecuteData(view)
-}
-
-func formatTimePtr(ts *azuredevops.Time) *string {
-	if ts == nil {
-		return nil
-	}
-	formatted := ts.AsQueryParameter()
-	if strings.TrimSpace(formatted) == "" {
-		return nil
-	}
-	return &formatted
 }
 
 func toAuthorizedPipelines(perms *pipelinepermissions.ResourcePipelinePermissions, idToName map[int]string) []authorizedPipelineView {
