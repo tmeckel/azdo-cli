@@ -349,8 +349,6 @@ func TestResolveAgent_Ambiguous(t *testing.T) {
 	assert.Contains(t, err.Error(), "multiple agents")
 }
 
-
-
 func TestResolvePoolAgent_NegativePoolID(t *testing.T) {
 	t.Parallel()
 	ctrl := newCtrl(t)
