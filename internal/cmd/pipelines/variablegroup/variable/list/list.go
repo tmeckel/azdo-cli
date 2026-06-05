@@ -68,7 +68,7 @@ func run(ctx util.CmdContext, opts *opts) error {
 	}
 
 	// Determine if groupIdentifier is ID or Name
-	groupID, err := strconv.Atoi(scope.Target)
+	groupID, err := strconv.Atoi(scope.Targets[0])
 	if err == nil && groupID < 0 {
 		return util.FlagErrorf("Invalid group id %d", groupID)
 	} else if err != nil {
@@ -92,10 +92,10 @@ func run(ctx util.CmdContext, opts *opts) error {
 			},
 		})
 	} else {
-		zap.L().Debug("Fetching variable group by name", zap.String("groupName", scope.Target))
+		zap.L().Debug("Fetching variable group by name", zap.String("groupName", scope.Targets[0]))
 		g, err = client.GetVariableGroups(ctx.Context(), taskagent.GetVariableGroupsArgs{
 			Project:   &scope.Project,
-			GroupName: &scope.Target,
+			GroupName: &scope.Targets[0],
 		})
 	}
 	if err != nil {

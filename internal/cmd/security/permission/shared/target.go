@@ -8,7 +8,7 @@ import (
 )
 
 type SubjectTarget struct {
-	util.Scope
+	util.Path
 	Subject string
 }
 
@@ -26,7 +26,7 @@ func ParseSubjectTarget(ctx util.CmdContext, input string) (*SubjectTarget, erro
 			return nil, err
 		}
 		return &SubjectTarget{
-			Scope: *scope,
+			Path: *scope,
 		}, nil
 	}
 
@@ -47,7 +47,7 @@ func ParseSubjectTarget(ctx util.CmdContext, input string) (*SubjectTarget, erro
 			return nil, err
 		}
 		return &SubjectTarget{
-			Scope:   *scope,
+			Path:   *scope,
 			Subject: "",
 		}, nil
 	case 2:
@@ -60,7 +60,7 @@ func ParseSubjectTarget(ctx util.CmdContext, input string) (*SubjectTarget, erro
 			return nil, err
 		}
 		return &SubjectTarget{
-			Scope:   *scope,
+			Path:   *scope,
 			Subject: subject,
 		}, nil
 	case 3:
@@ -78,7 +78,7 @@ func ParseSubjectTarget(ctx util.CmdContext, input string) (*SubjectTarget, erro
 			return nil, err
 		}
 		return &SubjectTarget{
-			Scope:   *scope,
+			Path:   *scope,
 			Subject: subject,
 		}, nil
 	default:

@@ -126,7 +126,7 @@ func run(cmdCtx util.CmdContext, opts *options) error {
 		return util.FlagErrorWrap(err)
 	}
 
-	groupName := strings.TrimSpace(target.Target)
+	groupName := strings.TrimSpace(target.Targets[0])
 	if groupName == "" {
 		return util.FlagErrorf("variable group name cannot be empty")
 	}
@@ -168,7 +168,7 @@ func run(cmdCtx util.CmdContext, opts *options) error {
 
 	var providerData any
 	if keyVaultRequested {
-		providerData, err = buildKeyVaultProviderData(cmdCtx, target.Scope, opts)
+		providerData, err = buildKeyVaultProviderData(cmdCtx, *target, opts)
 		if err != nil {
 			return util.FlagErrorWrap(err)
 		}
@@ -329,7 +329,7 @@ func buildKeyVaultVariables(opts *options) (*map[string]any, error) {
 
 func buildKeyVaultProviderData(
 	cmdCtx util.CmdContext,
-	scope util.Scope,
+	scope util.Path,
 	opts *options,
 ) (*taskagent.AzureKeyVaultVariableGroupProviderData, error) {
 	if opts.keyVaultServiceEndpoint == "" {

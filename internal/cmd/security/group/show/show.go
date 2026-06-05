@@ -76,9 +76,9 @@ func runCommand(ctx util.CmdContext, o *opts) error {
 		return err
 	}
 
-	zap.L().Sugar().Debugw("Resolved target for show command", "organization", target.Organization, "project", target.Project, "group", target.Target)
+	zap.L().Sugar().Debugw("Resolved target for show command", "organization", target.Organization, "project", target.Project, "group", target.Targets[0])
 
-	groupDetailsResult, err := shared.FindGroupByName(ctx, target.Organization, target.Project, target.Target, "")
+	groupDetailsResult, err := shared.FindGroupByName(ctx, target.Organization, target.Project, target.Targets[0], "")
 	if err != nil {
 		return err
 	}

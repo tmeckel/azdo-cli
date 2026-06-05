@@ -102,10 +102,10 @@ func runRemove(ctx util.CmdContext, o *opts) error {
 	zap.L().Debug("resolving group for membership removal",
 		zap.String("organization", organization),
 		zap.String("project", project),
-		zap.String("group", target.Target),
+		zap.String("group", target.Targets[0]),
 	)
 
-	group, err := shared.FindGroupByName(ctx, organization, project, target.Target, "")
+	group, err := shared.FindGroupByName(ctx, organization, project, target.Targets[0], "")
 	if err != nil {
 		return err
 	}
@@ -206,9 +206,9 @@ func runRemove(ctx util.CmdContext, o *opts) error {
 					break
 				}
 			}
-			prompt = fmt.Sprintf("Remove %q from group %q?", name, target.Target)
+			prompt = fmt.Sprintf("Remove %q from group %q?", name, target.Targets[0])
 		} else {
-			prompt = fmt.Sprintf("Remove %d members from group %q?", removable, target.Target)
+			prompt = fmt.Sprintf("Remove %d members from group %q?", removable, target.Targets[0])
 		}
 
 		confirmed, err := p.Confirm(prompt, false)
@@ -262,7 +262,7 @@ func runRemove(ctx util.CmdContext, o *opts) error {
 
 		results = append(results, removeResult{
 			GroupDescriptor:     types.GetValue(group.Descriptor, ""),
-			GroupDisplayName:    types.GetValue(group.DisplayName, target.Target),
+			GroupDisplayName:    types.GetValue(group.DisplayName, target.Targets[0]),
 			MemberDescriptor:    c.descriptor,
 			MemberDisplayName:   c.displayName,
 			MemberSubjectKind:   types.GetValue(c.subject.SubjectKind, ""),

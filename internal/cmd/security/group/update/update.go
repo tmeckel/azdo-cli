@@ -91,7 +91,7 @@ func run(ctx util.CmdContext, o *opts) error {
 		return err
 	}
 
-	group, err := shared.FindGroupByName(ctx, target.Organization, target.Project, target.Target, o.descriptor)
+	group, err := shared.FindGroupByName(ctx, target.Organization, target.Project, target.Targets[0], o.descriptor)
 	if err != nil {
 		return err
 	}

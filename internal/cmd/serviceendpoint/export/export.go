@@ -90,20 +90,20 @@ func runExport(ctx util.CmdContext, opts *exportOptions) error {
 		return fmt.Errorf("failed to create service endpoint client: %w", err)
 	}
 
-	endpoint, err := shared.FindServiceEndpoint(ctx, client, scope.Project, scope.Target)
+	endpoint, err := shared.FindServiceEndpoint(ctx, client, scope.Project, scope.Targets[0])
 	if err != nil {
 		if errors.Is(err, shared.ErrEndpointNotFound) {
-			return fmt.Errorf("service endpoint %q was not found in %s/%s", scope.Target, scope.Organization, scope.Project)
+			return fmt.Errorf("service endpoint %q was not found in %s/%s", scope.Targets[0], scope.Organization, scope.Project)
 		}
 		return err
 	}
 
 	if endpoint == nil {
-		return fmt.Errorf("service endpoint %q could not be resolved", scope.Target)
+		return fmt.Errorf("service endpoint %q could not be resolved", scope.Targets[0])
 	}
 
 	payload := &exportedServiceEndpoint{
-		Name:     strings.TrimSpace(types.GetValue(endpoint.Name, scope.Target)),
+		Name:     strings.TrimSpace(types.GetValue(endpoint.Name, scope.Targets[0])),
 		Type:     strings.TrimSpace(types.GetValue(endpoint.Type, "")),
 		URL:      strings.TrimSpace(types.GetValue(endpoint.Url, "")),
 		IsShared: endpoint.IsShared,
@@ -145,7 +145,7 @@ func runExport(ctx util.CmdContext, opts *exportOptions) error {
 	zap.L().Debug("Exporting service endpoint",
 		zap.String("organization", scope.Organization),
 		zap.String("project", scope.Project),
-		zap.String("identifier", scope.Target),
+		zap.String("identifier", scope.Targets[0]),
 		zap.Bool("withSecrets", opts.withSecrets),
 		zap.String("destination", func(path string) string {
 			if strings.TrimSpace(path) == "" {

@@ -175,7 +175,7 @@ func runCommand(ctx util.CmdContext, o *opts) error {
 	return actionPrinter.Render()
 }
 
-func parseNamespaceTarget(ctx util.CmdContext, input string) (*util.Scope, string, error) {
+func parseNamespaceTarget(ctx util.CmdContext, input string) (*util.Path, string, error) {
 	trimmed := strings.TrimSpace(input)
 	if trimmed == "" {
 		return nil, "", util.FlagErrorf("namespace identifier is required")
@@ -198,7 +198,7 @@ func parseNamespaceTarget(ctx util.CmdContext, input string) (*util.Scope, strin
 	if err != nil {
 		return nil, "", err
 	}
-	return &util.Scope{Organization: organization}, trimmed, nil
+	return &util.Path{Organization: organization}, trimmed, nil
 }
 
 func namespaceMatches(ns security.SecurityNamespaceDescription, identifier string) bool {

@@ -136,12 +136,12 @@ func run(cmdCtx util.CmdContext, o *opts) error {
 	}
 
 	// resolve variable group
-	group, err := shared.ResolveVariableGroup(cmdCtx, taskClient, scope.Project, scope.Target)
+	group, err := shared.ResolveVariableGroup(cmdCtx, taskClient, scope.Project, scope.Targets[0])
 	if err != nil {
 		return err
 	}
 	if group == nil || group.Id == nil {
-		return fmt.Errorf("variable group %q not found", scope.Target)
+		return fmt.Errorf("variable group %q not found", scope.Targets[0])
 	}
 
 	var updatedGroup *taskagent.VariableGroup

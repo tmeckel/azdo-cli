@@ -100,18 +100,18 @@ func run(ctx util.CmdContext, o *opts) error {
 		return fmt.Errorf("failed to create service endpoint client: %w", err)
 	}
 
-	endpoint, err := shared.FindServiceEndpoint(ctx, client, scope.Project, scope.Target)
+	endpoint, err := shared.FindServiceEndpoint(ctx, client, scope.Project, scope.Targets[0])
 	if err != nil {
 		if errors.Is(err, shared.ErrEndpointNotFound) {
 			ios.StopProgressIndicator()
 			cs := ios.ColorScheme()
-			fmt.Fprintf(ios.Out, "%s Service endpoint %q was not found in %s/%s.\n", cs.WarningIcon(), scope.Target, scope.Organization, scope.Project)
+			fmt.Fprintf(ios.Out, "%s Service endpoint %q was not found in %s/%s.\n", cs.WarningIcon(), scope.Targets[0], scope.Organization, scope.Project)
 			return nil
 		}
 		return err
 	}
 	if endpoint == nil || endpoint.Id == nil {
-		return fmt.Errorf("resolved service endpoint %q is missing an identifier", scope.Target)
+		return fmt.Errorf("resolved service endpoint %q is missing an identifier", scope.Targets[0])
 	}
 
 	var cachedProjectRef *serviceendpoint.ProjectReference
@@ -119,7 +119,7 @@ func run(ctx util.CmdContext, o *opts) error {
 		if cachedProjectRef != nil {
 			return cachedProjectRef, nil
 		}
-		ref, err := shared.ResolveProjectReference(ctx, &scope.Scope)
+		ref, err := shared.ResolveProjectReference(ctx, scope)
 		if err != nil {
 			return nil, err
 		}
@@ -193,7 +193,7 @@ func run(ctx util.CmdContext, o *opts) error {
 	fields := []zap.Field{
 		zap.String("organization", scope.Organization),
 		zap.String("project", scope.Project),
-		zap.String("identifier", scope.Target),
+		zap.String("identifier", scope.Targets[0]),
 		zap.String("endpointId", types.GetValue(toUpdate.Id, uuid.Nil).String()),
 	}
 

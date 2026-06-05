@@ -73,12 +73,12 @@ func run(cmdCtx util.CmdContext, opts *opts) error {
 		return fmt.Errorf("failed to create task agent client: %w", err)
 	}
 
-	group, err := shared.ResolveVariableGroup(cmdCtx, taskClient, scope.Project, scope.Target)
+	group, err := shared.ResolveVariableGroup(cmdCtx, taskClient, scope.Project, scope.Targets[0])
 	if err != nil {
 		return err
 	}
 	if group == nil {
-		return fmt.Errorf("variable group %q not found", scope.Target)
+		return fmt.Errorf("variable group %q not found", scope.Targets[0])
 	}
 	if group.Type != nil && strings.EqualFold(types.GetValue(group.Type, ""), "AzureKeyVault") {
 		return util.FlagErrorf("cannot add variables to an Azure Key Vault-backed variable group")
@@ -88,7 +88,7 @@ func run(cmdCtx util.CmdContext, opts *opts) error {
 	if group.Variables != nil {
 		for k := range *group.Variables {
 			if strings.EqualFold(k, opts.name) {
-				return util.FlagErrorf("variable %q already exists in group %q", opts.name, types.GetValue(group.Name, scope.Target))
+				return util.FlagErrorf("variable %q already exists in group %q", opts.name, types.GetValue(group.Name, scope.Targets[0]))
 			}
 		}
 	}

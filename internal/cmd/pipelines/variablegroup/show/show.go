@@ -121,17 +121,17 @@ func run(cmdCtx util.CmdContext, o *opts) error {
 	logger := zap.L().With(
 		zap.String("organization", scope.Organization),
 		zap.String("project", scope.Project),
-		zap.String("variableGroup", scope.Target),
+		zap.String("variableGroup", scope.Targets[0]),
 	)
 
 	logger.Debug("resolving variable group identifier")
-	group, err := shared.ResolveVariableGroup(cmdCtx, taskClient, scope.Project, scope.Target)
+	group, err := shared.ResolveVariableGroup(cmdCtx, taskClient, scope.Project, scope.Targets[0])
 	if err != nil {
 		return err
 	}
 
 	if group == nil || group.Id == nil {
-		return fmt.Errorf("variable group %q not found", scope.Target)
+		return fmt.Errorf("variable group %q not found", scope.Targets[0])
 	}
 
 	permissionsClient, err := cmdCtx.ClientFactory().PipelinePermissions(cmdCtx.Context(), scope.Organization)
