@@ -132,7 +132,9 @@ func (t *ttyTablePrinter) Render() error {
 				truncVal = field.truncateFunc(colWidths[col], field.text)
 			}
 			if field.paddingFunc != nil {
-				truncVal = field.paddingFunc(colWidths[col], truncVal)
+				if col < numCols-1 {
+					truncVal = field.paddingFunc(colWidths[col], truncVal)
+				}
 			} else if col < numCols-1 {
 				truncVal = text.PadRight(colWidths[col], truncVal)
 			}
