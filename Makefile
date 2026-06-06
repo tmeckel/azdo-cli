@@ -8,6 +8,8 @@ endif
 TIMEOUT ?= 120m
 GOMAXPROCS ?= 5
 TESTARGS ?= ./...
+COVEROUT ?= .coverage/coverage.out
+TESTRESULTS ?= test-results.xml
 
 .PHONY: build
 build: ## build program
@@ -20,12 +22,21 @@ dist: ## create new release
 .PHONY: clean
 clean: ## clean repositorty
 	rm -f azdo
-	rm -rf dist
+	rm -rf dist .coverage test-results.xml
+
+.PHONY: fmt
+fmt: ## format source with gofumpt
+	gofumpt -w ./internal ./cmd
 
 .PHONY: lint
 lint: ## lint source
 	@echo "Check for golangci-lint"; [ -e "$(shell which golangci-lint)" ]
-	@echo "Executing golangci-lint"; golangci-lint run -v --timeout $(TIMEOUT)
+	@echo "Executing golangci-lint"; golangci-lint run -v --timeout $(TIMEOUT) ./internal
+
+.PHONY: test
+test: ## run unit tests with gotestsum
+	mkdir -p $(dir $(COVEROUT)) \
+	&& gotestsum --format testname --junitfile $(TESTRESULTS) -- -timeout=$(TIMEOUT) -coverprofile=$(COVEROUT) $(TESTARGS)
 
 .PHONY: tidy
 tidy: ## call go mod tidy on all existing go.mod files

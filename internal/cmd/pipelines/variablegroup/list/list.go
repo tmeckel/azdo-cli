@@ -5,7 +5,6 @@ import (
 	"strings"
 
 	"github.com/MakeNowJust/heredoc/v2"
-	"github.com/microsoft/azure-devops-go-api/azuredevops/v7"
 	"github.com/microsoft/azure-devops-go-api/azuredevops/v7/taskagent"
 	"github.com/microsoft/azure-devops-go-api/azuredevops/v7/webapi"
 	"github.com/spf13/cobra"
@@ -216,9 +215,9 @@ func newVariableGroupJSON(vg taskagent.VariableGroup) variableGroupJSON {
 		Description: vg.Description,
 		IsShared:    vg.IsShared,
 		CreatedBy:   newIdentityJSON(vg.CreatedBy),
-		CreatedOn:   formatTimePtr(vg.CreatedOn),
+		CreatedOn:   util.FormatTimePtr(vg.CreatedOn),
 		ModifiedBy:  newIdentityJSON(vg.ModifiedBy),
-		ModifiedOn:  formatTimePtr(vg.ModifiedOn),
+		ModifiedOn:  util.FormatTimePtr(vg.ModifiedOn),
 		ProjectRefs: vg.VariableGroupProjectReferences,
 		Variables:   vg.Variables,
 	}
@@ -242,15 +241,4 @@ func newIdentityJSON(ref *webapi.IdentityRef) *identityJSON {
 		DisplayName: display,
 		UniqueName:  unique,
 	}
-}
-
-func formatTimePtr(ts *azuredevops.Time) *string {
-	if ts == nil {
-		return nil
-	}
-	formatted := ts.AsQueryParameter()
-	if strings.TrimSpace(formatted) == "" {
-		return nil
-	}
-	return &formatted
 }

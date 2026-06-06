@@ -707,6 +707,7 @@ func createCommitsCommandContext(t *testing.T, testData stubbedCommitsCommandDat
 	cmd.Env = []string{
 		"GH_WANT_HELPER_PROCESS=1",
 		"GH_COMMITS_TEST_DATA=" + string(b),
+		"GOCOVERDIR=" + t.TempDir(),
 	}
 	return cmd, func(ctx context.Context, exe string, args ...string) *exec.Cmd {
 		cmd.Args = append(cmd.Args, exe)
@@ -1484,6 +1485,7 @@ func createCommandContext(t *testing.T, exitStatus int, stdout, stderr string) (
 		fmt.Sprintf("GH_HELPER_PROCESS_STDOUT=%s", stdout),
 		fmt.Sprintf("GH_HELPER_PROCESS_STDERR=%s", stderr),
 		fmt.Sprintf("GH_HELPER_PROCESS_EXIT_STATUS=%v", exitStatus),
+		fmt.Sprintf("GOCOVERDIR=%s", t.TempDir()),
 	}
 	return cmd, func(ctx context.Context, exe string, args ...string) *exec.Cmd {
 		cmd.Args = append(cmd.Args, exe)
