@@ -1358,6 +1358,25 @@ Aliases
 ls, l
 ```
 
+### `azdo team list-member [ORGANIZATION/]PROJECT/TEAM [flags]`
+
+List members of a team.
+
+```
+-q, --jq expression     Filter JSON output using a jq expression
+    --json fields[=*]   Output JSON with the specified fields. Prefix a field with '-' to exclude it.
+    --max-items int     Maximum number of members to return across all pages (client-side; 0 = unlimited)
+    --skip int          Number of members to skip (server-side)
+-t, --template string   Format JSON output using a Go template; see "azdo help formatting"
+    --top int           Maximum number of members to return per page (server-side; 0 = server default)
+```
+
+Aliases
+
+```
+members
+```
+
 ### `azdo team show [ORGANIZATION/]PROJECT/TEAM [flags]`
 
 Show details of a team.
