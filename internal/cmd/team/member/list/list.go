@@ -1,4 +1,4 @@
-package listmember
+package list
 
 import (
 	"fmt"
@@ -26,7 +26,7 @@ func NewCmd(ctx util.CmdContext) *cobra.Command {
 	opts := &listOptions{}
 
 	cmd := &cobra.Command{
-		Use:   "list-member [ORGANIZATION/]PROJECT/TEAM",
+		Use:   "list [ORGANIZATION/]PROJECT/TEAM",
 		Short: "List members of a team.",
 		Long: heredoc.Doc(`
 			List members of a team. The TEAM argument accepts the ID (GUID)
@@ -35,12 +35,12 @@ func NewCmd(ctx util.CmdContext) *cobra.Command {
 		`),
 		Example: heredoc.Doc(`
 			# List members of a team
-			azdo team list-member Fabrikam/"Fabrikam Engineering"
+			azdo team member list Fabrikam/"Fabrikam Engineering"
 
 			# List the first 10 members in a specific organization
-			azdo team list-member MyOrg/Fabrikam/MyTeam --top 10
+			azdo team member list MyOrg/Fabrikam/MyTeam --top 10
 		`),
-		Aliases: []string{"members"},
+		Aliases: []string{"members", "ls", "l"},
 		Args:    util.ExactArgs(1, "team argument required"),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			opts.targetArg = args[0]
