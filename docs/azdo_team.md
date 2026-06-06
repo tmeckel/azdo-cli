@@ -6,6 +6,7 @@ Manage Azure DevOps teams.
 
 * [azdo team create](./azdo_team_create.md)
 * [azdo team list](./azdo_team_list.md)
+* [azdo team show](./azdo_team_show.md)
 
 ### ALIASES
 
