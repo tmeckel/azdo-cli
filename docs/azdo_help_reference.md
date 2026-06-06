@@ -1357,6 +1357,24 @@ Aliases
 s
 ```
 
+### `azdo team update [ORGANIZATION/]PROJECT/TEAM [flags]`
+
+Update a team's name and/or description.
+
+```
+    --description string   New description of the team
+-q, --jq expression        Filter JSON output using a jq expression
+    --json fields[=*]      Output JSON with the specified fields. Prefix a field with '-' to exclude it.
+    --name string          New name of the team
+-t, --template string      Format JSON output using a Go template; see "azdo help formatting"
+```
+
+Aliases
+
+```
+u
+```
+
 
 
 ### See also
