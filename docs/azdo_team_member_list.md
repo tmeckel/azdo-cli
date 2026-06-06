@@ -1,7 +1,7 @@
-## Command `azdo team list-member`
+## Command `azdo team member list`
 
 ```
-azdo team list-member [ORGANIZATION/]PROJECT/TEAM [flags]
+azdo team member list [ORGANIZATION/]PROJECT/TEAM [flags]
 ```
 
 List members of a team. The TEAM argument accepts the ID (GUID)
@@ -40,6 +40,8 @@ or name of the team. Supports server-side paging via --top and
 ### ALIASES
 
 - `members`
+- `ls`
+- `l`
 
 ### JSON Fields
 
@@ -49,12 +51,12 @@ or name of the team. Supports server-side paging via --top and
 
 ```bash
 # List members of a team
-azdo team list-member Fabrikam/"Fabrikam Engineering"
+azdo team member list Fabrikam/"Fabrikam Engineering"
 
 # List the first 10 members in a specific organization
-azdo team list-member MyOrg/Fabrikam/MyTeam --top 10
+azdo team member list MyOrg/Fabrikam/MyTeam --top 10
 ```
 
 ### See also
 
-* [azdo team](./azdo_team.md)
+* [azdo team member](./azdo_team_member.md)

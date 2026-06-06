@@ -1,4 +1,4 @@
-package listmember
+package list
 
 import (
 	"bytes"

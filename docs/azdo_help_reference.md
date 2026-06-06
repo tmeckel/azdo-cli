@@ -1358,7 +1358,11 @@ Aliases
 ls, l
 ```
 
-### `azdo team list-member [ORGANIZATION/]PROJECT/TEAM [flags]`
+### `azdo team member <command>`
+
+Manage members of a team.
+
+#### `azdo team member list [ORGANIZATION/]PROJECT/TEAM [flags]`
 
 List members of a team.
 
@@ -1374,7 +1378,7 @@ List members of a team.
 Aliases
 
 ```
-members
+members, ls, l
 ```
 
 ### `azdo team show [ORGANIZATION/]PROJECT/TEAM [flags]`
