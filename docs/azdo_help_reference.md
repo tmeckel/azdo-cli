@@ -1293,6 +1293,34 @@ Update a service endpoint.
     --url string           New service endpoint URL.
 ```
 
+## `azdo team <command>`
+
+Manage Azure DevOps teams.
+
+Aliases
+
+```
+t
+```
+
+### `azdo team create [ORGANIZATION/]PROJECT [flags]`
+
+Create a new team in a project.
+
+```
+    --description string   Description of the new team
+-q, --jq expression        Filter JSON output using a jq expression
+    --json fields[=*]      Output JSON with the specified fields. Prefix a field with '-' to exclude it.
+    --name string          Name of the new team (required)
+-t, --template string      Format JSON output using a Go template; see "azdo help formatting"
+```
+
+Aliases
+
+```
+c, cr, new, n, add, a
+```
+
 
 
 ### See also
