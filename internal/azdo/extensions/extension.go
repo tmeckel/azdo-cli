@@ -28,6 +28,10 @@ type Client interface {
 	FindGroupsByDisplayName(ctx context.Context, displayName string, scopeDescriptor *string) ([]*graph.GraphGroup, error)
 	// ResolveSubject resolves a member identifier (descriptor, email, or principal name) into a graph subject descriptor.
 	ResolveSubject(ctx context.Context, member string) (*graph.GraphSubject, error)
+	// ResolveSubjects resolves a batch of member identifiers in a single call, reducing round trips.
+	// Inputs that cannot be resolved are absent from the result map (keyed by the trimmed input string).
+	// The map naturally deduplicates repeated inputs; only catastrophic failures (e.g. client creation) return an error.
+	ResolveSubjects(ctx context.Context, members []string) (map[string]*graph.GraphSubject, error)
 	ResolveIdentity(ctx context.Context, member string) (*identity.Identity, error)
 }
 

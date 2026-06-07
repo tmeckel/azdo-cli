@@ -2,6 +2,7 @@ package member
 
 import (
 	"github.com/spf13/cobra"
+	"github.com/tmeckel/azdo-cli/internal/cmd/team/member/add"
 	"github.com/tmeckel/azdo-cli/internal/cmd/team/member/list"
 	"github.com/tmeckel/azdo-cli/internal/cmd/util"
 )
@@ -12,6 +13,7 @@ func NewCmd(ctx util.CmdContext) *cobra.Command {
 		Short: "Manage members of a team.",
 	}
 
+	cmd.AddCommand(add.NewCmd(ctx))
 	cmd.AddCommand(list.NewCmd(ctx))
 
 	return cmd
