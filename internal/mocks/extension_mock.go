@@ -134,3 +134,18 @@ func (mr *MockAzDOExtensionMockRecorder) ResolveSubject(ctx, member any) *gomock
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ResolveSubject", reflect.TypeOf((*MockAzDOExtension)(nil).ResolveSubject), ctx, member)
 }
+
+// ResolveSubjects mocks base method.
+func (m *MockAzDOExtension) ResolveSubjects(ctx context.Context, members []string) (map[string]*graph.GraphSubject, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ResolveSubjects", ctx, members)
+	ret0, _ := ret[0].(map[string]*graph.GraphSubject)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ResolveSubjects indicates an expected call of ResolveSubjects.
+func (mr *MockAzDOExtensionMockRecorder) ResolveSubjects(ctx, members any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ResolveSubjects", reflect.TypeOf((*MockAzDOExtension)(nil).ResolveSubjects), ctx, members)
+}
