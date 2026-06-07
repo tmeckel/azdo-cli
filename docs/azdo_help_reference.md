@@ -1362,6 +1362,23 @@ ls, l
 
 Manage members of a team.
 
+#### `azdo team member add [ORGANIZATION/]PROJECT/TEAM [flags]`
+
+Add one or more members to a team.
+
+```
+-q, --jq expression     Filter JSON output using a jq expression
+    --json fields[=*]   Output JSON with the specified fields. Prefix a field with '-' to exclude it.
+-t, --template string   Format JSON output using a Go template; see "azdo help formatting"
+-u, --user strings      Members to add. Accepts a descriptor, email, principal name, SID, or identity ID. Pass the flag multiple times to add several members.
+```
+
+Aliases
+
+```
+a
+```
+
 #### `azdo team member list [ORGANIZATION/]PROJECT/TEAM [flags]`
 
 List members of a team.
