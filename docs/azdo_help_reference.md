@@ -1398,6 +1398,24 @@ Aliases
 members, ls, l
 ```
 
+#### `azdo team member remove [ORGANIZATION/]PROJECT/TEAM [flags]`
+
+Remove one or more members from a team.
+
+```
+-q, --jq expression     Filter JSON output using a jq expression
+    --json fields[=*]   Output JSON with the specified fields. Prefix a field with '-' to exclude it.
+-t, --template string   Format JSON output using a Go template; see "azdo help formatting"
+-u, --user strings      Members to remove. Accepts a descriptor, email, principal name, SID, or identity ID. Pass the flag multiple times to remove several members.
+-y, --yes               Skip the confirmation prompt.
+```
+
+Aliases
+
+```
+r, rm, del, d
+```
+
 ### `azdo team show [ORGANIZATION/]PROJECT/TEAM [flags]`
 
 Show details of a team.
