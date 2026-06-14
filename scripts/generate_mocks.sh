@@ -65,6 +65,12 @@ mockgen \
   -mock_names Client=MockWorkItemTrackingClient \
   github.com/microsoft/azure-devops-go-api/azuredevops/v7/workitemtracking Client
 
+echo "Generating Azure DevOps Work client mock..."
+mockgen \
+  -package=mocks -destination internal/mocks/work_client_mock.go \
+  -mock_names Client=MockWorkClient \
+  github.com/microsoft/azure-devops-go-api/azuredevops/v7/work Client
+
 echo "Generating Azure DevOps TaskAgent client mock..."
 mockgen \
   -package=mocks -destination internal/mocks/taskagent_client_mock.go \

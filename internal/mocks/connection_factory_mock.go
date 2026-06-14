@@ -28,6 +28,7 @@ import (
 	security "github.com/microsoft/azure-devops-go-api/azuredevops/v7/security"
 	serviceendpoint "github.com/microsoft/azure-devops-go-api/azuredevops/v7/serviceendpoint"
 	taskagent "github.com/microsoft/azure-devops-go-api/azuredevops/v7/taskagent"
+	work "github.com/microsoft/azure-devops-go-api/azuredevops/v7/work"
 	workitemtracking "github.com/microsoft/azure-devops-go-api/azuredevops/v7/workitemtracking"
 	azdo "github.com/tmeckel/azdo-cli/internal/azdo"
 	extensions "github.com/tmeckel/azdo-cli/internal/azdo/extensions"
@@ -481,6 +482,21 @@ func (m *MockClientFactory) TaskAgent(ctx context.Context, organization string) 
 func (mr *MockClientFactoryMockRecorder) TaskAgent(ctx, organization any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "TaskAgent", reflect.TypeOf((*MockClientFactory)(nil).TaskAgent), ctx, organization)
+}
+
+// Work mocks base method.
+func (m *MockClientFactory) Work(ctx context.Context, organization string) (work.Client, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Work", ctx, organization)
+	ret0, _ := ret[0].(work.Client)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// Work indicates an expected call of Work.
+func (mr *MockClientFactoryMockRecorder) Work(ctx, organization any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Work", reflect.TypeOf((*MockClientFactory)(nil).Work), ctx, organization)
 }
 
 // WorkItemTracking mocks base method.
