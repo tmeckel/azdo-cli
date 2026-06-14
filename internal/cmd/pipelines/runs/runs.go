@@ -4,6 +4,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/tmeckel/azdo-cli/internal/cmd/pipelines/runs/list"
+	"github.com/tmeckel/azdo-cli/internal/cmd/pipelines/runs/show"
 	"github.com/tmeckel/azdo-cli/internal/cmd/util"
 )
 
@@ -15,5 +16,6 @@ func NewCmd(ctx util.CmdContext) *cobra.Command {
 	}
 
 	cmd.AddCommand(list.NewCmd(ctx))
+	cmd.AddCommand(show.NewCmd(ctx))
 	return cmd
 }
