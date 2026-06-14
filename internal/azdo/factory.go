@@ -14,6 +14,7 @@ import (
 	"github.com/microsoft/azure-devops-go-api/azuredevops/v7/security"
 	"github.com/microsoft/azure-devops-go-api/azuredevops/v7/serviceendpoint"
 	"github.com/microsoft/azure-devops-go-api/azuredevops/v7/taskagent"
+	"github.com/microsoft/azure-devops-go-api/azuredevops/v7/work"
 	"github.com/microsoft/azure-devops-go-api/azuredevops/v7/workitemtracking"
 	"github.com/tmeckel/azdo-cli/internal/azdo/extensions"
 	"github.com/tmeckel/azdo-cli/internal/config"
@@ -144,6 +145,14 @@ func (c *clientFactory) Extensions(ctx context.Context, org string) (extensions.
 		return nil, err
 	}
 	return extensions.NewClient(ctx, conn.(*connectionAdapter).conn), nil
+}
+
+func (c *clientFactory) Work(ctx context.Context, org string) (work.Client, error) {
+	conn, err := c.factory.Connection(org)
+	if err != nil {
+		return nil, err
+	}
+	return work.NewClient(ctx, conn.(*connectionAdapter).conn)
 }
 
 func (c *clientFactory) WorkItemTracking(ctx context.Context, org string) (workitemtracking.Client, error) {
