@@ -5,6 +5,7 @@ Manage area paths used by Azure Boards.
 ### Available commands
 
 * [azdo boards area project](./azdo_boards_area_project.md)
+* [azdo boards area team](./azdo_boards_area_team.md)
 
 ### ALIASES
 
