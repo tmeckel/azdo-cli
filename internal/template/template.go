@@ -381,3 +381,39 @@ func hyperlinkFunc(link, text string) string {
 	// See https://gist.github.com/egmontkob/eb114294efbcd5adb1944c9f3cb5feda
 	return fmt.Sprintf("\x1b]8;;%s\x1b\\%s\x1b]8;;\x1b\\", link, text)
 }
+
+// HasItems returns true if v is a non-nil, non-empty slice/array.
+// Accepts a pointer to a slice or a slice directly.
+func HasItems(v any) bool {
+	if v == nil {
+		return false
+	}
+	rv := reflect.ValueOf(v)
+	if rv.Kind() == reflect.Pointer {
+		if rv.IsNil() {
+			return false
+		}
+		rv = rv.Elem()
+	}
+	k := rv.Kind()
+	if k != reflect.Slice && k != reflect.Array {
+		return false
+	}
+	return rv.Len() > 0
+}
+
+// FormatDuration returns a human-readable duration string (e.g. "2m13s").
+func FormatDuration(d time.Duration) string {
+	d = d.Round(time.Second)
+	if d <= 0 {
+		return ""
+	}
+	s := d.String()
+	if d < time.Minute {
+		return s
+	}
+	if d%time.Minute == 0 {
+		return s[:len(s)-1] + " 0s"
+	}
+	return s
+}
