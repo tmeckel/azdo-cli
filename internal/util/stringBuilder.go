@@ -132,7 +132,7 @@ func (sb *StringBuilder) Generate(length int) (string, error) {
 	case "binary":
 		var strBuilder strings.Builder
 		for _, by := range []byte(s) {
-			strBuilder.WriteString(fmt.Sprintf("%08b", by))
+			fmt.Fprintf(&strBuilder, "%08b", by)
 		}
 		return strBuilder.String(), nil
 	default:
