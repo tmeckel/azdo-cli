@@ -3,7 +3,8 @@ package area
 import (
 	"github.com/MakeNowJust/heredoc/v2"
 	"github.com/spf13/cobra"
-	projectcmd "github.com/tmeckel/azdo-cli/internal/cmd/boards/area/project"
+	"github.com/tmeckel/azdo-cli/internal/cmd/boards/area/project"
+	"github.com/tmeckel/azdo-cli/internal/cmd/boards/area/team"
 	"github.com/tmeckel/azdo-cli/internal/cmd/util"
 )
 
@@ -21,7 +22,8 @@ func NewCmd(ctx util.CmdContext) *cobra.Command {
 		},
 	}
 
-	cmd.AddCommand(projectcmd.NewCmd(ctx))
+	cmd.AddCommand(project.NewCmd(ctx))
+	cmd.AddCommand(team.NewCmd(ctx))
 
 	return cmd
 }
