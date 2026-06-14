@@ -36,12 +36,14 @@ func NewCmdPR(ctx util.CmdContext) *cobra.Command {
 		GroupID: "core",
 	}
 
-	util.AddGroup(cmd, "General commands",
+	util.AddGroup(
+		cmd, "General commands",
 		list.NewCmd(ctx),
 		create.NewCmd(ctx),
 	)
 
-	util.AddGroup(cmd, "Targeted commands",
+	util.AddGroup(
+		cmd, "Targeted commands",
 		checkout.NewCmd(ctx),
 		close.NewCmd(ctx),
 		comment.NewCmd(ctx),

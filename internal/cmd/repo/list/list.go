@@ -103,7 +103,7 @@ func runList(ctx util.CmdContext, opts *listOptions) (err error) {
 	}
 
 	sort.Slice(*res, func(i, j int) bool {
-		return strings.ToLower(*((*res)[i].Name)) < strings.ToLower(*((*res)[j].Name))
+		return strings.ToLower(*(*res)[i].Name) < strings.ToLower(*(*res)[j].Name)
 	})
 
 	iostreams.StopProgressIndicator()

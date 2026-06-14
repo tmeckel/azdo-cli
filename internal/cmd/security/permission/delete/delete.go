@@ -99,7 +99,8 @@ func runCommand(ctx util.CmdContext, o *opts) error {
 		return util.FlagErrorf("a subject is required")
 	}
 
-	zap.L().Debug("Resolved target for permission delete",
+	zap.L().Debug(
+		"Resolved target for permission delete",
 		zap.String("organization", scope.Organization),
 		zap.String("project", scope.Project),
 		zap.String("subject", scope.Subject),
@@ -150,7 +151,8 @@ func runCommand(ctx util.CmdContext, o *opts) error {
 		ios.StartProgressIndicator()
 	}
 
-	zap.L().Debug("Removing access control entries",
+	zap.L().Debug(
+		"Removing access control entries",
 		zap.String("namespaceId", namespaceUUID.String()),
 		zap.String("token", tokenValue),
 		zap.String("descriptor", descriptor),
@@ -168,7 +170,8 @@ func runCommand(ctx util.CmdContext, o *opts) error {
 		return fmt.Errorf("failed to delete permissions: service returned no confirmation")
 	}
 
-	zap.L().Debug("Verifying permissions are removed",
+	zap.L().Debug(
+		"Verifying permissions are removed",
 		zap.String("token", tokenValue),
 		zap.String("descriptor", descriptor),
 	)
@@ -211,7 +214,8 @@ func aclHasDescriptor(acls *[]security.AccessControlList, descriptor string) boo
 				if hasAllow || hasDeny {
 					return true
 				}
-				zap.L().Debug("Skipping empty ACL entry for descriptor",
+				zap.L().Debug(
+					"Skipping empty ACL entry for descriptor",
 					zap.String("descriptor", descriptor),
 					zap.Int("allow", types.GetValue(ace.Allow, 0)),
 					zap.Int("deny", types.GetValue(ace.Deny, 0)),

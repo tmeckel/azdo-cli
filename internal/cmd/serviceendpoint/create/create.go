@@ -86,7 +86,8 @@ func runCreateFromFile(ctx util.CmdContext, opts *fromFileOptions) error {
 		return err
 	}
 
-	zap.L().Debug("Creating service endpoint from file",
+	zap.L().Debug(
+		"Creating service endpoint from file",
 		zap.String("organization", scope.Organization),
 		zap.String("project", scope.Project),
 		zap.String("input", shared.DescribeInput(opts.fromFile)),

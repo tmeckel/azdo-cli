@@ -198,7 +198,8 @@ func run(ctx util.CmdContext, o *opts) error {
 	}
 
 	if fromFileSet {
-		fields = append(fields,
+		fields = append(
+			fields,
 			zap.String("mode", "from-file"),
 			zap.String("input", shared.DescribeInput(o.fromFile)),
 			zap.String("encoding", o.encoding),
@@ -232,7 +233,8 @@ func run(ctx util.CmdContext, o *opts) error {
 			return fmt.Errorf("updated service endpoint is missing an ID")
 		}
 
-		if err := shared.SetAllPipelinesAccessToEndpoint(ctx,
+		if err := shared.SetAllPipelinesAccessToEndpoint(
+			ctx,
 			scope.Organization,
 			projectID,
 			endpointID,

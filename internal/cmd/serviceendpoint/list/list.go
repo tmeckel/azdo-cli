@@ -132,7 +132,8 @@ func runList(ctx util.CmdContext, opts *listOptions) error {
 		actionFilter = types.ToPtr(value)
 	}
 
-	zap.L().Debug("Listing service endpoints",
+	zap.L().Debug(
+		"Listing service endpoints",
 		zap.String("organization", opts.organization),
 		zap.String("project", opts.project),
 		zap.String("type", strings.TrimSpace(opts.typeFilter)),

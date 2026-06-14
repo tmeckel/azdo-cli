@@ -137,7 +137,8 @@ func runList(ctx util.CmdContext, opts *listOptions) error {
 		return fmt.Errorf("failed to construct request: %w", err)
 	}
 
-	zap.L().Debug("listing project area paths",
+	zap.L().Debug(
+		"listing project area paths",
 		zap.String("organization", scope.Organization),
 		zap.String("project", scope.Project),
 		zap.String("path", strings.TrimSpace(opts.path)),

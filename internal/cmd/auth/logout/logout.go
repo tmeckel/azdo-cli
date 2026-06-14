@@ -90,7 +90,8 @@ func logoutRun(ctx util.CmdContext, opts *logoutOptions) (err error) {
 			organizationName = organizations[0]
 		} else {
 			selected, err := p.Select(
-				"What organization do you want to log out of?", "", organizations)
+				"What organization do you want to log out of?", "", organizations,
+			)
 			if err != nil {
 				return fmt.Errorf("could not prompt: %w", err)
 			}

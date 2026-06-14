@@ -1,6 +1,9 @@
 package types
 
-import "cmp"
+import (
+	"cmp"
+	"strings"
+)
 
 // ToPtr returns a pointer to value.
 func ToPtr[T any](value T) *T {
@@ -32,4 +35,15 @@ func PositivePtrOrNil[T cmp.Ordered](v T) *T {
 		return nil
 	}
 	return &v
+}
+
+// LookupEnum returns first case-insensitive match from values.
+func LookupEnum[T ~string](input string, values []T) (T, bool) {
+	for _, v := range values {
+		if strings.EqualFold(input, string(v)) {
+			return v, true
+		}
+	}
+	var zero T
+	return zero, false
 }

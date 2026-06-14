@@ -102,7 +102,7 @@ func (c *extensionClient) GetSubjectID(ctx context.Context, subject string) (uui
 		return uuid.Nil, err
 	}
 	if storageKey == nil {
-		return uuid.Nil, fmt.Errorf("failed to get storage key for user %s (%s)", subject, *((*subjects)[0].Descriptor))
+		return uuid.Nil, fmt.Errorf("failed to get storage key for user %s (%s)", subject, *(*subjects)[0].Descriptor)
 	}
 	return *storageKey.Value, nil
 }

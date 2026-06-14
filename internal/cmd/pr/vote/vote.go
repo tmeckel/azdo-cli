@@ -100,7 +100,8 @@ func runCmd(ctx util.CmdContext, opts *voteOptions) error {
 	}
 
 	// Feedback
-	fmt.Fprintf(io.Out, "%s Set vote to '%s' for %s#%d\n",
+	fmt.Fprintf(
+		io.Out, "%s Set vote to '%s' for %s#%d\n",
 		io.ColorScheme().SuccessIcon(),
 		opts.vote,
 		prRepo.FullName(),

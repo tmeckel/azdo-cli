@@ -121,7 +121,8 @@ func loginRun(ctx util.CmdContext, opts *loginOptions) (err error) {
 		result, err := p.Select(
 			"What is your preferred protocol for Git operations?",
 			options[0],
-			options)
+			options,
+		)
 		if err != nil {
 			return err
 		}
@@ -154,7 +155,8 @@ func promptForOrganizationName(ctx util.CmdContext, _ *loginOptions) (organizati
 	orgType, err := p.Select(
 		"Azure DevOps Organization URL type?",
 		options[0],
-		options)
+		options,
+	)
 	if err != nil {
 		return organizationURL, organizationName, err
 	}

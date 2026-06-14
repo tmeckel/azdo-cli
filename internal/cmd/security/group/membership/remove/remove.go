@@ -99,7 +99,8 @@ func runRemove(ctx util.CmdContext, o *opts) error {
 	organization := target.Organization
 	project := target.Project
 
-	zap.L().Debug("resolving group for membership removal",
+	zap.L().Debug(
+		"resolving group for membership removal",
 		zap.String("organization", organization),
 		zap.String("project", project),
 		zap.String("group", target.Targets[0]),
@@ -151,7 +152,8 @@ func runRemove(ctx util.CmdContext, o *opts) error {
 		memberDescriptor := types.GetValue(memberSubject.Descriptor, "")
 		displayName := types.GetValue(memberSubject.DisplayName, memberDescriptor)
 
-		zap.L().Debug("checking membership before removal",
+		zap.L().Debug(
+			"checking membership before removal",
 			zap.String("groupDescriptor", types.GetValue(group.Descriptor, "")),
 			zap.String("memberDescriptor", memberDescriptor),
 		)
@@ -227,7 +229,8 @@ func runRemove(ctx util.CmdContext, o *opts) error {
 				continue
 			}
 
-			zap.L().Debug("removing membership",
+			zap.L().Debug(
+				"removing membership",
 				zap.String("groupDescriptor", types.GetValue(group.Descriptor, "")),
 				zap.String("memberDescriptor", candidates[i].descriptor),
 			)

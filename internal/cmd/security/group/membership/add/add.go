@@ -102,7 +102,8 @@ func runAdd(ctx util.CmdContext, o *opts) error {
 	organization := target.Organization
 	project := target.Project
 
-	zap.L().Debug("resolving group for membership add",
+	zap.L().Debug(
+		"resolving group for membership add",
 		zap.String("organization", organization),
 		zap.String("project", project),
 		zap.String("group", target.Targets[0]),
@@ -144,7 +145,8 @@ func runAdd(ctx util.CmdContext, o *opts) error {
 
 		memberDescriptor := types.GetValue(memberSubject.Descriptor, "")
 
-		zap.L().Debug("checking existing membership",
+		zap.L().Debug(
+			"checking existing membership",
 			zap.String("groupDescriptor", types.GetValue(group.Descriptor, "")),
 			zap.String("memberDescriptor", memberDescriptor),
 		)
@@ -173,7 +175,8 @@ func runAdd(ctx util.CmdContext, o *opts) error {
 			return fmt.Errorf("failed to check existing membership for %q: %w", memberInput, err)
 		}
 
-		zap.L().Debug("adding membership",
+		zap.L().Debug(
+			"adding membership",
 			zap.String("groupDescriptor", types.GetValue(group.Descriptor, "")),
 			zap.String("memberDescriptor", memberDescriptor),
 			zap.String("member", memberInput),

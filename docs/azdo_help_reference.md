@@ -339,6 +339,36 @@ Aliases
 view, status
 ```
 
+### `azdo pipelines runs`
+
+Manage pipeline runs
+
+#### `azdo pipelines runs list [ORGANIZATION/]PROJECT [flags]`
+
+List runs of pipelines in a project.
+
+```
+    --branch strings         Filter by source branch (repeatable; first value is honored by the SDK). Bare names get refs/heads/ prepended.
+-q, --jq expression          Filter JSON output using a jq expression
+    --json fields[=*]        Output JSON with the specified fields. Prefix a field with '-' to exclude it.
+    --max-items int          Maximum number of runs to return client-side (0 = unlimited).
+    --pipeline-id ints       Limit to runs for these pipeline IDs (repeatable; first value is honored by the SDK).
+    --query-order string     Order the results: finishTimeAscending, finishTimeDescending, queueTimeAscending, queueTimeDescending, startTimeAscending, startTimeDescending.
+    --reason strings         Filter by reason (repeatable; first value is honored). Valid: manual, individualCI, batchedCI, schedule, scheduleForced, userCreated, pullRequest, etc.
+    --requested-for string   Filter by the user who queued the run. Accepts @me to mean the authenticated user.
+    --result strings         Filter by result (repeatable; first value is honored). Valid: none, succeeded, partiallySucceeded, failed, canceled.
+    --status strings         Filter by status (repeatable; first value is honored). Valid: none, inProgress, completed, cancelling, postponed, notStarted, all.
+    --tag strings            Filter by tags (all supplied tags must match).
+-t, --template string        Format JSON output using a Go template; see "azdo help formatting"
+    --top int                Maximum number of runs to request per server page (0 = server default).
+```
+
+Aliases
+
+```
+l, ls
+```
+
 ### `azdo pipelines variable-group`
 
 Manage Azure DevOps variable groups
