@@ -31,7 +31,7 @@ fmt: ## format source with gofumpt
 .PHONY: lint
 lint: ## lint source
 	@echo "Check for golangci-lint"; [ -e "$(shell which golangci-lint)" ]
-	@echo "Executing golangci-lint"; golangci-lint run -v --timeout $(TIMEOUT) ./internal
+	@echo "Executing golangci-lint"; golangci-lint run -v --timeout $(TIMEOUT) ./internal/...
 
 .PHONY: test
 test: ## run unit tests with gotestsum
