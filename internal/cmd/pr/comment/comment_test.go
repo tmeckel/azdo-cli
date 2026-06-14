@@ -24,7 +24,7 @@ type fakePrompter struct{ val string }
 
 var _ prompter.Prompter = (*fakePrompter)(nil)
 
-func (f *fakePrompter) Select(msg, def string, opts []string) (int, error) { return 0, nil }
+func (f *fakePrompter) Select(msg, def string, opts []string) (int, error)        { return 0, nil }
 func (f *fakePrompter) MultiSelect(msg string, def, opts []string) ([]int, error) { return nil, nil }
 
 func (f *fakePrompter) Input(label, def string) (string, error)         { return f.val, nil }
