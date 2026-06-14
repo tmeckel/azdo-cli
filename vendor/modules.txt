@@ -160,6 +160,7 @@ github.com/microsoft/azure-devops-go-api/azuredevops/v7/system
 github.com/microsoft/azure-devops-go-api/azuredevops/v7/taskagent
 github.com/microsoft/azure-devops-go-api/azuredevops/v7/test
 github.com/microsoft/azure-devops-go-api/azuredevops/v7/webapi
+github.com/microsoft/azure-devops-go-api/azuredevops/v7/work
 github.com/microsoft/azure-devops-go-api/azuredevops/v7/workitemtracking
 # github.com/muesli/reflow v0.3.0
 ## explicit; go 1.13

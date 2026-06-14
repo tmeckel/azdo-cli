@@ -18,6 +18,7 @@ import (
 	"github.com/microsoft/azure-devops-go-api/azuredevops/v7/security"
 	"github.com/microsoft/azure-devops-go-api/azuredevops/v7/serviceendpoint"
 	"github.com/microsoft/azure-devops-go-api/azuredevops/v7/taskagent"
+	"github.com/microsoft/azure-devops-go-api/azuredevops/v7/work"
 	"github.com/microsoft/azure-devops-go-api/azuredevops/v7/workitemtracking"
 	"github.com/tmeckel/azdo-cli/internal/azdo/extensions"
 )
@@ -59,5 +60,6 @@ type ClientFactory interface {
 	Security(ctx context.Context, organization string) (security.Client, error)
 	TaskAgent(ctx context.Context, organization string) (taskagent.Client, error)
 	Extensions(ctx context.Context, organization string) (extensions.Client, error)
+	Work(ctx context.Context, organization string) (work.Client, error)
 	WorkItemTracking(ctx context.Context, organization string) (workitemtracking.Client, error)
 }
