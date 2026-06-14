@@ -30,7 +30,8 @@ func Output(ctx util.CmdContext, endpoint *serviceendpoint.ServiceEndpoint, expo
 	t := template.New(
 		ios.Out,
 		ios.TerminalWidth(),
-		ios.ColorEnabled()).
+		ios.ColorEnabled(),
+	).
 		WithTheme(ios.TerminalTheme()).
 		WithFuncs(map[string]any{
 			"s":       template.StringOrEmpty,

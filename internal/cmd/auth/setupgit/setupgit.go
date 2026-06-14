@@ -121,7 +121,8 @@ func setupGitRun(ctx util.CmdContext, opts *setupGitOptions) (err error) {
 		}
 
 		// second configure the actual helper for this host
-		configureCmd, err := gitClient.Command(ctx.Context(),
+		configureCmd, err := gitClient.Command(
+			ctx.Context(),
 			"config", "--global", "--add",
 			credHelperKey,
 			fmt.Sprintf("!%s auth git-credential", gitClient.GetAzDoPath()),
@@ -134,7 +135,8 @@ func setupGitRun(ctx util.CmdContext, opts *setupGitOptions) (err error) {
 			return err
 		}
 
-		configureCmd, err = gitClient.Command(ctx.Context(),
+		configureCmd, err = gitClient.Command(
+			ctx.Context(),
 			"config", "--global", "--add",
 			fmt.Sprintf("%s.useHttpPath", strings.TrimSuffix(credHelperKey, ".helper")),
 			"true",

@@ -160,7 +160,8 @@ func runDelete(ctx util.CmdContext, opts *deleteOptions) error {
 		projectIDs = append(projectIDs, target.ID)
 	}
 
-	zap.L().Debug("Deleting service endpoint",
+	zap.L().Debug(
+		"Deleting service endpoint",
 		zap.String("organization", scope.Organization),
 		zap.String("project", scope.Project),
 		zap.String("identifier", scope.Targets[0]),

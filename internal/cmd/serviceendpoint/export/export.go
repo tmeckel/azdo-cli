@@ -142,7 +142,8 @@ func runExport(ctx util.CmdContext, opts *exportOptions) error {
 		}
 	}
 
-	zap.L().Debug("Exporting service endpoint",
+	zap.L().Debug(
+		"Exporting service endpoint",
 		zap.String("organization", scope.Organization),
 		zap.String("project", scope.Project),
 		zap.String("identifier", scope.Targets[0]),

@@ -24,15 +24,16 @@ type fakePrompter struct{ val string }
 
 var _ prompter.Prompter = (*fakePrompter)(nil)
 
-func (f *fakePrompter) Select(msg, def string, opts []string) (int, error)        { return 0, nil }
+func (f *fakePrompter) Select(msg, def string, opts []string) (int, error) { return 0, nil }
 func (f *fakePrompter) MultiSelect(msg string, def, opts []string) ([]int, error) { return nil, nil }
-func (f *fakePrompter) Input(label, def string) (string, error)                   { return f.val, nil }
-func (f *fakePrompter) InputOrganizationName() (string, error)                    { return "", nil }
-func (f *fakePrompter) Password(prompt string) (string, error)                    { return "", nil }
-func (f *fakePrompter) AuthToken() (string, error)                                { return "", nil }
-func (f *fakePrompter) Confirm(msg string, def bool) (bool, error)                { return false, nil }
-func (f *fakePrompter) ConfirmDeletion(required string) error                     { return nil }
-func (f *fakePrompter) Secret(prompt string) (result string, err error)           { return "", nil }
+
+func (f *fakePrompter) Input(label, def string) (string, error)         { return f.val, nil }
+func (f *fakePrompter) InputOrganizationName() (string, error)          { return "", nil }
+func (f *fakePrompter) Password(prompt string) (string, error)          { return "", nil }
+func (f *fakePrompter) AuthToken() (string, error)                      { return "", nil }
+func (f *fakePrompter) Confirm(msg string, def bool) (bool, error)      { return false, nil }
+func (f *fakePrompter) ConfirmDeletion(required string) error           { return nil }
+func (f *fakePrompter) Secret(prompt string) (result string, err error) { return "", nil }
 
 func setupCommonMocks(ctrl *gomock.Controller) (*mocks.MockCmdContext, *mocks.MockRepository, *mocks.MockAzDOGitClient, *mocks.MockConnectionFactory, *bytes.Buffer, *bytes.Buffer) {
 	io, _, out, errOut := iostreams.Test()

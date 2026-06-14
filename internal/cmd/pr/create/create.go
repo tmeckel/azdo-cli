@@ -227,7 +227,7 @@ func runCmd(ctx util.CmdContext, opts *createOptions) (err error) {
 		opts.headBranch = normalizeBranch(opts.headBranch)
 	}
 
-	// Prequisites
+	// Prerequisites
 	// 1. Is the current branch the same as the base branch?
 	// 2. Is the current branch the same as the head branch?
 	// 3. Does the head branch exist?
@@ -360,7 +360,8 @@ func runCmd(ctx util.CmdContext, opts *createOptions) (err error) {
 		t := template.New(
 			iostreams.Out,
 			iostreams.TerminalWidth(),
-			iostreams.ColorEnabled()).
+			iostreams.ColorEnabled(),
+		).
 			WithTheme(iostreams.TerminalTheme()).
 			WithFuncs(map[string]any{
 				"s":           template.StringOrEmpty,

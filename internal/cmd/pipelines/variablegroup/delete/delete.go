@@ -112,7 +112,8 @@ func run(cmdCtx util.CmdContext, opts *options) error {
 		return fmt.Errorf("no project assignments found to delete")
 	}
 
-	zap.L().Debug("resolved variable group",
+	zap.L().Debug(
+		"resolved variable group",
 		zap.String("organization", scope.Organization),
 		zap.String("project", scope.Project),
 		zap.String("input", scope.Targets[0]),
@@ -150,7 +151,8 @@ func run(cmdCtx util.CmdContext, opts *options) error {
 		return fmt.Errorf("failed to delete variable group %d: %w", groupID, err)
 	}
 
-	zap.L().Debug("variable group deleted",
+	zap.L().Debug(
+		"variable group deleted",
 		zap.Int("groupId", groupID),
 		zap.Strings("projectIds", projectIDs),
 		zap.String("organization", scope.Organization),

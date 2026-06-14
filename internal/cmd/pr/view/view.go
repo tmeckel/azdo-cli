@@ -482,7 +482,8 @@ func runCmd(ctx util.CmdContext, opts *viewOptions) (err error) {
 	t := template.New(
 		iostreams.Out,
 		iostreams.TerminalWidth(),
-		iostreams.ColorEnabled()).
+		iostreams.ColorEnabled(),
+	).
 		WithTheme(iostreams.TerminalTheme()).
 		WithFuncs(map[string]any{
 			"substr": func(s string, start, length int) string {

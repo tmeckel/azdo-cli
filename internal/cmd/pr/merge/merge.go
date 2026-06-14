@@ -121,7 +121,8 @@ func runCmd(ctx util.CmdContext, opts *mergeOptions) (err error) {
 		return fmt.Errorf("failed to merge pull request: %w", err)
 	}
 
-	fmt.Fprintf(iostreams.Out, "%s Merged pull request %s#%d\n",
+	fmt.Fprintf(
+		iostreams.Out, "%s Merged pull request %s#%d\n",
 		iostreams.ColorScheme().SuccessIcon(),
 		prRepo.FullName(),
 		*pr.PullRequestId,

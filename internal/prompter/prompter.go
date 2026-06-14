@@ -140,7 +140,9 @@ func (p *surveyPrompter) ConfirmDeletion(requiredValue string) error {
 					return fmt.Errorf("You entered %s", str) //nolint:staticcheck
 				}
 				return nil
-			}))
+			},
+		),
+	)
 }
 
 func (p *surveyPrompter) InputOrganizationName() (result string, err error) {
@@ -156,7 +158,8 @@ func (p *surveyPrompter) InputOrganizationName() (result string, err error) {
 				return fmt.Errorf("invalid organization name")
 			}
 			return nil
-		}))
+		}),
+	)
 	return result, err
 }
 

@@ -82,7 +82,8 @@ func runShow(ctx util.CmdContext, opts *showOptions) error {
 		return util.FlagErrorWrap(err)
 	}
 
-	zap.L().Debug("show team",
+	zap.L().Debug(
+		"show team",
 		zap.String("organization", scope.Organization),
 		zap.String("project", scope.Project),
 		zap.String("teamId", scope.Targets[0]),
@@ -124,7 +125,8 @@ func renderTeam(ctx util.CmdContext, ios *iostreams.IOStreams, team *core.WebApi
 	t := template.New(
 		ios.Out,
 		ios.TerminalWidth(),
-		ios.ColorEnabled()).
+		ios.ColorEnabled(),
+	).
 		WithTheme(ios.TerminalTheme()).
 		WithFuncs(map[string]any{
 			"s":       template.StringOrEmpty,

@@ -122,7 +122,8 @@ func setDefaultRun(ctx util.CmdContext, opts *setDefaultOptions) error {
 		var msg string
 		if currentDefaultRemote != nil {
 			if err := gitClient.UnsetRemoteResolution(
-				ctx.Context(), currentDefaultRemote.Name); err != nil {
+				ctx.Context(), currentDefaultRemote.Name,
+			); err != nil {
 				return err
 			}
 			msg = fmt.Sprintf("%s Unset %s as default repository",
@@ -180,14 +181,16 @@ func setDefaultRun(ctx util.CmdContext, opts *setDefaultOptions) error {
 	if currentDefaultRemote != nil {
 		if err := gitClient.UnsetRemoteResolution(
 			ctx.Context(),
-			currentDefaultRemote.Name); err != nil {
+			currentDefaultRemote.Name,
+		); err != nil {
 			return err
 		}
 	}
 	if err = gitClient.SetRemoteResolution(
 		ctx.Context(),
 		selectedRemote.Name,
-		resolution); err != nil {
+		resolution,
+	); err != nil {
 		return err
 	}
 

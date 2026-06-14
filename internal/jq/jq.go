@@ -87,7 +87,8 @@ func CompileExpression(expr string) (*gojq.Code, error) {
 
 	code, err := gojq.Compile(
 		query,
-		gojq.WithEnvironLoader(os.Environ))
+		gojq.WithEnvironLoader(os.Environ),
+	)
 	if err != nil {
 		return nil, fmt.Errorf("failed to compile jq expression: %w", err)
 	}
