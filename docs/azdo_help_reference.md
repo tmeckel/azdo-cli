@@ -263,6 +263,29 @@ Aliases
 view, status
 ```
 
+### `azdo pipelines list [ORGANIZATION/]PROJECT [flags]`
+
+List pipeline definitions
+
+```
+    --folder-path string       Filter by folder path (e.g. "user1/production")
+-q, --jq expression            Filter JSON output using a jq expression
+    --json fields[=*]          Output JSON with the specified fields. Prefix a field with '-' to exclude it.
+    --max-items int            Optional client-side cap on results
+    --name string              Filter by pipeline name (prefix or exact)
+    --query-order string       Order of definitions: {none|definitionNameAscending|definitionNameDescending|lastModifiedAscending|lastModifiedDescending}
+    --repository string        Filter by repository name or ID
+    --repository-type string   Repository type filter: {tfsgit|github}
+-t, --template string          Format JSON output using a Go template; see "azdo help formatting"
+    --top int                  Maximum number of definitions to return
+```
+
+Aliases
+
+```
+ls, l
+```
+
 ### `azdo pipelines pool`
 
 Manage agent pools

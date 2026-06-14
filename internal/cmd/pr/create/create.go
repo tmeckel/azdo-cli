@@ -165,7 +165,7 @@ func NewCmd(ctx util.CmdContext) *cobra.Command {
 				opts.description = string(t.Body())
 			}
 
-			if !iostreams.CanPrompt() && !(opts.fillVerbose || opts.autofill || opts.fillFirst) && (opts.title == "" || opts.description == "") {
+			if !iostreams.CanPrompt() && !opts.fillVerbose && !opts.autofill && !opts.fillFirst && (opts.title == "" || opts.description == "") {
 				return util.FlagErrorf("must provide `--title` and `--description` (`--description-file`) or `--fill` or `fill-first` or `--fillverbose` when not running interactively")
 			}
 
@@ -296,9 +296,9 @@ func runCmd(ctx util.CmdContext, opts *createOptions) (err error) {
 				var sb strings.Builder
 				for _, c := range commits {
 					if opts.fillVerbose {
-						sb.WriteString(fmt.Sprintf("### %s\n%s\n", c.Title, c.Body))
+						fmt.Fprintf(&sb, "### %s\n%s\n", c.Title, c.Body)
 					} else {
-						sb.WriteString(fmt.Sprintf("* %s", c.Title))
+						fmt.Fprintf(&sb, "* %s", c.Title)
 					}
 				}
 				opts.description = sb.String()

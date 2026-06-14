@@ -17,9 +17,9 @@ func NewCmdConfig(ctx util.CmdContext) *cobra.Command {
 	longDoc.WriteString("Display or change configuration settings for azdo.\n\n")
 	longDoc.WriteString("Current respected settings:\n")
 	for _, co := range config.Options() {
-		longDoc.WriteString(fmt.Sprintf("- %s: %s", co.Key, co.Description))
+		fmt.Fprintf(&longDoc, "- %s: %s", co.Key, co.Description)
 		if co.DefaultValue != "" {
-			longDoc.WriteString(fmt.Sprintf(" (default: %q)", co.DefaultValue))
+			fmt.Fprintf(&longDoc, " (default: %q)", co.DefaultValue)
 		}
 		longDoc.WriteRune('\n')
 	}

@@ -335,7 +335,7 @@ func (e *jsonExporter) Write(ios *iostreams.IOStreams, data any) error {
 
 func (e *jsonExporter) exportData(v reflect.Value) any {
 	switch v.Kind() { //nolint:exhaustive
-	case reflect.Ptr, reflect.Interface:
+	case reflect.Pointer, reflect.Interface:
 		if !v.IsNil() {
 			return e.exportData(v.Elem())
 		}
@@ -400,7 +400,7 @@ var (
 )
 
 func structExportData(v reflect.Value, fields []string, strict bool) map[string]any {
-	if v.Kind() == reflect.Ptr {
+	if v.Kind() == reflect.Pointer {
 		if v.IsNil() {
 			return nil
 		}
@@ -480,7 +480,7 @@ func flattenStructFields(v reflect.Value) ([]structFieldInfo, map[string]int) {
 
 	var walk func(reflect.Value)
 	walk = func(val reflect.Value) {
-		if val.Kind() == reflect.Ptr {
+		if val.Kind() == reflect.Pointer {
 			if val.IsNil() {
 				return
 			}
@@ -497,10 +497,10 @@ func flattenStructFields(v reflect.Value) ([]structFieldInfo, map[string]int) {
 			fv := val.Field(i)
 
 			if sf.Anonymous {
-				if fv.Kind() == reflect.Ptr && fv.IsNil() {
+				if fv.Kind() == reflect.Pointer && fv.IsNil() {
 					continue
 				}
-				if fv.Kind() == reflect.Ptr || fv.Kind() == reflect.Interface {
+				if fv.Kind() == reflect.Pointer || fv.Kind() == reflect.Interface {
 					fv = fv.Elem()
 				}
 				if fv.Kind() == reflect.Struct {

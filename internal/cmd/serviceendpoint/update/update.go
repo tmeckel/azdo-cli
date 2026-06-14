@@ -87,7 +87,7 @@ func run(ctx util.CmdContext, o *opts) error {
 
 	fromFileSet := strings.TrimSpace(o.fromFile) != ""
 
-	if !(o.nameChanged || o.descChanged || o.urlChanged || fromFileSet || o.enableForAllUsed) {
+	if !o.nameChanged && !o.descChanged && !o.urlChanged && !fromFileSet && !o.enableForAllUsed {
 		return util.FlagErrorf("at least one mutating flag must be supplied")
 	}
 
