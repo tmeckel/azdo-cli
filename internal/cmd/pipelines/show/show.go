@@ -11,6 +11,7 @@ import (
 	"github.com/spf13/cobra"
 	"go.uber.org/zap"
 
+	"github.com/tmeckel/azdo-cli/internal/cmd/pipelines/shared"
 	"github.com/tmeckel/azdo-cli/internal/cmd/util"
 	"github.com/tmeckel/azdo-cli/internal/template"
 	"github.com/tmeckel/azdo-cli/internal/types"
@@ -93,32 +94,9 @@ func runShow(ctx util.CmdContext, opts *showOptions) error {
 		zap.String("pipeline", scope.Targets[0]),
 	)
 
-	raw := scope.Targets[0]
-	pipelineID, err := strconv.Atoi(raw)
-	if err == nil && pipelineID <= 0 {
-		return fmt.Errorf("pipeline id must be greater than zero: %q", raw)
-	}
+	pipelineID, err := shared.ResolvePipelineDefinition(ctx, buildClient, scope.Project, scope.Targets[0])
 	if err != nil {
-		defs, err := buildClient.GetDefinitions(ctx.Context(), build.GetDefinitionsArgs{
-			Project: types.ToPtr(scope.Project),
-			Name:    types.ToPtr(raw),
-		})
-		if err != nil {
-			return fmt.Errorf("failed to query pipeline definitions: %w", err)
-		}
-
-		if defs == nil || len(defs.Value) == 0 {
-			return fmt.Errorf("pipeline %q not found", raw)
-		}
-
-		if len(defs.Value) > 1 {
-			return fmt.Errorf("pipeline %q is ambiguous: %d matches found", raw, len(defs.Value))
-		}
-
-		pipelineID = types.GetValue(defs.Value[0].Id, 0)
-		if pipelineID <= 0 {
-			return fmt.Errorf("pipeline %q returned empty id", raw)
-		}
+		return err
 	}
 
 	logger.Debug("fetching pipeline definition", zap.Int("pipelineId", pipelineID))
