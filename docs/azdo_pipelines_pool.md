@@ -6,6 +6,7 @@ of agents that target build, release, and other pipeline jobs.
 
 ### Available commands
 
+* [azdo pipelines pool list](./azdo_pipelines_pool_list.md)
 * [azdo pipelines pool show](./azdo_pipelines_pool_show.md)
 
 ### ALIASES
@@ -23,6 +24,12 @@ azdo pipelines pool show 'Default'
 
 # Show a pool in a specific organization
 azdo pipelines pool show 'myorg/Default'
+
+# List pools in the default organization
+azdo pipelines pool list
+
+# List pools in a specific organization
+azdo pipelines pool list myorg
 ```
 
 ### See also

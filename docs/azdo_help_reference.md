@@ -336,6 +336,25 @@ Aliases
 pools
 ```
 
+#### `azdo pipelines pool list [ORGANIZATION] [flags]`
+
+List agent pools
+
+```
+-q, --jq expression      Filter JSON output using a jq expression
+    --json fields[=*]    Output JSON with the specified fields. Prefix a field with '-' to exclude it.
+    --max-items int      Optional client-side cap on results
+    --name string        Filter pools by name
+    --pool-type string   Filter pools by type: {automation|deployment}
+-t, --template string    Format JSON output using a Go template; see "azdo help formatting"
+```
+
+Aliases
+
+```
+ls, l
+```
+
 #### `azdo pipelines pool show [ORGANIZATION/]POOL [flags]`
 
 Show details of an agent pool
