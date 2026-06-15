@@ -5,6 +5,7 @@ Manage Azure DevOps pipelines
 ### Available commands
 
 * [azdo pipelines agent](./azdo_pipelines_agent.md)
+* [azdo pipelines delete](./azdo_pipelines_delete.md)
 * [azdo pipelines list](./azdo_pipelines_list.md)
 * [azdo pipelines pool](./azdo_pipelines_pool.md)
 * [azdo pipelines runs](./azdo_pipelines_runs.md)
@@ -14,6 +15,13 @@ Manage Azure DevOps pipelines
 ### ALIASES
 
 - `p`
+
+### Examples
+
+```bash
+# Delete a pipeline definition
+azdo pipelines delete Fabrikam/42 --yes
+```
 
 ### See also
 
