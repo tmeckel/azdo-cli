@@ -8,6 +8,7 @@ Manage Azure DevOps pipelines
 * [azdo pipelines list](./azdo_pipelines_list.md)
 * [azdo pipelines pool](./azdo_pipelines_pool.md)
 * [azdo pipelines runs](./azdo_pipelines_runs.md)
+* [azdo pipelines show](./azdo_pipelines_show.md)
 * [azdo pipelines variable-group](./azdo_pipelines_variable-group.md)
 
 ### ALIASES
