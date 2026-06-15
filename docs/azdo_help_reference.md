@@ -289,6 +289,20 @@ Aliases
 view, status
 ```
 
+### `azdo pipelines delete [ORGANIZATION/]PROJECT/PIPELINE [flags]`
+
+Delete a pipeline definition
+
+```
+-y, --yes   Skip the confirmation prompt.
+```
+
+Aliases
+
+```
+d, del, rm
+```
+
 ### `azdo pipelines list [ORGANIZATION/]PROJECT [flags]`
 
 List pipeline definitions
