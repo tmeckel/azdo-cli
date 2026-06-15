@@ -4,6 +4,7 @@ import (
 	"github.com/MakeNowJust/heredoc/v2"
 	"github.com/spf13/cobra"
 
+	"github.com/tmeckel/azdo-cli/internal/cmd/pipelines/pool/list"
 	"github.com/tmeckel/azdo-cli/internal/cmd/pipelines/pool/show"
 	"github.com/tmeckel/azdo-cli/internal/cmd/util"
 )
@@ -25,10 +26,17 @@ func NewCmd(ctx util.CmdContext) *cobra.Command {
 
 			# Show a pool in a specific organization
 			azdo pipelines pool show 'myorg/Default'
+
+			# List pools in the default organization
+			azdo pipelines pool list
+
+			# List pools in a specific organization
+			azdo pipelines pool list myorg
 		`),
 		Aliases: []string{"pools"},
 	}
 
+	cmd.AddCommand(list.NewCmd(ctx))
 	cmd.AddCommand(show.NewCmd(ctx))
 	return cmd
 }
