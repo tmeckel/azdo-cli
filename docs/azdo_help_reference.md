@@ -353,6 +353,20 @@ Aliases
 view, status
 ```
 
+### `azdo pipelines run [ORGANIZATION/]PROJECT/PIPELINE [flags]`
+
+Queue a pipeline run
+
+```
+    --branch string        Branch or ref to build (bare names get refs/heads/ prepended)
+    --commit-id string     Source commit SHA to build
+    --folder-path string   Folder path filter used when resolving a pipeline name
+-q, --jq expression        Filter JSON output using a jq expression
+    --json fields[=*]      Output JSON with the specified fields. Prefix a field with '-' to exclude it.
+-t, --template string      Format JSON output using a Go template; see "azdo help formatting"
+    --variable strings     Queue-time variable in name=value format (repeatable)
+```
+
 ### `azdo pipelines runs`
 
 Manage pipeline runs
