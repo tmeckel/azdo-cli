@@ -30,3 +30,6 @@ extend-exclude = [
 # extend-ignore-re = [
 #   "https?://[^`\\s]+",
 # ]
+extend-ignore-re = [
+  "UpdatePipelinePermisionsForResource"
+]
