@@ -372,6 +372,29 @@ Aliases
 view, status
 ```
 
+### `azdo pipelines queue`
+
+Manage Azure DevOps agent queues
+
+#### `azdo pipelines queue list [ORGANIZATION/]PROJECT [flags]`
+
+List agent queues
+
+```
+    --action-filter string   Filter queues by caller permissions: {manage|none|use}
+-q, --jq expression          Filter JSON output using a jq expression
+    --json fields[=*]        Output JSON with the specified fields. Prefix a field with '-' to exclude it.
+    --max-items int          Optional client-side cap on results
+    --name string            Filter queues by name
+-t, --template string        Format JSON output using a Go template; see "azdo help formatting"
+```
+
+Aliases
+
+```
+ls, l
+```
+
 ### `azdo pipelines run [ORGANIZATION/]PROJECT/PIPELINE [flags]`
 
 Queue a pipeline run
@@ -395,16 +418,16 @@ Manage pipeline runs
 List runs of pipelines in a project.
 
 ```
-    --branch strings         Filter by source branch (repeatable; first value is honored by the SDK). Bare names get refs/heads/ prepended.
+    --branch string          Filter by source branch. Bare names get refs/heads/ prepended.
 -q, --jq expression          Filter JSON output using a jq expression
     --json fields[=*]        Output JSON with the specified fields. Prefix a field with '-' to exclude it.
     --max-items int          Maximum number of runs to return client-side (0 = unlimited).
-    --pipeline-id ints       Limit to runs for these pipeline IDs (repeatable; first value is honored by the SDK).
-    --query-order string     Order the results: finishTimeAscending, finishTimeDescending, queueTimeAscending, queueTimeDescending, startTimeAscending, startTimeDescending.
-    --reason strings         Filter by reason (repeatable; first value is honored). Valid: manual, individualCI, batchedCI, schedule, scheduleForced, userCreated, pullRequest, etc.
+    --pipeline-id ints       Filter by pipeline IDs (repeatable).
+    --query-order string     Order the results: {finishtimeascending|finishtimedescending|queuetimeascending|queuetimedescending|starttimeascending|starttimedescending}
+    --reason string          Filter by reason: {all|batchedci|buildcompletion|checkinshelveset|individualci|manual|none|pullrequest|resourcetrigger|schedule|scheduleforced|triggered|usercreated|validateshelveset}
     --requested-for string   Filter by the user who queued the run. Accepts @me to mean the authenticated user.
-    --result strings         Filter by result (repeatable; first value is honored). Valid: none, succeeded, partiallySucceeded, failed, canceled.
-    --status strings         Filter by status (repeatable; first value is honored). Valid: none, inProgress, completed, cancelling, postponed, notStarted, all.
+    --result string          Filter by result: {canceled|failed|none|partiallysucceeded|succeeded}
+    --status string          Filter by status: {all|cancelling|completed|inprogress|none|notstarted|postponed}
     --tag strings            Filter by tags (all supplied tags must match).
 -t, --template string        Format JSON output using a Go template; see "azdo help formatting"
     --top int                Maximum number of runs to request per server page (0 = server default).

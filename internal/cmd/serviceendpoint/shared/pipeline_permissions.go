@@ -71,7 +71,7 @@ func runCleanup(opErr error, cleanup CleanupFunc) error {
 		return opErr
 	}
 	if err := cleanup(); err != nil {
-		return fmt.Errorf("%w (cleanup failed: %v)", opErr, err)
+		return fmt.Errorf("%w (cleanup failed: %w)", opErr, err)
 	}
 	return opErr
 }

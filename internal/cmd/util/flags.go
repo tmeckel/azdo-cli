@@ -28,16 +28,26 @@ func NilBoolFlag(cmd *cobra.Command, p **bool, name string, shorthand string, us
 func StringEnumFlag(cmd *cobra.Command, p *string, name, shorthand, defaultValue string, options []string, usage string) *pflag.Flag {
 	*p = defaultValue
 	val := &enumValue{string: p, options: options}
-	f := cmd.Flags().VarPF(val, name, shorthand, fmt.Sprintf("%s: %s", usage, formatValuesForUsageDocs(options)))
-	_ = cmd.RegisterFlagCompletionFunc(name, func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
-		return options, cobra.ShellCompDirectiveNoFileComp
-	})
-	return f
+	return registerEnumFlag(cmd, val, name, shorthand, options, usage)
+}
+
+func NilStringEnumFlag(cmd *cobra.Command, p **string, name, shorthand string, options []string, usage string) *pflag.Flag {
+	val := &nullableEnumValue{string: p, options: options}
+	return registerEnumFlag(cmd, val, name, shorthand, options, usage)
 }
 
 func StringSliceEnumFlag(cmd *cobra.Command, p *[]string, name, shorthand string, defaultValues, options []string, usage string) *pflag.Flag {
 	*p = defaultValues
 	val := &enumMultiValue{value: p, options: options}
+	return registerEnumFlag(cmd, val, name, shorthand, options, usage)
+}
+
+func NilStringSliceEnumFlag(cmd *cobra.Command, p *[]string, name, shorthand string, options []string, usage string) *pflag.Flag {
+	val := &nullableEnumMultiValue{value: p, options: options}
+	return registerEnumFlag(cmd, val, name, shorthand, options, usage)
+}
+
+func registerEnumFlag(cmd *cobra.Command, val pflag.Value, name, shorthand string, options []string, usage string) *pflag.Flag {
 	f := cmd.Flags().VarPF(val, name, shorthand, fmt.Sprintf("%s: %s", usage, formatValuesForUsageDocs(options)))
 	_ = cmd.RegisterFlagCompletionFunc(name, func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
 		return options, cobra.ShellCompDirectiveNoFileComp
@@ -130,8 +140,8 @@ type enumValue struct {
 }
 
 func (e *enumValue) Set(value string) error {
-	if !isIncluded(value, e.options) {
-		return fmt.Errorf("valid values are %s", formatValuesForUsageDocs(e.options))
+	if err := validateEnumValue(value, e.options); err != nil {
+		return err
 	}
 	*e.string = value
 	return nil
@@ -142,6 +152,30 @@ func (e *enumValue) String() string {
 }
 
 func (e *enumValue) Type() string {
+	return "string"
+}
+
+type nullableEnumValue struct {
+	string  **string
+	options []string
+}
+
+func (e *nullableEnumValue) Set(value string) error {
+	if err := validateEnumValue(value, e.options); err != nil {
+		return err
+	}
+	*e.string = &value
+	return nil
+}
+
+func (e *nullableEnumValue) String() string {
+	if e.string == nil || *e.string == nil {
+		return ""
+	}
+	return **e.string
+}
+
+func (e *nullableEnumValue) Type() string {
 	return "string"
 }
 
@@ -170,6 +204,40 @@ func (e *enumMultiValue) String() string {
 
 func (e *enumMultiValue) Type() string {
 	return "stringSlice"
+}
+
+type nullableEnumMultiValue struct {
+	value   *[]string
+	options []string
+}
+
+func (e *nullableEnumMultiValue) Set(value string) error {
+	items := strings.Split(value, ",")
+	for _, item := range items {
+		if !isIncluded(item, e.options) {
+			return fmt.Errorf("valid values are %s", formatValuesForUsageDocs(e.options))
+		}
+	}
+	*e.value = append(*e.value, items...)
+	return nil
+}
+
+func (e *nullableEnumMultiValue) String() string {
+	if e.value == nil || len(*e.value) == 0 {
+		return ""
+	}
+	return fmt.Sprintf("{%s}", strings.Join(*e.value, ", "))
+}
+
+func (e *nullableEnumMultiValue) Type() string {
+	return "stringSlice"
+}
+
+func validateEnumValue(value string, opts []string) error {
+	if !isIncluded(value, opts) {
+		return fmt.Errorf("valid values are %s", formatValuesForUsageDocs(opts))
+	}
+	return nil
 }
 
 func isIncluded(value string, opts []string) bool {

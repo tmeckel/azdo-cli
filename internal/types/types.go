@@ -2,6 +2,8 @@ package types
 
 import (
 	"cmp"
+	"maps"
+	"slices"
 	"strings"
 )
 
@@ -37,13 +39,30 @@ func PositivePtrOrNil[T cmp.Ordered](v T) *T {
 	return &v
 }
 
-// LookupEnum returns first case-insensitive match from values.
-func LookupEnum[T ~string](input string, values []T) (T, bool) {
-	for _, v := range values {
-		if strings.EqualFold(input, string(v)) {
-			return v, true
-		}
+type EnumLookup[T any] map[string]T
+
+func (l EnumLookup[T]) Keys() []string {
+	keys := slices.Collect(maps.Keys(l))
+	slices.Sort(keys)
+	return keys
+}
+
+func (l EnumLookup[T]) GetValue(value string) (T, bool) {
+	v, ok := l[strings.ToLower(strings.TrimSpace(value))]
+	if !ok {
+		var zero T
+		return zero, false
 	}
-	var zero T
-	return zero, false
+	return v, true
+}
+
+func (l EnumLookup[T]) GetValuePtr(value *string) (*T, bool) {
+	if value == nil {
+		return nil, true
+	}
+	v, ok := l.GetValue(*value)
+	if !ok {
+		return nil, false
+	}
+	return ToPtr(v), true
 }

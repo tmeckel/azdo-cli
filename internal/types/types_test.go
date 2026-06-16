@@ -7,31 +7,73 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestLookupEnum_Match(t *testing.T) {
+func TestEnumLookup(t *testing.T) {
 	t.Parallel()
 
-	got, ok := LookupEnum("BeTa", []string{"alpha", "beta", "gamma"})
+	lookup := EnumLookup[string]{
+		"none":   "none",
+		"manage": "manage",
+		"use":    "use",
+	}
 
-	require.True(t, ok)
-	assert.Equal(t, "beta", got)
-}
+	t.Run("keys are sorted", func(t *testing.T) {
+		t.Parallel()
+		assert.Equal(t, []string{"manage", "none", "use"}, lookup.Keys())
+	})
 
-func TestLookupEnum_NoMatch(t *testing.T) {
-	t.Parallel()
+	t.Run("get value", func(t *testing.T) {
+		t.Parallel()
 
-	got, ok := LookupEnum("delta", []string{"alpha", "beta", "gamma"})
+		tests := []struct {
+			name   string
+			input  string
+			want   string
+			wantOK bool
+		}{
+			{name: "exact", input: "manage", want: "manage", wantOK: true},
+			{name: "trimmed and lowercased", input: " Use ", want: "use", wantOK: true},
+			{name: "invalid", input: "admin", wantOK: false},
+		}
 
-	assert.False(t, ok)
-	assert.Equal(t, "", got)
-}
+		for _, tt := range tests {
+			t.Run(tt.name, func(t *testing.T) {
+				got, ok := lookup.GetValue(tt.input)
+				assert.Equal(t, tt.wantOK, ok)
+				if !tt.wantOK {
+					assert.Equal(t, "", got)
+					return
+				}
+				assert.Equal(t, tt.want, got)
+			})
+		}
+	})
 
-func TestLookupEnum_NamedStringType(t *testing.T) {
-	t.Parallel()
+	t.Run("get value ptr", func(t *testing.T) {
+		t.Parallel()
 
-	type enum string
+		tests := []struct {
+			name   string
+			input  *string
+			want   *string
+			wantOK bool
+		}{
+			{name: "nil", input: nil, want: nil, wantOK: true},
+			{name: "valid", input: ToPtr(" Manage "), want: ToPtr("manage"), wantOK: true},
+			{name: "invalid", input: ToPtr("admin"), want: nil, wantOK: false},
+		}
 
-	got, ok := LookupEnum("SECOND", []enum{"first", "second"})
+		for _, tt := range tests {
+			t.Run(tt.name, func(t *testing.T) {
+				got, ok := lookup.GetValuePtr(tt.input)
+				assert.Equal(t, tt.wantOK, ok)
+				if tt.want == nil {
+					assert.Nil(t, got)
+					return
+				}
 
-	require.True(t, ok)
-	assert.Equal(t, enum("second"), got)
+				require.NotNil(t, got)
+				assert.Equal(t, *tt.want, *got)
+			})
+		}
+	})
 }

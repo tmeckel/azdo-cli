@@ -19,13 +19,13 @@ type runOptions struct {
 	scopeArg string
 
 	pipelineIDs  []int
-	branches     []string
-	statuses     []string
-	results      []string
-	reasons      []string
-	requestedFor string
+	branch       *string
+	status       *string
+	result       *string
+	reason       *string
+	requestedFor *string
 	tags         []string
-	queryOrder   string
+	queryOrder   *string
 
 	top      int
 	maxItems int
@@ -68,14 +68,14 @@ func NewCmd(ctx util.CmdContext) *cobra.Command {
 		},
 	}
 
-	cmd.Flags().IntSliceVar(&opts.pipelineIDs, "pipeline-id", nil, "Limit to runs for these pipeline IDs (repeatable; first value is honored by the SDK).")
-	cmd.Flags().StringSliceVar(&opts.branches, "branch", nil, "Filter by source branch (repeatable; first value is honored by the SDK). Bare names get refs/heads/ prepended.")
-	cmd.Flags().StringSliceVar(&opts.statuses, "status", nil, "Filter by status (repeatable; first value is honored). Valid: none, inProgress, completed, cancelling, postponed, notStarted, all.")
-	cmd.Flags().StringSliceVar(&opts.results, "result", nil, "Filter by result (repeatable; first value is honored). Valid: none, succeeded, partiallySucceeded, failed, canceled.")
-	cmd.Flags().StringSliceVar(&opts.reasons, "reason", nil, "Filter by reason (repeatable; first value is honored). Valid: manual, individualCI, batchedCI, schedule, scheduleForced, userCreated, pullRequest, etc.")
-	cmd.Flags().StringVar(&opts.requestedFor, "requested-for", "", "Filter by the user who queued the run. Accepts @me to mean the authenticated user.")
+	cmd.Flags().IntSliceVar(&opts.pipelineIDs, "pipeline-id", nil, "Filter by pipeline IDs (repeatable).")
+	util.NilStringFlag(cmd, &opts.branch, "branch", "", "Filter by source branch. Bare names get refs/heads/ prepended.")
+	util.NilStringEnumFlag(cmd, &opts.status, "status", "", buildStatusLookup.Keys(), "Filter by status")
+	util.NilStringEnumFlag(cmd, &opts.result, "result", "", buildResultLookup.Keys(), "Filter by result")
+	util.NilStringEnumFlag(cmd, &opts.reason, "reason", "", buildReasonLookup.Keys(), "Filter by reason")
+	util.NilStringFlag(cmd, &opts.requestedFor, "requested-for", "", "Filter by the user who queued the run. Accepts @me to mean the authenticated user.")
 	cmd.Flags().StringSliceVar(&opts.tags, "tag", nil, "Filter by tags (all supplied tags must match).")
-	cmd.Flags().StringVar(&opts.queryOrder, "query-order", "", "Order the results: finishTimeAscending, finishTimeDescending, queueTimeAscending, queueTimeDescending, startTimeAscending, startTimeDescending.")
+	util.NilStringEnumFlag(cmd, &opts.queryOrder, "query-order", "", buildQueryOrderLookup.Keys(), "Order the results")
 	cmd.Flags().IntVar(&opts.top, "top", 0, "Maximum number of runs to request per server page (0 = server default).")
 	cmd.Flags().IntVar(&opts.maxItems, "max-items", 0, "Maximum number of runs to return client-side (0 = unlimited).")
 
@@ -103,38 +103,34 @@ func runCmd(ctx util.CmdContext, opts *runOptions) error {
 	}
 
 	ios.StartProgressIndicator()
+	defer ios.StopProgressIndicator()
 
 	scope, err := util.ParseProjectScope(ctx, opts.scopeArg)
 	if err != nil {
-		ios.StopProgressIndicator()
 		return util.FlagErrorWrap(err)
 	}
 
 	client, err := ctx.ClientFactory().Build(ctx.Context(), scope.Organization)
 	if err != nil {
-		ios.StopProgressIndicator()
 		return fmt.Errorf("failed to create Build client: %w", err)
 	}
 
-	requestedFor := opts.requestedFor
+	requestedFor := types.GetValue(opts.requestedFor, "")
 	if strings.EqualFold(requestedFor, "@me") {
 		zap.L().Debug("resolving @me to current user identity", zap.String("organization", scope.Organization))
 
 		extensionsClient, err := ctx.ClientFactory().Extensions(ctx.Context(), scope.Organization)
 		if err != nil {
-			ios.StopProgressIndicator()
 			return fmt.Errorf("failed to create Extensions client: %w", err)
 		}
 
 		identityClient, err := ctx.ClientFactory().Identity(ctx.Context(), scope.Organization)
 		if err != nil {
-			ios.StopProgressIndicator()
 			return fmt.Errorf("failed to create Identity client: %w", err)
 		}
 
 		selfID, err := extensionsClient.GetSelfID(ctx.Context())
 		if err != nil {
-			ios.StopProgressIndicator()
 			return fmt.Errorf("failed to resolve @me identity: %w", err)
 		}
 
@@ -143,11 +139,9 @@ func runCmd(ctx util.CmdContext, opts *runOptions) error {
 			IdentityIds: &idStr,
 		})
 		if err != nil {
-			ios.StopProgressIndicator()
 			return fmt.Errorf("failed to resolve @me identity details: %w", err)
 		}
 		if identities == nil || len(*identities) != 1 {
-			ios.StopProgressIndicator()
 			return fmt.Errorf("failed to resolve @me identity details")
 		}
 
@@ -157,39 +151,35 @@ func runCmd(ctx util.CmdContext, opts *runOptions) error {
 	project := scope.Project
 	bArgs := build.GetBuildsArgs{Project: &project}
 	if ids := opts.pipelineIDs; len(ids) > 0 {
-		first := ids
-		bArgs.Definitions = &first
+		bArgs.Definitions = &opts.pipelineIDs
 	}
-	if len(opts.branches) > 0 {
-		branch := opts.branches[0]
+	if opts.branch != nil {
+		branch := *opts.branch
 		if !strings.HasPrefix(branch, "refs/") {
 			branch = "refs/heads/" + branch
 		}
 		bArgs.BranchName = &branch
 	}
-	if len(opts.statuses) > 0 {
-		status, ok := types.LookupEnum(opts.statuses[0], allBuildStatuses)
+	if opts.status != nil {
+		status, ok := buildStatusLookup.GetValue(*opts.status)
 		if !ok {
-			ios.StopProgressIndicator()
-			return util.FlagErrorf("unknown --status value %q", opts.statuses[0])
+			return util.FlagErrorf("unknown --status value %q", *opts.status)
 		}
-		bArgs.StatusFilter = &status
+		bArgs.StatusFilter = types.ToPtr(status)
 	}
-	if len(opts.results) > 0 {
-		result, ok := types.LookupEnum(opts.results[0], allBuildResults)
+	if opts.result != nil {
+		result, ok := buildResultLookup.GetValue(*opts.result)
 		if !ok {
-			ios.StopProgressIndicator()
-			return util.FlagErrorf("unknown --result value %q", opts.results[0])
+			return util.FlagErrorf("unknown --result value %q", *opts.result)
 		}
-		bArgs.ResultFilter = &result
+		bArgs.ResultFilter = types.ToPtr(result)
 	}
-	if len(opts.reasons) > 0 {
-		reason, ok := types.LookupEnum(opts.reasons[0], allBuildReasons)
+	if opts.reason != nil {
+		reason, ok := buildReasonLookup.GetValue(*opts.reason)
 		if !ok {
-			ios.StopProgressIndicator()
-			return util.FlagErrorf("unknown --reason value %q", opts.reasons[0])
+			return util.FlagErrorf("unknown --reason value %q", *opts.reason)
 		}
-		bArgs.ReasonFilter = &reason
+		bArgs.ReasonFilter = types.ToPtr(reason)
 	}
 	if requestedFor != "" {
 		bArgs.RequestedFor = &requestedFor
@@ -197,24 +187,22 @@ func runCmd(ctx util.CmdContext, opts *runOptions) error {
 	if len(opts.tags) > 0 {
 		bArgs.TagFilters = &opts.tags
 	}
-	if opts.queryOrder != "" {
-		order, ok := types.LookupEnum(opts.queryOrder, allBuildQueryOrders)
+	if opts.queryOrder != nil {
+		order, ok := buildQueryOrderLookup.GetValue(*opts.queryOrder)
 		if !ok {
-			ios.StopProgressIndicator()
-			return util.FlagErrorf("unknown --query-order value %q", opts.queryOrder)
+			return util.FlagErrorf("unknown --query-order value %q", *opts.queryOrder)
 		}
-		bArgs.QueryOrder = &order
+		bArgs.QueryOrder = types.ToPtr(order)
 	}
 	if opts.top > 0 {
 		bArgs.Top = &opts.top
 	}
 
-	runs := make([]build.Build, 0)
+	var runs []build.Build
 paginate:
 	for {
 		resp, err := client.GetBuilds(ctx.Context(), bArgs)
 		if err != nil {
-			ios.StopProgressIndicator()
 			return fmt.Errorf("GetBuilds: %w", err)
 		}
 		if resp != nil {
@@ -231,8 +219,6 @@ paginate:
 		token := resp.ContinuationToken
 		bArgs.ContinuationToken = &token
 	}
-
-	ios.StopProgressIndicator()
 
 	if opts.exporter != nil {
 		return opts.exporter.Write(ios, runs)
@@ -253,10 +239,9 @@ paginate:
 
 		var defName string
 		if def := run.Definition; def != nil {
-			if def.Name != nil && *def.Name != "" {
-				defName = *def.Name
-			} else if def.Id != nil {
-				defName = strconv.Itoa(*def.Id)
+			defName = types.GetValue(def.Name, "")
+			if defName == "" && def.Id != nil {
+				defName = strconv.Itoa(types.GetValue(def.Id, 0))
 			}
 		}
 		tp.AddField(defName)
@@ -265,11 +250,7 @@ paginate:
 
 		var identName string
 		if ref := run.RequestedFor; ref != nil {
-			if name := types.GetValue(ref.DisplayName, ""); name != "" {
-				identName = name
-			} else {
-				identName = types.GetValue(ref.UniqueName, "")
-			}
+			identName = types.GetValue(ref.DisplayName, types.GetValue(ref.UniqueName, ""))
 		}
 		tp.AddField(identName)
 
@@ -280,46 +261,46 @@ paginate:
 	return tp.Render()
 }
 
-var allBuildStatuses = []build.BuildStatus{
-	build.BuildStatusValues.None,
-	build.BuildStatusValues.InProgress,
-	build.BuildStatusValues.Completed,
-	build.BuildStatusValues.Cancelling,
-	build.BuildStatusValues.Postponed,
-	build.BuildStatusValues.NotStarted,
-	build.BuildStatusValues.All,
+var buildStatusLookup = types.EnumLookup[build.BuildStatus]{
+	"none":       build.BuildStatusValues.None,
+	"inprogress": build.BuildStatusValues.InProgress,
+	"completed":  build.BuildStatusValues.Completed,
+	"cancelling": build.BuildStatusValues.Cancelling,
+	"postponed":  build.BuildStatusValues.Postponed,
+	"notstarted": build.BuildStatusValues.NotStarted,
+	"all":        build.BuildStatusValues.All,
 }
 
-var allBuildResults = []build.BuildResult{
-	build.BuildResultValues.None,
-	build.BuildResultValues.Succeeded,
-	build.BuildResultValues.PartiallySucceeded,
-	build.BuildResultValues.Failed,
-	build.BuildResultValues.Canceled,
+var buildResultLookup = types.EnumLookup[build.BuildResult]{
+	"none":               build.BuildResultValues.None,
+	"succeeded":          build.BuildResultValues.Succeeded,
+	"partiallysucceeded": build.BuildResultValues.PartiallySucceeded,
+	"failed":             build.BuildResultValues.Failed,
+	"canceled":           build.BuildResultValues.Canceled,
 }
 
-var allBuildReasons = []build.BuildReason{
-	build.BuildReasonValues.None,
-	build.BuildReasonValues.Manual,
-	build.BuildReasonValues.IndividualCI,
-	build.BuildReasonValues.BatchedCI,
-	build.BuildReasonValues.Schedule,
-	build.BuildReasonValues.ScheduleForced,
-	build.BuildReasonValues.UserCreated,
-	build.BuildReasonValues.ValidateShelveset,
-	build.BuildReasonValues.CheckInShelveset,
-	build.BuildReasonValues.PullRequest,
-	build.BuildReasonValues.BuildCompletion,
-	build.BuildReasonValues.ResourceTrigger,
-	build.BuildReasonValues.Triggered,
-	build.BuildReasonValues.All,
+var buildReasonLookup = types.EnumLookup[build.BuildReason]{
+	"none":              build.BuildReasonValues.None,
+	"manual":            build.BuildReasonValues.Manual,
+	"individualci":      build.BuildReasonValues.IndividualCI,
+	"batchedci":         build.BuildReasonValues.BatchedCI,
+	"schedule":          build.BuildReasonValues.Schedule,
+	"scheduleforced":    build.BuildReasonValues.ScheduleForced,
+	"usercreated":       build.BuildReasonValues.UserCreated,
+	"validateshelveset": build.BuildReasonValues.ValidateShelveset,
+	"checkinshelveset":  build.BuildReasonValues.CheckInShelveset,
+	"pullrequest":       build.BuildReasonValues.PullRequest,
+	"buildcompletion":   build.BuildReasonValues.BuildCompletion,
+	"resourcetrigger":   build.BuildReasonValues.ResourceTrigger,
+	"triggered":         build.BuildReasonValues.Triggered,
+	"all":               build.BuildReasonValues.All,
 }
 
-var allBuildQueryOrders = []build.BuildQueryOrder{
-	build.BuildQueryOrderValues.FinishTimeAscending,
-	build.BuildQueryOrderValues.FinishTimeDescending,
-	build.BuildQueryOrderValues.QueueTimeDescending,
-	build.BuildQueryOrderValues.QueueTimeAscending,
-	build.BuildQueryOrderValues.StartTimeDescending,
-	build.BuildQueryOrderValues.StartTimeAscending,
+var buildQueryOrderLookup = types.EnumLookup[build.BuildQueryOrder]{
+	"finishtimeascending":  build.BuildQueryOrderValues.FinishTimeAscending,
+	"finishtimedescending": build.BuildQueryOrderValues.FinishTimeDescending,
+	"queuetimedescending":  build.BuildQueryOrderValues.QueueTimeDescending,
+	"queuetimeascending":   build.BuildQueryOrderValues.QueueTimeAscending,
+	"starttimedescending":  build.BuildQueryOrderValues.StartTimeDescending,
+	"starttimeascending":   build.BuildQueryOrderValues.StartTimeAscending,
 }

@@ -15,9 +15,9 @@ and tags. The full result set is paginated server-side; use
 ### Options
 
 
-* `--branch` `strings`
+* `--branch` `string`
 
-	Filter by source branch (repeatable; first value is honored by the SDK). Bare names get refs/heads/ prepended.
+	Filter by source branch. Bare names get refs/heads/ prepended.
 
 * `-q`, `--jq` `expression`
 
@@ -33,27 +33,27 @@ and tags. The full result set is paginated server-side; use
 
 * `--pipeline-id` `ints`
 
-	Limit to runs for these pipeline IDs (repeatable; first value is honored by the SDK).
+	Filter by pipeline IDs (repeatable).
 
 * `--query-order` `string`
 
-	Order the results: finishTimeAscending, finishTimeDescending, queueTimeAscending, queueTimeDescending, startTimeAscending, startTimeDescending.
+	Order the results: {finishtimeascending|finishtimedescending|queuetimeascending|queuetimedescending|starttimeascending|starttimedescending}
 
-* `--reason` `strings`
+* `--reason` `string`
 
-	Filter by reason (repeatable; first value is honored). Valid: manual, individualCI, batchedCI, schedule, scheduleForced, userCreated, pullRequest, etc.
+	Filter by reason: {all|batchedci|buildcompletion|checkinshelveset|individualci|manual|none|pullrequest|resourcetrigger|schedule|scheduleforced|triggered|usercreated|validateshelveset}
 
 * `--requested-for` `string`
 
 	Filter by the user who queued the run. Accepts @me to mean the authenticated user.
 
-* `--result` `strings`
+* `--result` `string`
 
-	Filter by result (repeatable; first value is honored). Valid: none, succeeded, partiallySucceeded, failed, canceled.
+	Filter by result: {canceled|failed|none|partiallysucceeded|succeeded}
 
-* `--status` `strings`
+* `--status` `string`
 
-	Filter by status (repeatable; first value is honored). Valid: none, inProgress, completed, cancelling, postponed, notStarted, all.
+	Filter by status: {all|cancelling|completed|inprogress|none|notstarted|postponed}
 
 * `--tag` `strings`
 
