@@ -7,6 +7,7 @@ and connect a project to an agent pool.
 ### Available commands
 
 * [azdo pipelines queue list](./azdo_pipelines_queue_list.md)
+* [azdo pipelines queue show](./azdo_pipelines_queue_show.md)
 
 ### Examples
 

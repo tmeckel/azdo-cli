@@ -395,6 +395,22 @@ Aliases
 ls, l
 ```
 
+#### `azdo pipelines queue show [ORGANIZATION/]PROJECT/QUEUE [flags]`
+
+Show details of an agent queue
+
+```
+-q, --jq expression     Filter JSON output using a jq expression
+    --json fields[=*]   Output JSON with the specified fields. Prefix a field with '-' to exclude it.
+-t, --template string   Format JSON output using a Go template; see "azdo help formatting"
+```
+
+Aliases
+
+```
+view, status
+```
+
 ### `azdo pipelines run [ORGANIZATION/]PROJECT/PIPELINE [flags]`
 
 Queue a pipeline run
