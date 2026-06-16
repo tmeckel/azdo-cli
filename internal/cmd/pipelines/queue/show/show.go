@@ -8,7 +8,6 @@ import (
 
 	"github.com/MakeNowJust/heredoc/v2"
 	"github.com/microsoft/azure-devops-go-api/azuredevops/v7/taskagent"
-	"github.com/spewerspew/spew"
 	"github.com/spf13/cobra"
 	"go.uber.org/zap"
 
@@ -19,7 +18,6 @@ import (
 
 type showOptions struct {
 	targetArg string
-	raw       bool
 	exporter  util.Exporter
 }
 
@@ -55,7 +53,6 @@ func NewCmd(ctx util.CmdContext) *cobra.Command {
 		},
 	}
 
-	cmd.Flags().BoolVarP(&opts.raw, "raw", "r", false, "Dump raw queue object to stderr")
 	util.AddJSONFlags(cmd, &opts.exporter, []string{
 		"id", "name", "pool", "projectId",
 	})
@@ -134,12 +131,6 @@ func runShow(cmdCtx util.CmdContext, opts *showOptions) error {
 	}
 	if queue == nil {
 		return fmt.Errorf("queue %q not found", scope.Targets[0])
-	}
-
-	if opts.raw {
-		ios.StopProgressIndicator()
-		spew.Dump(queue)
-		return nil
 	}
 
 	if opts.exporter != nil {

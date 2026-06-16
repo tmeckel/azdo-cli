@@ -236,21 +236,6 @@ func TestRunShow_JSONOutput(t *testing.T) {
 	assert.NotContains(t, output, `"createdBy":`)
 }
 
-func TestRunShow_RawFlag(t *testing.T) {
-	t.Parallel()
-
-	deps := newDependencies(t)
-	deps.clientFact.EXPECT().TaskAgent(gomock.Any(), "myorg").Return(deps.taskClient, nil)
-
-	q := sampleQueue()
-	deps.taskClient.EXPECT().GetAgentQueue(gomock.Any(), gomock.Any()).Return(q, nil)
-
-	opts := &showOptions{targetArg: "myorg/Fabrikam/7", raw: true}
-	err := runShow(deps.cmd, opts)
-	require.NoError(t, err)
-	assert.Empty(t, cleanOutput(deps.stdout))
-}
-
 func TestRunShow_ProjectScopeParsing(t *testing.T) {
 	t.Parallel()
 
@@ -399,10 +384,13 @@ func TestNewCmd_HasFlags(t *testing.T) {
 	t.Parallel()
 
 	cmd := NewCmd(nil)
-	rawFlag := cmd.Flag("raw")
-	require.NotNil(t, rawFlag)
-	assert.Equal(t, "r", rawFlag.Shorthand)
-
 	jsonFlag := cmd.Flag("json")
 	require.NotNil(t, jsonFlag)
+}
+
+func TestNewCmd_DoesNotExposeRawFlag(t *testing.T) {
+	t.Parallel()
+
+	cmd := NewCmd(nil)
+	assert.Nil(t, cmd.Flag("raw"))
 }
