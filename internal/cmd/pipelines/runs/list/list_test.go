@@ -18,6 +18,7 @@ import (
 	"github.com/tmeckel/azdo-cli/internal/iostreams"
 	"github.com/tmeckel/azdo-cli/internal/mocks"
 	"github.com/tmeckel/azdo-cli/internal/printer"
+	"github.com/tmeckel/azdo-cli/internal/types"
 )
 
 type dependencies struct {
@@ -108,6 +109,52 @@ func (s *spyExporter) Write(_ *iostreams.IOStreams, v any) error {
 	return nil
 }
 
+func TestNewCmd_ParseInvalidEnum(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name  string
+		flags []string
+		want  string
+	}{
+		{name: "invalid status", flags: []string{"--status", "BAD"}, want: "valid values are"},
+		{name: "invalid result", flags: []string{"--result", "BAD"}, want: "valid values are"},
+		{name: "invalid reason", flags: []string{"--reason", "BAD"}, want: "valid values are"},
+		{name: "invalid query-order", flags: []string{"--query-order", "BAD"}, want: "valid values are"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			cmd := NewCmd(nil)
+			err := cmd.ParseFlags(tt.flags)
+			require.Error(t, err)
+			assert.Contains(t, err.Error(), tt.want)
+		})
+	}
+}
+
+func TestNewCmd_ParseValidEnum(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name  string
+		flags []string
+	}{
+		{name: "status completed", flags: []string{"--status", "completed"}},
+		{name: "result succeeded", flags: []string{"--result", "succeeded"}},
+		{name: "reason manual", flags: []string{"--reason", "manual"}},
+		{name: "query-order", flags: []string{"--query-order", "queueTimeDescending"}},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			cmd := NewCmd(nil)
+			err := cmd.ParseFlags(tt.flags)
+			require.NoError(t, err, "valid enum value must parse")
+		})
+	}
+}
+
 func TestRunList_DefaultNoFilters(t *testing.T) {
 	t.Parallel()
 	deps := newDependencies(t, "MyOrg")
@@ -183,7 +230,7 @@ func TestRunList_BranchRefsHeadsPrepended(t *testing.T) {
 			return &build.GetBuildsResponseValue{ContinuationToken: ""}, nil
 		})
 
-	err := runCmd(deps.cmd, &runOptions{scopeArg: "MyOrg/Fabrikam", branches: []string{"main"}})
+	err := runCmd(deps.cmd, &runOptions{scopeArg: "MyOrg/Fabrikam", branch: types.ToPtr("main")})
 	require.NoError(t, err)
 }
 
@@ -198,31 +245,8 @@ func TestRunList_BranchRefsUnchanged(t *testing.T) {
 			return &build.GetBuildsResponseValue{ContinuationToken: ""}, nil
 		})
 
-	err := runCmd(deps.cmd, &runOptions{scopeArg: "MyOrg/Fabrikam", branches: []string{"refs/tags/v1.0"}})
+	err := runCmd(deps.cmd, &runOptions{scopeArg: "MyOrg/Fabrikam", branch: types.ToPtr("refs/tags/v1.0")})
 	require.NoError(t, err)
-}
-
-func TestRunList_InvalidFilters(t *testing.T) {
-	t.Parallel()
-
-	tests := []struct {
-		name string
-		opts runOptions
-		want string
-	}{
-		{name: "invalid status", opts: runOptions{scopeArg: "MyOrg/Fabrikam", statuses: []string{"INVALID_STATUS"}}, want: "unknown --status"},
-		{name: "invalid result", opts: runOptions{scopeArg: "MyOrg/Fabrikam", results: []string{"INVALID_RESULT"}}, want: "unknown --result"},
-		{name: "invalid reason", opts: runOptions{scopeArg: "MyOrg/Fabrikam", reasons: []string{"INVALID_REASON"}}, want: "unknown --reason"},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			deps := newDependencies(t, "MyOrg")
-			err := runCmd(deps.cmd, &tt.opts)
-			require.Error(t, err)
-			assert.Contains(t, err.Error(), tt.want)
-		})
-	}
 }
 
 func TestRunList_RequestedForAtMe(t *testing.T) {
@@ -253,7 +277,7 @@ func TestRunList_RequestedForAtMe(t *testing.T) {
 			return &build.GetBuildsResponseValue{ContinuationToken: ""}, nil
 		})
 
-	err := runCmd(deps.cmd, &runOptions{scopeArg: "MyOrg/Fabrikam", requestedFor: "@me"})
+	err := runCmd(deps.cmd, &runOptions{scopeArg: "MyOrg/Fabrikam", requestedFor: types.ToPtr("@me")})
 	require.NoError(t, err)
 	assert.Equal(t, "Alice", capturedRequestedFor)
 }
@@ -269,7 +293,7 @@ func TestRunList_QueryOrder(t *testing.T) {
 			return &build.GetBuildsResponseValue{ContinuationToken: ""}, nil
 		})
 
-	err := runCmd(deps.cmd, &runOptions{scopeArg: "MyOrg/Fabrikam", queryOrder: "queueTimeDescending"})
+	err := runCmd(deps.cmd, &runOptions{scopeArg: "MyOrg/Fabrikam", queryOrder: types.ToPtr("queueTimeDescending")})
 	require.NoError(t, err)
 }
 
