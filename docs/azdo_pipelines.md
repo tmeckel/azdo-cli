@@ -8,6 +8,7 @@ Manage Azure DevOps pipelines
 * [azdo pipelines delete](./azdo_pipelines_delete.md)
 * [azdo pipelines list](./azdo_pipelines_list.md)
 * [azdo pipelines pool](./azdo_pipelines_pool.md)
+* [azdo pipelines queue](./azdo_pipelines_queue.md)
 * [azdo pipelines run](./azdo_pipelines_run.md)
 * [azdo pipelines runs](./azdo_pipelines_runs.md)
 * [azdo pipelines show](./azdo_pipelines_show.md)
