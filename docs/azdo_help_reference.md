@@ -1039,6 +1039,22 @@ Configure default repository for this directory
 -v, --view    view the current default repository
 ```
 
+### `azdo repo show [ORGANIZATION/]PROJECT/REPO_ID_OR_NAME [flags]`
+
+Show repository details
+
+```
+-q, --jq expression     Filter JSON output using a jq expression
+    --json fields[=*]   Output JSON with the specified fields. Prefix a field with '-' to exclude it.
+-t, --template string   Format JSON output using a Go template; see "azdo help formatting"
+```
+
+Aliases
+
+```
+view, status
+```
+
 ## `azdo security <command> [flags]`
 
 Work with Azure DevOps security.

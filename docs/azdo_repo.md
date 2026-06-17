@@ -11,6 +11,7 @@ Work with Azure DevOps Git repositories.
 * [azdo repo list](./azdo_repo_list.md)
 * [azdo repo restore](./azdo_repo_restore.md)
 * [azdo repo set-default](./azdo_repo_set-default.md)
+* [azdo repo show](./azdo_repo_show.md)
 
 ### ALIASES
 
