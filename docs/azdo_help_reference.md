@@ -148,6 +148,25 @@ Aliases
 c, cr
 ```
 
+##### `azdo boards iteration project delete [ORGANIZATION/]PROJECT --path <path> [flags]`
+
+Delete an iteration from a project.
+
+```
+-q, --jq expression       Filter JSON output using a jq expression
+    --json fields[=*]     Output JSON with the specified fields. Prefix a field with '-' to exclude it.
+    --path string         Path of the iteration to delete (under /Iteration, leading /Iteration stripped).
+-r, --reclassify-id int   ID of the target node to which work items should be moved before deletion.
+-t, --template string     Format JSON output using a Go template; see "azdo help formatting"
+-y, --yes                 Skip the confirmation prompt.
+```
+
+Aliases
+
+```
+d, del, rm
+```
+
 ##### `azdo boards iteration project list [ORGANIZATION/]PROJECT [flags]`
 
 List iteration hierarchy for a project.
