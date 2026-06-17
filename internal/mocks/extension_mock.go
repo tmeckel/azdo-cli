@@ -105,6 +105,21 @@ func (mr *MockAzDOExtensionMockRecorder) GetVariableGroups(ctx, args any) *gomoc
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetVariableGroups", reflect.TypeOf((*MockAzDOExtension)(nil).GetVariableGroups), ctx, args)
 }
 
+// ResolveCurrentIdentity mocks base method.
+func (m *MockAzDOExtension) ResolveCurrentIdentity(ctx context.Context) (*identity.Identity, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ResolveCurrentIdentity", ctx)
+	ret0, _ := ret[0].(*identity.Identity)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ResolveCurrentIdentity indicates an expected call of ResolveCurrentIdentity.
+func (mr *MockAzDOExtensionMockRecorder) ResolveCurrentIdentity(ctx any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ResolveCurrentIdentity", reflect.TypeOf((*MockAzDOExtension)(nil).ResolveCurrentIdentity), ctx)
+}
+
 // ResolveIdentity mocks base method.
 func (m *MockAzDOExtension) ResolveIdentity(ctx context.Context, member string) (*identity.Identity, error) {
 	m.ctrl.T.Helper()
