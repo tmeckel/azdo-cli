@@ -127,6 +127,27 @@ Aliases
 prj, p
 ```
 
+##### `azdo boards iteration project create [ORGANIZATION/]PROJECT [flags]`
+
+Create an iteration (sprint) in a project.
+
+```
+    --attributes strings   Custom attribute in key=value form. Repeatable. start-date/finish-date win on key conflict.
+    --finish-date string   Iteration finish date (RFC 3339 or YYYY-MM-DD).
+-q, --jq expression        Filter JSON output using a jq expression
+    --json fields[=*]      Output JSON with the specified fields. Prefix a field with '-' to exclude it.
+    --name string          Name of the new iteration (required).
+    --path string          Parent iteration path under /Iteration. Omit to create at the project root.
+    --start-date string    Iteration start date (RFC 3339 or YYYY-MM-DD).
+-t, --template string      Format JSON output using a Go template; see "azdo help formatting"
+```
+
+Aliases
+
+```
+c, cr
+```
+
 ##### `azdo boards iteration project list [ORGANIZATION/]PROJECT [flags]`
 
 List iteration hierarchy for a project.
