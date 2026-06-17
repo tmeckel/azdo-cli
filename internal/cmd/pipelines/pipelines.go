@@ -4,6 +4,7 @@ import (
 	"github.com/MakeNowJust/heredoc/v2"
 	"github.com/spf13/cobra"
 	"github.com/tmeckel/azdo-cli/internal/cmd/pipelines/agent"
+	"github.com/tmeckel/azdo-cli/internal/cmd/pipelines/build"
 	"github.com/tmeckel/azdo-cli/internal/cmd/pipelines/delete"
 	"github.com/tmeckel/azdo-cli/internal/cmd/pipelines/list"
 	"github.com/tmeckel/azdo-cli/internal/cmd/pipelines/pool"
@@ -26,6 +27,7 @@ func NewCmd(ctx util.CmdContext) *cobra.Command {
 		`),
 	}
 
+	cmd.AddCommand(build.NewCmd(ctx))
 	cmd.AddCommand(delete.NewCmd(ctx))
 	cmd.AddCommand(list.NewCmd(ctx))
 	cmd.AddCommand(run.NewCmd(ctx))
