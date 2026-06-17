@@ -380,6 +380,7 @@ func TestRunShow_SDKError(t *testing.T) {
 	require.Error(t, err)
 	assert.ErrorIs(t, err, expectedErr)
 }
+
 func TestNewCmd_HasFlags(t *testing.T) {
 	t.Parallel()
 

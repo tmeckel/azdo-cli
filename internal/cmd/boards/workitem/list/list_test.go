@@ -10,7 +10,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/google/uuid"
 	"github.com/microsoft/azure-devops-go-api/azuredevops/v7/identity"
 	"github.com/microsoft/azure-devops-go-api/azuredevops/v7/workitemtracking"
 	"github.com/stretchr/testify/assert"
@@ -114,8 +113,7 @@ func TestRunList_SortInvalidField(t *testing.T) {
 	t.Parallel()
 	ios, _, _, _ := iostreams.Test()
 	deps := &fakeListDeps{
-		cmd:    mocks.NewMockCmdContext(ctrlFromT(t)),
-		stdout: &bytes.Buffer{},
+		cmd: mocks.NewMockCmdContext(ctrlFromT(t)),
 	}
 	deps.cmd.EXPECT().IOStreams().Return(ios, nil).AnyTimes()
 
@@ -188,8 +186,7 @@ func TestRunList_InvalidDateFlag(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	t.Cleanup(ctrl.Finish)
 	deps := &fakeListDeps{
-		cmd:    mocks.NewMockCmdContext(ctrl),
-		stdout: &bytes.Buffer{},
+		cmd: mocks.NewMockCmdContext(ctrl),
 	}
 	deps.cmd.EXPECT().IOStreams().Return(ios, nil).AnyTimes()
 
@@ -259,21 +256,14 @@ func TestRunList_CreatedByMe(t *testing.T) {
 	deps := setupFakeDeps(t, "org")
 	stubDefaultOpenTypes(deps)
 	stubBatch(t, deps, false)
-
-	selfID := uuid.New()
 	deps.clientFact.EXPECT().Extensions(gomock.Any(), "org").Return(deps.ext, nil)
-	deps.ext.EXPECT().GetSelfID(gomock.Any()).Return(selfID, nil)
-	deps.clientFact.EXPECT().Identity(gomock.Any(), "org").Return(deps.ident, nil)
-	deps.ident.EXPECT().ReadIdentities(gomock.Any(), gomock.Any()).DoAndReturn(
-		func(_ context.Context, args identity.ReadIdentitiesArgs) (*[]identity.Identity, error) {
-			require.NotNil(t, args.IdentityIds)
-			assert.Equal(t, selfID.String(), *args.IdentityIds)
-			id := identity.Identity{
+	deps.ext.EXPECT().ResolveCurrentIdentity(gomock.Any()).DoAndReturn(
+		func(_ context.Context) (*identity.Identity, error) {
+			return &identity.Identity{
 				Properties: map[string]any{
 					"Account": map[string]any{"$value": "Alice <alice@x.com>"},
 				},
-			}
-			return &[]identity.Identity{id}, nil
+			}, nil
 		},
 	)
 
@@ -403,7 +393,7 @@ func TestRunList_StatusAndStateIntersect(t *testing.T) {
 	})
 	require.NoError(t, err)
 	// We expect the category predicate (e.g. from "New","Active","Proposed","InProgress")
-	// ANDed with the state predicate, both inside the state segment.
+	// ANDead with the state predicate, both inside the state segment.
 	// The exact form: ( [System.State] IN ('New','Active','Proposed','InProgress') ) AND ( [System.State] IN ('Active') )
 	assert.Contains(t, captured, ") AND ([System.State] IN ('Active')")
 }
@@ -977,24 +967,15 @@ func TestRunList_AssignedToMeResolvesIdentity(t *testing.T) {
 	t.Parallel()
 
 	deps := setupFakeDeps(t, "org")
-
-	selfID := uuid.MustParse("11111111-1111-1111-1111-111111111111")
 	deps.clientFact.EXPECT().Extensions(gomock.Any(), "org").Return(deps.ext, nil)
-	deps.clientFact.EXPECT().Identity(gomock.Any(), "org").Return(deps.ident, nil)
-	deps.ext.EXPECT().GetSelfID(gomock.Any()).Return(selfID, nil)
-
-	idsArg := selfID.String()
-	deps.ident.EXPECT().ReadIdentities(gomock.Any(), gomock.Any()).DoAndReturn(
-		func(_ context.Context, args identity.ReadIdentitiesArgs) (*[]identity.Identity, error) {
-			require.NotNil(t, args.IdentityIds)
-			assert.Equal(t, idsArg, *args.IdentityIds)
+	deps.ext.EXPECT().ResolveCurrentIdentity(gomock.Any()).DoAndReturn(
+		func(_ context.Context) (*identity.Identity, error) {
 			account := "Account.From.Properties"
 			display := "Self User"
-			out := []identity.Identity{{
+			return &identity.Identity{
 				Properties:          map[string]any{"Account": map[string]any{"$value": account}},
 				ProviderDisplayName: &display,
-			}}
-			return &out, nil
+			}, nil
 		},
 	)
 

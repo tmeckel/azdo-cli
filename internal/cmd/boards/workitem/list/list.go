@@ -480,19 +480,12 @@ func resolveAssignedToFilter(ctx util.CmdContext, organization string, assignedT
 	}
 
 	var extensionsClient extensions.Client
-	var identityClient identity.Client
 	if needsLookup {
 		ext, err := ctx.ClientFactory().Extensions(ctx.Context(), organization)
 		if err != nil {
 			return nil, fmt.Errorf("failed to create Extensions client: %w", err)
 		}
 		extensionsClient = ext
-
-		idc, err := ctx.ClientFactory().Identity(ctx.Context(), organization)
-		if err != nil {
-			return nil, fmt.Errorf("failed to create Identity client: %w", err)
-		}
-		identityClient = idc
 	}
 
 	//nolint:dupl // intentional duplicate of resolveCreatedByFilter loop
@@ -504,21 +497,11 @@ func resolveAssignedToFilter(ctx util.CmdContext, organization string, assignedT
 		}
 
 		if strings.EqualFold(raw, "@me") {
-			selfID, err := extensionsClient.GetSelfID(ctx.Context())
+			ident, err := extensionsClient.ResolveCurrentIdentity(ctx.Context())
 			if err != nil {
-				return nil, fmt.Errorf("failed to resolve @me identity: %w", err)
+				return nil, err
 			}
-			identityIds := selfID.String()
-			identities, err := identityClient.ReadIdentities(ctx.Context(), identity.ReadIdentitiesArgs{
-				IdentityIds: &identityIds,
-			})
-			if err != nil {
-				return nil, fmt.Errorf("failed to resolve @me identity details: %w", err)
-			}
-			if identities == nil || len(*identities) != 1 {
-				return nil, fmt.Errorf("failed to resolve @me identity details")
-			}
-			value := identityAccountOrDisplay((*identities)[0])
+			value := identityAccountOrDisplay(*ident)
 			if value == "" {
 				return nil, fmt.Errorf("authenticated identity is missing account or display name")
 			}
@@ -568,18 +551,12 @@ func resolveCreatedByFilter(ctx util.CmdContext, organization string, createdBy 
 		}
 	}
 	var extensionsClient extensions.Client
-	var identityClient identity.Client
 	if needsLookup {
 		ext, err := ctx.ClientFactory().Extensions(ctx.Context(), organization)
 		if err != nil {
 			return nil, fmt.Errorf("failed to create Extensions client: %w", err)
 		}
 		extensionsClient = ext
-		idc, err := ctx.ClientFactory().Identity(ctx.Context(), organization)
-		if err != nil {
-			return nil, fmt.Errorf("failed to create Identity client: %w", err)
-		}
-		identityClient = idc
 	}
 	resolved := make([]string, 0, len(createdBy))
 	for _, raw := range createdBy {
@@ -588,19 +565,11 @@ func resolveCreatedByFilter(ctx util.CmdContext, organization string, createdBy 
 			continue
 		}
 		if strings.EqualFold(raw, "@me") {
-			selfID, err := extensionsClient.GetSelfID(ctx.Context())
+			ident, err := extensionsClient.ResolveCurrentIdentity(ctx.Context())
 			if err != nil {
-				return nil, fmt.Errorf("failed to resolve @me identity: %w", err)
+				return nil, err
 			}
-			identityIds := selfID.String()
-			identities, err := identityClient.ReadIdentities(ctx.Context(), identity.ReadIdentitiesArgs{IdentityIds: &identityIds})
-			if err != nil {
-				return nil, fmt.Errorf("failed to resolve @me identity details: %w", err)
-			}
-			if identities == nil || len(*identities) != 1 {
-				return nil, fmt.Errorf("failed to resolve @me identity details")
-			}
-			value := identityAccountOrDisplay((*identities)[0])
+			value := identityAccountOrDisplay(*ident)
 			if value == "" {
 				return nil, fmt.Errorf("authenticated identity is missing account or display name")
 			}
