@@ -32,7 +32,7 @@ type StringBuilder struct {
 func NewStringBuilder() *StringBuilder {
 	s := rand.NewSource(time.Now().UnixNano())
 	return &StringBuilder{
-		rand: rand.New(s),
+		rand: rand.New(s), //nolint:gosec
 	}
 }
 
