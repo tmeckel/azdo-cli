@@ -9,6 +9,7 @@
 # ignore-vcs = false
 extend-exclude = [
   "**/.mise.toml",
+  "vendor/**",
 ]
 
 [default]
