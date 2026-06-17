@@ -339,6 +339,28 @@ func resolveSearchBatch(ctx context.Context, identityClient identity.Client, gra
 	return nil
 }
 
+func (c *extensionClient) ResolveCurrentIdentity(ctx context.Context) (*identity.Identity, error) {
+	selfID, err := c.GetSelfID(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("failed to resolve @me identity: %w", err)
+	}
+
+	identityClient, err := identity.NewClient(ctx, c.conn)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create Identity client: %w", err)
+	}
+
+	idStr := selfID.String()
+	identities, err := identityClient.ReadIdentities(ctx, identity.ReadIdentitiesArgs{IdentityIds: &idStr})
+	if err != nil {
+		return nil, fmt.Errorf("failed to resolve @me identity details: %w", err)
+	}
+	if identities == nil || len(*identities) != 1 {
+		return nil, fmt.Errorf("failed to resolve @me identity details")
+	}
+	return &(*identities)[0], nil
+}
+
 func (c *extensionClient) ResolveIdentity(ctx context.Context, member string) (*identity.Identity, error) {
 	member = strings.TrimSpace(member)
 	if member == "" {
