@@ -76,6 +76,40 @@ func TestNilBoolFlag(t *testing.T) {
 	}
 }
 
+func TestNilIntFlag(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name string
+		args []string
+		want *int
+	}{
+		{name: "omitted", args: nil, want: nil},
+		{name: "set", args: []string{"--count", "42"}, want: ptr(42)},
+		{name: "set zero", args: []string{"--count", "0"}, want: ptr(0)},
+		{name: "short zero", args: []string{"-c", "0"}, want: ptr(0)},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var got *int
+			cmd := &cobra.Command{Use: "test"}
+			NilIntFlag(cmd, &got, "count", "c", "count")
+
+			err := cmd.ParseFlags(tt.args)
+			require.NoError(t, err)
+
+			if tt.want == nil {
+				assert.Nil(t, got)
+				return
+			}
+
+			require.NotNil(t, got)
+			assert.Equal(t, *tt.want, *got)
+		})
+	}
+}
+
 func TestStringEnumFlag(t *testing.T) {
 	t.Parallel()
 

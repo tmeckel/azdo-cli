@@ -24,6 +24,12 @@ func NilBoolFlag(cmd *cobra.Command, p **bool, name string, shorthand string, us
 	return f
 }
 
+// NilIntFlag defines a new flag with an int pointer receiver. This is useful for differentiating
+// between the flag being explicitly set to 0 and the flag not being passed at all.
+func NilIntFlag(cmd *cobra.Command, p **int, name string, shorthand string, usage string) *pflag.Flag {
+	return cmd.Flags().VarPF(newIntValue(p), name, shorthand, usage)
+}
+
 // StringEnumFlag defines a new string flag that only allows values listed in options.
 func StringEnumFlag(cmd *cobra.Command, p *string, name, shorthand, defaultValue string, options []string, usage string) *pflag.Flag {
 	*p = defaultValue
@@ -132,6 +138,31 @@ func (b *boolValue) Type() string {
 
 func (b *boolValue) IsBoolFlag() bool {
 	return true
+}
+
+type intValue struct {
+	int **int
+}
+
+func newIntValue(p **int) *intValue {
+	return &intValue{p}
+}
+
+func (i *intValue) Set(value string) error {
+	v, err := strconv.Atoi(value)
+	*i.int = &v
+	return err
+}
+
+func (i *intValue) String() string {
+	if i.int == nil || *i.int == nil {
+		return ""
+	}
+	return strconv.Itoa(**i.int)
+}
+
+func (i *intValue) Type() string {
+	return "int"
 }
 
 type enumValue struct {
