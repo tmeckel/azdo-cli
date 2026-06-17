@@ -32,7 +32,10 @@ type Client interface {
 	// Inputs that cannot be resolved are absent from the result map (keyed by the trimmed input string).
 	// The map naturally deduplicates repeated inputs; only catastrophic failures (e.g. client creation) return an error.
 	ResolveSubjects(ctx context.Context, members []string) (map[string]*graph.GraphSubject, error)
+	// ResolveIdentity resolves a member identifier (SID, descriptor, email, display name, or account name).
 	ResolveIdentity(ctx context.Context, member string) (*identity.Identity, error)
+	// ResolveCurrentIdentity retrieves the identity record for the authenticated user.
+	ResolveCurrentIdentity(ctx context.Context) (*identity.Identity, error)
 }
 
 type extensionClient struct {

@@ -6,7 +6,6 @@ import (
 	"strconv"
 	"testing"
 
-	"github.com/google/uuid"
 	"github.com/microsoft/azure-devops-go-api/azuredevops/v7"
 	"github.com/microsoft/azure-devops-go-api/azuredevops/v7/build"
 	"github.com/microsoft/azure-devops-go-api/azuredevops/v7/identity"
@@ -253,20 +252,13 @@ func TestRunList_RequestedForAtMe(t *testing.T) {
 	t.Parallel()
 	deps := newDependencies(t, "MyOrg")
 
-	selfID := uuid.New()
-	aliceUUID := uuid.MustParse("00000000-0000-0000-0000-000000000001")
 	dispName := "Alice"
-	identities := []identity.Identity{
-		{ProviderDisplayName: &dispName, Id: &aliceUUID},
-	}
 
 	deps.clientFact.EXPECT().Extensions(gomock.Any(), "MyOrg").Return(deps.ext, nil)
-	deps.clientFact.EXPECT().Identity(gomock.Any(), "MyOrg").Return(deps.ident, nil)
-	deps.ext.EXPECT().GetSelfID(gomock.Any()).Return(selfID, nil)
-
-	idStr := selfID.String()
-	deps.ident.EXPECT().ReadIdentities(gomock.Any(), identity.ReadIdentitiesArgs{IdentityIds: &idStr}).
-		Return(&identities, nil)
+	deps.ext.EXPECT().ResolveCurrentIdentity(gomock.Any()).Return(&identity.Identity{
+		Properties:          map[string]any{"Account": map[string]any{"$value": "Alice <alice@x.com>"}},
+		ProviderDisplayName: &dispName,
+	}, nil)
 
 	var capturedRequestedFor string
 	deps.build.EXPECT().GetBuilds(gomock.Any(), gomock.Any()).
@@ -279,7 +271,7 @@ func TestRunList_RequestedForAtMe(t *testing.T) {
 
 	err := runCmd(deps.cmd, &runOptions{scopeArg: "MyOrg/Fabrikam", requestedFor: types.ToPtr("@me")})
 	require.NoError(t, err)
-	assert.Equal(t, "Alice", capturedRequestedFor)
+	assert.Equal(t, "Alice <alice@x.com>", capturedRequestedFor)
 }
 
 func TestRunList_QueryOrder(t *testing.T) {

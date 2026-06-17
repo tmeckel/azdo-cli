@@ -7,7 +7,6 @@ import (
 
 	"github.com/MakeNowJust/heredoc/v2"
 	"github.com/microsoft/azure-devops-go-api/azuredevops/v7/build"
-	"github.com/microsoft/azure-devops-go-api/azuredevops/v7/identity"
 	"github.com/spf13/cobra"
 	"go.uber.org/zap"
 
@@ -123,29 +122,25 @@ func runCmd(ctx util.CmdContext, opts *runOptions) error {
 		if err != nil {
 			return fmt.Errorf("failed to create Extensions client: %w", err)
 		}
-
-		identityClient, err := ctx.ClientFactory().Identity(ctx.Context(), scope.Organization)
+		ident, err := extensionsClient.ResolveCurrentIdentity(ctx.Context())
 		if err != nil {
-			return fmt.Errorf("failed to create Identity client: %w", err)
+			return err
 		}
-
-		selfID, err := extensionsClient.GetSelfID(ctx.Context())
-		if err != nil {
-			return fmt.Errorf("failed to resolve @me identity: %w", err)
+		if m, ok := ident.Properties.(map[string]any); ok {
+			if raw, ok := m["Account"]; ok && raw != nil {
+				if account, ok := raw.(map[string]any); ok {
+					if v, ok := account["$value"].(string); ok && v != "" {
+						requestedFor = v
+					}
+				}
+			}
 		}
-
-		idStr := selfID.String()
-		identities, err := identityClient.ReadIdentities(ctx.Context(), identity.ReadIdentitiesArgs{
-			IdentityIds: &idStr,
-		})
-		if err != nil {
-			return fmt.Errorf("failed to resolve @me identity details: %w", err)
+		if requestedFor == "" {
+			requestedFor = types.GetValue(ident.ProviderDisplayName, "")
 		}
-		if identities == nil || len(*identities) != 1 {
-			return fmt.Errorf("failed to resolve @me identity details")
+		if requestedFor == "" {
+			return fmt.Errorf("authenticated identity is missing account or display name")
 		}
-
-		requestedFor = types.GetValue((*identities)[0].ProviderDisplayName, "")
 	}
 
 	project := scope.Project
