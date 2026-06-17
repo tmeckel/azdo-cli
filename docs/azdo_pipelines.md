@@ -5,6 +5,7 @@ Manage Azure DevOps pipelines
 ### Available commands
 
 * [azdo pipelines agent](./azdo_pipelines_agent.md)
+* [azdo pipelines build](./azdo_pipelines_build.md)
 * [azdo pipelines delete](./azdo_pipelines_delete.md)
 * [azdo pipelines list](./azdo_pipelines_list.md)
 * [azdo pipelines pool](./azdo_pipelines_pool.md)
