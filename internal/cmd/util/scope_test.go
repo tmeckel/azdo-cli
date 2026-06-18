@@ -68,6 +68,16 @@ func TestParseScope(t *testing.T) {
 		_, err := util.ParseScope(mockCtx, "org/")
 		require.Error(t, err)
 	})
+
+	t.Run("rejects more than two segments", func(t *testing.T) {
+		ctrl := gomock.NewController(t)
+		t.Cleanup(ctrl.Finish)
+
+		mockCtx := mocks.NewMockCmdContext(ctrl)
+
+		_, err := util.ParseScope(mockCtx, "org/proj/extra")
+		require.Error(t, err)
+	})
 }
 
 func TestParseOrganizationArg(t *testing.T) {
@@ -145,6 +155,15 @@ func TestParseProjectScope(t *testing.T) {
 
 		_, err := util.ParseProjectScope(mocks.NewMockCmdContext(ctrl), "")
 		require.Error(t, err)
+	})
+
+	t.Run("too many segments", func(t *testing.T) {
+		ctrl := gomock.NewController(t)
+		t.Cleanup(ctrl.Finish)
+
+		_, err := util.ParseProjectScope(mocks.NewMockCmdContext(ctrl), "org/project/extra")
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "expected 1-2 segments, got 3")
 	})
 }
 
@@ -381,6 +400,50 @@ func TestParse(t *testing.T) {
 			opts:    util.ParseOptions{AllowImplicitOrg: true},
 			wantErr: "contains empty segment",
 		},
+		{
+			name:    "unbounded targets when MaxTargets unset rejects extras",
+			raw:     "a/b/c/d",
+			opts:    util.ParseOptions{AllowImplicitOrg: false, MinTargets: 1},
+			wantErr: "expected 2-3 segments, got 4",
+		},
+		{
+			name:    "scope with extra segments is rejected",
+			raw:     "org/proj/extra",
+			opts:    util.ParseOptions{AllowImplicitOrg: true},
+			wantErr: "expected 0-2 segments, got 3",
+		},
+		{
+			name: "variable target counts allow one target",
+			raw:  "org/project/target",
+			opts: util.ParseOptions{AllowImplicitOrg: false, MinTargets: 1, MaxTargets: 2},
+			want: &util.Path{
+				Organization: "org",
+				Project:      "project",
+				Targets:      []string{"target"},
+			},
+		},
+		{
+			name: "variable target counts allow two targets",
+			raw:  "org/project/target/extra",
+			opts: util.ParseOptions{AllowImplicitOrg: false, MinTargets: 1, MaxTargets: 2},
+			want: &util.Path{
+				Organization: "org",
+				Project:      "project",
+				Targets:      []string{"target", "extra"},
+			},
+		},
+		{
+			name:    "variable target counts reject too few targets",
+			raw:     "org/project",
+			opts:    util.ParseOptions{AllowImplicitOrg: false, MinTargets: 1, MaxTargets: 2},
+			wantErr: "expected 2-4 segments, got 2",
+		},
+		{
+			name:    "variable target counts reject too many targets",
+			raw:     "org/project/target/extra/extra2",
+			opts:    util.ParseOptions{AllowImplicitOrg: false, MinTargets: 1, MaxTargets: 2},
+			wantErr: "expected 2-4 segments, got 5",
+		},
 	}
 
 	for _, tt := range tests {
@@ -414,6 +477,19 @@ func TestParse(t *testing.T) {
 			assert.Equal(t, tt.want.Targets, got.Targets)
 		})
 	}
+}
+
+func TestResolveScopeDescriptor_EmptyOrganization(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	t.Cleanup(ctrl.Finish)
+
+	mockCtx := mocks.NewMockCmdContext(ctrl)
+
+	descriptor, projectID, err := util.ResolveScopeDescriptor(mockCtx, "", "project")
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "organization is required")
+	assert.Nil(t, descriptor)
+	assert.Nil(t, projectID)
 }
 
 func TestResolveScopeDescriptor_NoProject(t *testing.T) {
