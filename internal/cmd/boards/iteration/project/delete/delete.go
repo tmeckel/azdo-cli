@@ -77,10 +77,6 @@ func runDelete(ctx util.CmdContext, opts *deleteOptions) error {
 	ios.StartProgressIndicator()
 	defer ios.StopProgressIndicator()
 
-	if parts := strings.Split(strings.TrimSpace(opts.scopeArg), "/"); len(parts) > 2 {
-		return util.FlagErrorf("invalid project scope %q: expected [ORGANIZATION/]PROJECT", opts.scopeArg)
-	}
-
 	scope, err := util.ParseProjectScope(ctx, opts.scopeArg)
 	if err != nil {
 		return util.FlagErrorWrap(err)

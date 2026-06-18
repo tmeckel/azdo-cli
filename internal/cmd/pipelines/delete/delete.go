@@ -123,7 +123,6 @@ func runDelete(cmdCtx util.CmdContext, opts *deleteOptions) error {
 
 	ios.StopProgressIndicator()
 
-	// ponytail: SDK delete returns no resource, so keep stdout text only.
 	fmt.Fprintf(ios.Out, "Pipeline %d was deleted successfully.\n", pipelineID)
 	return nil
 }

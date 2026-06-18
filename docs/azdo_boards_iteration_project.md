@@ -7,6 +7,7 @@ Project-scoped iteration commands.
 * [azdo boards iteration project create](./azdo_boards_iteration_project_create.md)
 * [azdo boards iteration project delete](./azdo_boards_iteration_project_delete.md)
 * [azdo boards iteration project list](./azdo_boards_iteration_project_list.md)
+* [azdo boards iteration project show](./azdo_boards_iteration_project_show.md)
 
 ### ALIASES
 
@@ -18,6 +19,9 @@ Project-scoped iteration commands.
 ```bash
 # List iterations for a project
 azdo boards iteration project list Fabrikam
+
+# Show a specific iteration
+azdo boards iteration project show Fabrikam --path "Sprint 1"
 ```
 
 ### See also

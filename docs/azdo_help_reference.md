@@ -188,6 +188,26 @@ Aliases
 ls, l
 ```
 
+##### `azdo boards iteration project show [ORGANIZATION/]PROJECT [flags]`
+
+Show an iteration in a project.
+
+```
+    --depth int          Depth of child nodes to fetch (0-10).
+    --include-children   Include child nodes in the template output.
+-q, --jq expression      Filter JSON output using a jq expression
+    --json fields[=*]    Output JSON with the specified fields. Prefix a field with '-' to exclude it.
+    --path string        Iteration path under /Iteration (required).
+-r, --raw                Dump the raw SDK node to stderr.
+-t, --template string    Format JSON output using a Go template; see "azdo help formatting"
+```
+
+Aliases
+
+```
+view, status
+```
+
 ### `azdo boards work-item <command>`
 
 Work with Azure Boards work items.

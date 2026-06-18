@@ -85,17 +85,9 @@ func run(cmdCtx util.CmdContext, opts *opts) error {
 		return util.FlagErrorf("invalid --max-items value %d; must be >= 0", opts.maxItems)
 	}
 
-	scopeArg := strings.TrimSpace(opts.scope)
-	if strings.Count(scopeArg, "/") > 1 {
-		return util.FlagErrorf("invalid project argument: expected [ORGANIZATION/]PROJECT")
-	}
-
-	scope, err := util.ParseProjectScope(cmdCtx, scopeArg)
+	scope, err := util.ParseProjectScope(cmdCtx, strings.TrimSpace(opts.scope))
 	if err != nil {
 		return util.FlagErrorf("invalid project argument: %w", err)
-	}
-	if len(scope.Targets) != 0 {
-		return util.FlagErrorf("invalid project argument: expected [ORGANIZATION/]PROJECT")
 	}
 
 	taskClient, err := cmdCtx.ClientFactory().TaskAgent(cmdCtx.Context(), scope.Organization)

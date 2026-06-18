@@ -6,6 +6,7 @@ import (
 	"github.com/tmeckel/azdo-cli/internal/cmd/boards/iteration/project/create"
 	"github.com/tmeckel/azdo-cli/internal/cmd/boards/iteration/project/delete"
 	"github.com/tmeckel/azdo-cli/internal/cmd/boards/iteration/project/list"
+	"github.com/tmeckel/azdo-cli/internal/cmd/boards/iteration/project/show"
 	"github.com/tmeckel/azdo-cli/internal/cmd/util"
 )
 
@@ -17,6 +18,9 @@ func NewCmd(ctx util.CmdContext) *cobra.Command {
 		Example: heredoc.Doc(`
 			# List iterations for a project
 			azdo boards iteration project list Fabrikam
+
+			# Show a specific iteration
+			azdo boards iteration project show Fabrikam --path "Sprint 1"
 		`),
 		Aliases: []string{
 			"prj",
@@ -27,6 +31,7 @@ func NewCmd(ctx util.CmdContext) *cobra.Command {
 	cmd.AddCommand(create.NewCmd(ctx))
 	cmd.AddCommand(delete.NewCmd(ctx))
 	cmd.AddCommand(list.NewCmd(ctx))
+	cmd.AddCommand(show.NewCmd(ctx))
 
 	return cmd
 }
