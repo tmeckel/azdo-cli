@@ -45,13 +45,26 @@ type ParseOptions struct {
 //
 // Parse only supports at most two non-target prefix segments: optional organization and
 // optional project. Targets are always the trailing segments and the prefix is the
-// leading segments.
+// leading segments. The parser works from the back: for each candidate prefix length
+// the target count is n - prefixLen, and only candidates whose target count falls
+// within [MinTargets, MaxTargets] are considered.
 //
 // When MinTargets == MaxTargets the target count is fixed, so the prefix is simply the
-// remaining leading segments (0, 1, or 2). When MaxTargets > MinTargets the split would
-// otherwise be ambiguous, so Parse pins the prefix to its maximum shape (organization +
-// project) and treats every remaining segment as a target. In that mode both
-// organization and project must be present in the path.
+// remaining leading segments (0, 1, or 2). When MaxTargets > MinTargets multiple
+// prefix lengths may be valid. In that case Parse disambiguates as follows:
+//
+//   - If the smallest valid prefix would push targets to MaxTargets, prefer the largest
+//     prefix so target capacity is not exhausted.
+//   - If the largest valid prefix would push targets to MinTargets, prefer the smallest
+//     prefix so target capacity is preserved.
+//   - Otherwise, when project is optional (RequireProject is false) prefer the smallest
+//     prefix so the optional project segment is not consumed; when organization is
+//     optional (AllowImplicitOrg is true) prefer the largest prefix so an explicitly
+//     provided organization is retained.
+//
+// If only a sub-maximum prefix is valid (the full org+project prefix does not fit) and
+// organization is required, Parse rejects the input rather than guessing whether the
+// missing segment is organization or project.
 //
 // Examples:
 //
@@ -76,8 +89,9 @@ type ParseOptions struct {
 // Error conditions:
 //   - opts are invalid, for example MaxTargets is non-zero and smaller than MinTargets
 //   - any segment is empty after trimming, for example "org/" or "org/ /project"
-//   - total segment count (and therefore the resulting target count) falls outside the
-//     allowed range derived from opts
+//   - total segment count falls outside the allowed range derived from opts
+//   - only a sub-maximum prefix is valid, organization is required, and target count is
+//     variable — the input is ambiguous
 //   - organization is omitted but ctx is nil
 //   - organization is omitted and default organization lookup fails or returns empty
 func Parse(ctx CmdContext, raw string, opts ParseOptions) (*Path, error) {
@@ -105,7 +119,7 @@ func Parse(ctx CmdContext, raw string, opts ParseOptions) (*Path, error) {
 		return nil, fmt.Errorf("invalid options: target range [%d,%d] is not satisfiable", opts.MinTargets, opts.MaxTargets)
 	}
 
-	// Allowed prefix (organization + project) segment counts.
+	// Prefix (organization + project) segment ranges.
 	minOrg := 0
 	if !opts.AllowImplicitOrg {
 		minOrg = 1
@@ -122,22 +136,66 @@ func Parse(ctx CmdContext, raw string, opts ParseOptions) (*Path, error) {
 	minTotal := minPrefix + minTargets
 	maxTotal := maxPrefix + maxTargets
 
-	// Determine the prefix length.
-	//
-	// Fixed target count: the prefix is whatever leads the fixed-size target tail.
-	// Variable target count: pin the prefix to its maximum shape so the split is
-	// unambiguous, and let the remaining segments be targets.
-	var prefixLen int
-	if minTargets == maxTargets {
-		prefixLen = n - minTargets
-	} else {
-		prefixLen = maxPrefix
-	}
-	targetCount := n - prefixLen
-
-	if prefixLen < minPrefix || prefixLen > maxPrefix || targetCount < minTargets || targetCount > maxTargets {
+	// Range check.
+	if n < minTotal || n > maxTotal {
 		return nil, fmt.Errorf("invalid input %q: expected %d-%d segments, got %d", raw, minTotal, maxTotal, n)
 	}
+
+	// Determine prefix length by collecting valid candidates from the back.
+	// Targets occupy the trailing segments, so for each candidate prefix
+	// length the target count is n - prefixLen.
+	var validPrefixes []int
+	for pl := maxPrefix; pl >= minPrefix; pl-- {
+		tc := n - pl
+		if tc >= minTargets && tc <= maxTargets {
+			validPrefixes = append(validPrefixes, pl)
+		}
+	}
+
+	if len(validPrefixes) == 0 {
+		return nil, fmt.Errorf("invalid input %q: expected %d-%d segments, got %d", raw, minTotal, maxTotal, n)
+	}
+
+	var prefixLen int
+	if len(validPrefixes) == 1 {
+		prefixLen = validPrefixes[0]
+		// When only a sub-maximum prefix is valid the full org+project
+		// prefix does not fit.  If org is required and the target count
+		// is variable the input is ambiguous — the missing segment could
+		// be org or project — so reject rather than guess.
+		if prefixLen < maxPrefix && !opts.AllowImplicitOrg && minTargets != maxTargets {
+			return nil, fmt.Errorf("invalid input %q: expected %d-%d segments, got %d", raw, minTotal, maxTotal, n)
+		}
+	} else {
+		// Multiple valid prefix lengths — disambiguate.
+		high := validPrefixes[0]                   // largest prefix, fewest targets
+		low := validPrefixes[len(validPrefixes)-1] // smallest prefix, most targets
+		tHigh := n - high
+		tLow := n - low
+
+		switch {
+		case tLow == maxTargets:
+			// Smallest prefix pushes targets to the maximum — prefer the
+			// largest prefix so target capacity is not exhausted.
+			prefixLen = high
+		case tHigh == minTargets:
+			// Largest prefix pushes targets to the minimum — prefer the
+			// smallest prefix to preserve target capacity.
+			prefixLen = low
+		case !opts.RequireProject:
+			// Project is optional — prefer the smallest prefix so the
+			// optional project segment is not consumed.
+			prefixLen = low
+		case opts.AllowImplicitOrg:
+			// Organization is optional — prefer the largest prefix so
+			// an explicitly provided organization is retained.
+			prefixLen = high
+		default:
+			prefixLen = high
+		}
+	}
+
+	targetCount := n - prefixLen
 
 	p := &Path{}
 	if targetCount > 0 {

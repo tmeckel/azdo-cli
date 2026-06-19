@@ -433,6 +433,56 @@ func TestParse(t *testing.T) {
 			},
 		},
 		{
+			name: "variable target counts with required project keep explicit organization",
+			raw:  "org/project/target/extra",
+			opts: util.ParseOptions{AllowImplicitOrg: true, RequireProject: true, MinTargets: 1, MaxTargets: 64},
+			want: &util.Path{
+				Organization: "org",
+				Project:      "project",
+				Targets:      []string{"target", "extra"},
+			},
+		},
+		{
+			name: "variable target counts with required project allow implicit organization",
+			raw:  "project/target/extra",
+			opts: util.ParseOptions{AllowImplicitOrg: true, RequireProject: true, MinTargets: 1, MaxTargets: 64},
+			want: &util.Path{
+				Organization: "default-org",
+				Project:      "project",
+				Targets:      []string{"target", "extra"},
+			},
+		},
+		{
+			name: "variable target counts with required project allow implicit organization single target",
+			raw:  "project/target",
+			opts: util.ParseOptions{AllowImplicitOrg: true, RequireProject: true, MinTargets: 1, MaxTargets: 64},
+			want: &util.Path{
+				Organization: "default-org",
+				Project:      "project",
+				Targets:      []string{"target"},
+			},
+		},
+		{
+			name: "variable target counts with required project and required organization",
+			raw:  "org/project/target/extra",
+			opts: util.ParseOptions{AllowImplicitOrg: false, RequireProject: true, MinTargets: 1, MaxTargets: 64},
+			want: &util.Path{
+				Organization: "org",
+				Project:      "project",
+				Targets:      []string{"target", "extra"},
+			},
+		},
+		{
+			name: "variable target counts with optional project and required organization",
+			raw:  "org/target1/target2/extra",
+			opts: util.ParseOptions{AllowImplicitOrg: false, RequireProject: false, MinTargets: 1, MaxTargets: 64},
+			want: &util.Path{
+				Organization: "org",
+				Project:      "",
+				Targets:      []string{"target1", "target2", "extra"},
+			},
+		},
+		{
 			name:    "variable target counts reject too few targets",
 			raw:     "org/project",
 			opts:    util.ParseOptions{AllowImplicitOrg: false, MinTargets: 1, MaxTargets: 2},
