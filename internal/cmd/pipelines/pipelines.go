@@ -6,6 +6,7 @@ import (
 	"github.com/tmeckel/azdo-cli/internal/cmd/pipelines/agent"
 	"github.com/tmeckel/azdo-cli/internal/cmd/pipelines/build"
 	"github.com/tmeckel/azdo-cli/internal/cmd/pipelines/delete"
+	"github.com/tmeckel/azdo-cli/internal/cmd/pipelines/folder"
 	"github.com/tmeckel/azdo-cli/internal/cmd/pipelines/list"
 	"github.com/tmeckel/azdo-cli/internal/cmd/pipelines/pool"
 	"github.com/tmeckel/azdo-cli/internal/cmd/pipelines/queue"
@@ -29,6 +30,7 @@ func NewCmd(ctx util.CmdContext) *cobra.Command {
 
 	cmd.AddCommand(build.NewCmd(ctx))
 	cmd.AddCommand(delete.NewCmd(ctx))
+	cmd.AddCommand(folder.NewCmd(ctx))
 	cmd.AddCommand(list.NewCmd(ctx))
 	cmd.AddCommand(run.NewCmd(ctx))
 	cmd.AddCommand(runs.NewCmd(ctx))
