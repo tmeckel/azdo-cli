@@ -407,6 +407,35 @@ Aliases
 d, del, rm
 ```
 
+### `azdo pipelines folder`
+
+Manage Azure DevOps pipeline folders
+
+Aliases
+
+```
+folders
+```
+
+#### `azdo pipelines folder list [ORGANIZATION/]PROJECT [flags]`
+
+List folders.
+
+```
+-q, --jq expression        Filter JSON output using a jq expression
+    --json fields[=*]      Output JSON with the specified fields. Prefix a field with '-' to exclude it.
+    --max-items int        Maximum number of folders to return (client-side; 0 = unlimited)
+    --path string          Limit the listing to folders at or under this path.
+    --query-order string   Sort folders by path: {asc|desc}
+-t, --template string      Format JSON output using a Go template; see "azdo help formatting"
+```
+
+Aliases
+
+```
+ls, l
+```
+
 ### `azdo pipelines list [ORGANIZATION/]PROJECT [flags]`
 
 List pipeline definitions
