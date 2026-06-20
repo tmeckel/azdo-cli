@@ -1,7 +1,7 @@
 ## Command `azdo boards iteration project show`
 
 ```
-azdo boards iteration project show [ORGANIZATION/]PROJECT [flags]
+azdo boards iteration project show [ORGANIZATION/]PROJECT[/PATH]/NAME [flags]
 ```
 
 Display the details of a single iteration (sprint) node in a project.
@@ -27,10 +27,6 @@ The iteration is identified by its fully-qualified path under /Iteration.
 
 	Output JSON with the specified fields. Prefix a field with &#39;-&#39; to exclude it.
 
-* `--path` `string`
-
-	Iteration path under /Iteration (required).
-
 * `-r`, `--raw`
 
 	Dump the raw SDK node to stderr.
@@ -53,16 +49,16 @@ The iteration is identified by its fully-qualified path under /Iteration.
 
 ```bash
 # Show a top-level iteration
-azdo boards iteration project show Fabrikam --path "Sprint 1"
+azdo boards iteration project show Fabrikam/Sprint\ 1
 
 # Show a nested iteration
-azdo boards iteration project show myorg/Fabrikam --path "Release 2025/Sprint 1"
+azdo boards iteration project show myorg/Fabrikam/Release\ 2025/Sprint\ 1
 
 # Include child nodes in the template output
-azdo boards iteration project show Fabrikam --path "Release 2025" --include-children
+azdo boards iteration project show Fabrikam/Release\ 2025 --include-children
 
 # Emit the raw SDK node as JSON
-azdo boards iteration project show Fabrikam --path "Sprint 1" --json
+azdo boards iteration project show Fabrikam/Sprint\ 1 --json
 ```
 
 ### See also

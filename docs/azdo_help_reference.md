@@ -127,7 +127,7 @@ Aliases
 prj, p
 ```
 
-##### `azdo boards iteration project create [ORGANIZATION/]PROJECT [flags]`
+##### `azdo boards iteration project create [ORGANIZATION/]PROJECT[/PATH]/NAME [flags]`
 
 Create an iteration (sprint) in a project.
 
@@ -136,8 +136,6 @@ Create an iteration (sprint) in a project.
     --finish-date string   Iteration finish date (RFC 3339 or YYYY-MM-DD).
 -q, --jq expression        Filter JSON output using a jq expression
     --json fields[=*]      Output JSON with the specified fields. Prefix a field with '-' to exclude it.
-    --name string          Name of the new iteration (required).
-    --path string          Parent iteration path under /Iteration. Omit to create at the project root.
     --start-date string    Iteration start date (RFC 3339 or YYYY-MM-DD).
 -t, --template string      Format JSON output using a Go template; see "azdo help formatting"
 ```
@@ -148,14 +146,13 @@ Aliases
 c, cr
 ```
 
-##### `azdo boards iteration project delete [ORGANIZATION/]PROJECT --path <path> [flags]`
+##### `azdo boards iteration project delete [ORGANIZATION/]PROJECT[/PATH]/NAME [flags]`
 
 Delete an iteration from a project.
 
 ```
 -q, --jq expression       Filter JSON output using a jq expression
     --json fields[=*]     Output JSON with the specified fields. Prefix a field with '-' to exclude it.
-    --path string         Path of the iteration to delete (under /Iteration, leading /Iteration stripped).
 -r, --reclassify-id int   ID of the target node to which work items should be moved before deletion.
 -t, --template string     Format JSON output using a Go template; see "azdo help formatting"
 -y, --yes                 Skip the confirmation prompt.
@@ -167,7 +164,7 @@ Aliases
 d, del, rm
 ```
 
-##### `azdo boards iteration project list [ORGANIZATION/]PROJECT [flags]`
+##### `azdo boards iteration project list [ORGANIZATION/]PROJECT[/PATH] [flags]`
 
 List iteration hierarchy for a project.
 
@@ -177,7 +174,6 @@ List iteration hierarchy for a project.
     --include-dates        Include iteration start and finish dates
 -q, --jq expression        Filter JSON output using a jq expression
     --json fields[=*]      Output JSON with the specified fields. Prefix a field with '-' to exclude it.
--p, --path string          Iteration path relative to project root
     --start-date string    Apply a comparison filter to iteration start dates; supports operators like >= and special value "today" (e.g., ">=today")
 -t, --template string      Format JSON output using a Go template; see "azdo help formatting"
 ```
@@ -188,7 +184,7 @@ Aliases
 ls, l
 ```
 
-##### `azdo boards iteration project show [ORGANIZATION/]PROJECT [flags]`
+##### `azdo boards iteration project show [ORGANIZATION/]PROJECT[/PATH]/NAME [flags]`
 
 Show an iteration in a project.
 
@@ -197,7 +193,6 @@ Show an iteration in a project.
     --include-children   Include child nodes in the template output.
 -q, --jq expression      Filter JSON output using a jq expression
     --json fields[=*]    Output JSON with the specified fields. Prefix a field with '-' to exclude it.
-    --path string        Iteration path under /Iteration (required).
 -r, --raw                Dump the raw SDK node to stderr.
 -t, --template string    Format JSON output using a Go template; see "azdo help formatting"
 ```
