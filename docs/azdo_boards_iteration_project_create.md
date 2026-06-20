@@ -3,7 +3,7 @@
 Create an iteration (sprint) in a project.
 
 ```
-azdo boards iteration project create [ORGANIZATION/]PROJECT [flags]
+azdo boards iteration project create [ORGANIZATION/]PROJECT[/PATH]/NAME [flags]
 ```
 
 ### Options
@@ -24,14 +24,6 @@ azdo boards iteration project create [ORGANIZATION/]PROJECT [flags]
 * `--json` `fields`
 
 	Output JSON with the specified fields. Prefix a field with &#39;-&#39; to exclude it.
-
-* `--name` `string`
-
-	Name of the new iteration (required).
-
-* `--path` `string`
-
-	Parent iteration path under /Iteration. Omit to create at the project root.
 
 * `--start-date` `string`
 
@@ -55,22 +47,22 @@ azdo boards iteration project create [ORGANIZATION/]PROJECT [flags]
 
 ```bash
 # Create a top-level iteration
-azdo boards iteration project create Fabrikam --name "Sprint 1"
+azdo boards iteration project create Fabrikam/Sprint\ 1
 
 # Schedule a sprint with start and finish dates
-azdo boards iteration project create Fabrikam \
-	--name "Sprint 2" --start-date 2025-01-06 --finish-date 2025-01-19
+azdo boards iteration project create Fabrikam/Sprint\ 2 \
+	--start-date 2025-01-06 --finish-date 2025-01-19
 
 # Create a nested iteration under an existing release
-azdo boards iteration project create myorg/Fabrikam --name "Sprint 2" --path "Release 2025"
+azdo boards iteration project create myorg/Fabrikam/Release\ 2025/Sprint\ 2
 
 # Set a custom attribute alongside the dates
-azdo boards iteration project create Fabrikam \
-	--name "Sprint 1" --start-date 2025-01-06 --finish-date 2025-01-19 \
+azdo boards iteration project create Fabrikam/Sprint\ 1 \
+	--start-date 2025-01-06 --finish-date 2025-01-19 \
 	--attributes goal="Ship login"
 
 # Emit JSON
-azdo boards iteration project create Fabrikam --name "Sprint 1" --json
+azdo boards iteration project create Fabrikam/Sprint\ 1 --json
 ```
 
 ### See also

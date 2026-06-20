@@ -8,6 +8,7 @@ Project-scoped iteration commands.
 * [azdo boards iteration project delete](./azdo_boards_iteration_project_delete.md)
 * [azdo boards iteration project list](./azdo_boards_iteration_project_list.md)
 * [azdo boards iteration project show](./azdo_boards_iteration_project_show.md)
+* [azdo boards iteration project update](./azdo_boards_iteration_project_update.md)
 
 ### ALIASES
 

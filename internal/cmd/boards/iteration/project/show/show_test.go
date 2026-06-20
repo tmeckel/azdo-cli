@@ -18,6 +18,7 @@ import (
 	"github.com/tmeckel/azdo-cli/internal/cmd/util"
 	"github.com/tmeckel/azdo-cli/internal/iostreams"
 	"github.com/tmeckel/azdo-cli/internal/mocks"
+	"github.com/tmeckel/azdo-cli/internal/printer"
 	"github.com/tmeckel/azdo-cli/internal/types"
 )
 
@@ -60,6 +61,11 @@ func newDependenciesWithClientFactoryError(t *testing.T, organization string, fa
 	deps.cmd.EXPECT().IOStreams().Return(io, nil).AnyTimes()
 	deps.cmd.EXPECT().Context().Return(context.Background()).AnyTimes()
 	deps.cmd.EXPECT().ClientFactory().Return(deps.clientFact).AnyTimes()
+	cfg := mocks.NewMockConfig(ctrl)
+	auth := mocks.NewMockAuthConfig(ctrl)
+	deps.cmd.EXPECT().Config().Return(cfg, nil).AnyTimes()
+	cfg.EXPECT().Authentication().Return(auth).AnyTimes()
+	auth.EXPECT().GetDefaultOrganization().Return(organization, nil).AnyTimes()
 	if factoryErr != nil {
 		deps.clientFact.EXPECT().WorkItemTracking(gomock.Any(), organization).Return(nil, factoryErr).AnyTimes()
 	} else {
@@ -115,70 +121,65 @@ func TestNewCmd_RegistersAsShowLeaf(t *testing.T) {
 	assert.True(t, strings.HasPrefix(cmd.Use, "show [ORGANIZATION/]PROJECT"))
 }
 
-func TestNewCmd_PathFlagRequired(t *testing.T) {
+func TestNewCmd_TargetArgRequired(t *testing.T) {
 	t.Parallel()
 
-	deps := newDependencies(t, "org")
-	cmd := NewCmd(deps.cmd)
-	cmd.SetArgs([]string{"Fabrikam"})
+	cmd := NewCmd(nil)
+	cmd.SetArgs(nil)
 	cmd.SetOut(io.Discard)
 	cmd.SetErr(io.Discard)
 
 	err := cmd.Execute()
 
 	require.Error(t, err)
-	assert.Contains(t, err.Error(), "path")
+	assert.Contains(t, err.Error(), "target argument required")
 }
 
-
-func TestRunShow_PathRequired(t *testing.T) {
+func TestRunShow_InvalidTarget(t *testing.T) {
 	t.Parallel()
 
-	tests := []struct {
-		name string
-		path string
-	}{
-		{name: "empty", path: ""},
-		{name: "whitespace", path: "   "},
-	}
-
-	for _, tc := range tests {
-		t.Run(tc.name, func(t *testing.T) {
-			t.Parallel()
-
-			deps := newDependencies(t, "org")
-
-			err := runShow(deps.cmd, &showOptions{scopeArg: "org/Fabrikam", path: tc.path})
-
-			requireFlagError(t, err, "--path must not be empty")
-		})
-	}
+	deps := newDependencies(t, "org")
+	err := runShow(deps.cmd, &showOptions{scopeArg: "org"})
+	requireFlagError(t, err, "expected 2-66 segments")
 }
 
 func TestRunShow_DepthBounds(t *testing.T) {
 	t.Parallel()
 
-	deps := newDependencies(t, "org")
+	for _, depth := range []int{-1, 11} {
+		deps := newDependencies(t, "org")
 
-	err := runShow(deps.cmd, &showOptions{scopeArg: "org/Fabrikam", path: "Sprint 1", depth: 11})
+		err := runShow(deps.cmd, &showOptions{scopeArg: "org/Fabrikam/Sprint 1", depth: depth})
 
-	requireFlagError(t, err, "--depth must be between 0 and 10")
+		requireFlagError(t, err, "--depth must be between 0 and 10")
+	}
+}
+
+func TestRunShow_RootNodeRejected(t *testing.T) {
+	t.Parallel()
+
+	deps := newDependenciesWithDefaultOrg(t, "default-org")
+	deps.wit.EXPECT().GetClassificationNode(gomock.Any(), gomock.Any()).Times(0)
+
+	err := runShow(deps.cmd, &showOptions{scopeArg: "org/Iteration"})
+
+	requireFlagError(t, err, "target must reference a child of /Iteration")
 }
 
 func TestRunShow_RequestArgs(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
-		name     string
-		opts     *showOptions
-		wantPath string
-		wantProj string
+		name      string
+		opts      *showOptions
+		wantPath  string
+		wantProj  string
 		wantDepth int
 	}{
-		{name: "root level", opts: &showOptions{scopeArg: "org/Fabrikam", path: "Sprint 1"}, wantPath: "Sprint%201", wantProj: "Fabrikam", wantDepth: 0},
-		{name: "normalizes project path", opts: &showOptions{scopeArg: "org/Fabrikam", path: "Fabrikam/Iteration/Sprint 1"}, wantPath: "Sprint%201", wantProj: "Fabrikam", wantDepth: 0},
-		{name: "escapes nested path", opts: &showOptions{scopeArg: "org/Fabrikam", path: "My Sprint/Sub Sprint"}, wantPath: "My%20Sprint/Sub%20Sprint", wantProj: "Fabrikam", wantDepth: 0},
-		{name: "uses explicit depth", opts: &showOptions{scopeArg: "org/Fabrikam", path: "Sprint 1", depth: 2}, wantPath: "Sprint%201", wantProj: "Fabrikam", wantDepth: 2},
+		{name: "root level", opts: &showOptions{scopeArg: "org/Fabrikam/Sprint 1"}, wantPath: "Fabrikam/Sprint%201", wantProj: "org", wantDepth: 0},
+		{name: "normalizes project path", opts: &showOptions{scopeArg: "org/Fabrikam/Fabrikam/Iteration/Sprint 1"}, wantPath: "Sprint%201", wantProj: "Fabrikam", wantDepth: 0},
+		{name: "escapes nested path", opts: &showOptions{scopeArg: "org/Fabrikam/My Sprint/Sub Sprint"}, wantPath: "My%20Sprint/Sub%20Sprint", wantProj: "Fabrikam", wantDepth: 0},
+		{name: "uses explicit depth", opts: &showOptions{scopeArg: "org/Fabrikam/Sprint 1", depth: 2}, wantPath: "Fabrikam/Sprint%201", wantProj: "org", wantDepth: 2},
 	}
 
 	for _, tc := range tests {
@@ -211,7 +212,7 @@ func TestRunShow_TemplateOutput(t *testing.T) {
 		{
 			name: "basic fields without attributes",
 			node: showNode(),
-			opts: &showOptions{scopeArg: "org/Fabrikam", path: "Sprint 1"},
+			opts: &showOptions{scopeArg: "org/Fabrikam/Sprint 1"},
 			contains: []string{
 				"url:",
 				"https://dev.azure.com/org/Fabrikam/_apis/wit/classificationNodes/iterations/42",
@@ -240,7 +241,7 @@ func TestRunShow_TemplateOutput(t *testing.T) {
 				node.Attributes = &attrs
 				return node
 			}(),
-			opts: &showOptions{scopeArg: "org/Fabrikam", path: "Sprint 1"},
+			opts:     &showOptions{scopeArg: "org/Fabrikam/Sprint 1"},
 			contains: []string{"attributes:", "startDate:     2024-01-01", "finishDate:    2024-01-15"},
 		},
 		{
@@ -255,7 +256,7 @@ func TestRunShow_TemplateOutput(t *testing.T) {
 				node.Children = &children
 				return node
 			}(),
-			opts: &showOptions{scopeArg: "org/Fabrikam", path: "Sprint 1", includeChildren: true},
+			opts:     &showOptions{scopeArg: "org/Fabrikam/Sprint 1", includeChildren: true},
 			contains: []string{"children:", "- Sub Sprint", childID.String(), "hasChildren: true"},
 		},
 		{
@@ -266,7 +267,7 @@ func TestRunShow_TemplateOutput(t *testing.T) {
 				node.Children = &children
 				return node
 			}(),
-			opts: &showOptions{scopeArg: "org/Fabrikam", path: "Sprint 1"},
+			opts:        &showOptions{scopeArg: "org/Fabrikam/Sprint 1"},
 			notContains: []string{"  - Sub Sprint"},
 		},
 	}
@@ -297,11 +298,14 @@ func TestRunShow_JSONOutput(t *testing.T) {
 
 	deps := newDependencies(t, "org")
 	node := showNode()
-	attrs := map[string]any{"startDate": "2024-01-01T00:00:00Z"}
+	attrs := map[string]any{
+		"startDate":  "2024-01-01T00:00:00Z",
+		"finishDate": "2024-01-15T00:00:00Z",
+	}
 	node.Attributes = &attrs
 	deps.wit.EXPECT().GetClassificationNode(gomock.Any(), gomock.Any()).Return(node, nil)
 
-	err := runShow(deps.cmd, &showOptions{scopeArg: "org/Fabrikam", path: "Sprint 1", exporter: util.NewJSONExporter()})
+	err := runShow(deps.cmd, &showOptions{scopeArg: "org/Fabrikam/Sprint 1", exporter: util.NewJSONExporter()})
 
 	require.NoError(t, err)
 	var got map[string]any
@@ -316,9 +320,12 @@ func TestRunShow_JSONOutput(t *testing.T) {
 	attrsJSON, ok := got["attributes"].(map[string]any)
 	require.True(t, ok)
 	assert.Equal(t, "2024-01-01T00:00:00Z", attrsJSON["startDate"])
+	assert.Equal(t, "2024-01-15T00:00:00Z", attrsJSON["finishDate"])
 	linksJSON, ok := got["_links"].(map[string]any)
 	require.True(t, ok)
-	assert.Contains(t, linksJSON, "self")
+	selfJSON, ok := linksJSON["self"].(map[string]any)
+	require.True(t, ok)
+	assert.Equal(t, "https://dev.azure.com/org/Fabrikam/_apis/wit/classificationNodes/iterations/42", selfJSON["href"])
 }
 
 func TestRunShow_RawFlag(t *testing.T) {
@@ -327,9 +334,10 @@ func TestRunShow_RawFlag(t *testing.T) {
 	deps := newDependencies(t, "org")
 	deps.wit.EXPECT().GetClassificationNode(gomock.Any(), gomock.Any()).Return(showNode(), nil)
 
-	err := runShow(deps.cmd, &showOptions{scopeArg: "org/Fabrikam", path: "Sprint 1", raw: true})
+	err := runShow(deps.cmd, &showOptions{scopeArg: "org/Fabrikam/Sprint 1", raw: true})
 
 	require.NoError(t, err)
+	assert.Empty(t, deps.stdout.String())
 	assert.Contains(t, deps.stderr.String(), "WorkItemClassificationNode")
 }
 
@@ -341,37 +349,74 @@ func TestRunShow_ProjectScopeParsing(t *testing.T) {
 		scopeArg   string
 		org        string
 		project    string
+		path       string
 		wantErr    string
 		defaultOrg string
 	}{
-		{name: "organization and project", scopeArg: "org/proj", org: "org", project: "proj"},
-		{name: "project uses default organization", scopeArg: "proj", org: "default-org", project: "proj", defaultOrg: "default-org"},
-		{name: "too many segments", scopeArg: "org/proj/extra", wantErr: "expected 1-2 segments, got 3"},
+		{name: "project uses default organization", scopeArg: "proj/Sprint 1", org: "default-org", project: "proj", path: "Sprint%201", defaultOrg: "default-org"},
+		{name: "variable targets stay in path", scopeArg: "org/proj/release/Sprint 1", org: "org", project: "proj", path: "release/Sprint%201"},
 		{name: "empty scope", scopeArg: "", wantErr: "expected"},
-		{name: "organization from config default", scopeArg: "Fabrikam", org: "default-org", project: "Fabrikam", defaultOrg: "default-org"},
+		{name: "organization from config default", scopeArg: "Fabrikam/Sprint 1", org: "default-org", project: "Fabrikam", path: "Sprint%201", defaultOrg: "default-org"},
 	}
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
-			var deps *dependencies
+			ctrl := gomock.NewController(t)
+			t.Cleanup(ctrl.Finish)
+
+			io, _, out, _ := iostreams.Test()
+			io.SetStdoutTTY(false)
+			io.SetStderrTTY(false)
+
+			cmd := mocks.NewMockCmdContext(ctrl)
+			clientFact := mocks.NewMockClientFactory(ctrl)
+			wit := mocks.NewMockWorkItemTrackingClient(ctrl)
+			cmd.EXPECT().IOStreams().Return(io, nil).AnyTimes()
+			cmd.EXPECT().Context().Return(context.Background()).AnyTimes()
+			cmd.EXPECT().ClientFactory().Return(clientFact).AnyTimes()
+
 			if tc.defaultOrg != "" {
-				deps = newDependenciesWithDefaultOrg(t, tc.defaultOrg)
-			} else {
-				deps = newDependencies(t, tc.org)
+				cfg := mocks.NewMockConfig(ctrl)
+				auth := mocks.NewMockAuthConfig(ctrl)
+				cmd.EXPECT().Config().Return(cfg, nil).AnyTimes()
+				cfg.EXPECT().Authentication().Return(auth).AnyTimes()
+				auth.EXPECT().GetDefaultOrganization().Return(tc.defaultOrg, nil).AnyTimes()
 			}
-			opts := &showOptions{scopeArg: tc.scopeArg, path: "Sprint 1"}
+
+			tp, err := printer.NewTablePrinter(out, false, 200)
+			require.NoError(t, err)
+			cmd.EXPECT().Printer("table").Return(tp, nil).AnyTimes()
+			opts := &showOptions{scopeArg: tc.scopeArg}
 
 			if tc.wantErr != "" {
-				err := runShow(deps.cmd, opts)
+				err := runShow(cmd, opts)
 				requireFlagError(t, err, tc.wantErr)
 				return
 			}
 
-			args, err := captureShowArgs(t, deps, opts, showNode())
+			var gotOrg string
+			clientFact.EXPECT().WorkItemTracking(gomock.Any(), gomock.Any()).DoAndReturn(
+				func(_ context.Context, organization string) (workitemtracking.Client, error) {
+					gotOrg = organization
+					return wit, nil
+				},
+			)
+
+			var args workitemtracking.GetClassificationNodeArgs
+			wit.EXPECT().GetClassificationNode(gomock.Any(), gomock.Any()).DoAndReturn(
+				func(_ context.Context, got workitemtracking.GetClassificationNodeArgs) (*workitemtracking.WorkItemClassificationNode, error) {
+					args = got
+					return showNode(), nil
+				},
+			)
+
+			err = runShow(cmd, opts)
 			require.NoError(t, err)
+			assert.Equal(t, tc.org, gotOrg)
 			assert.Equal(t, tc.project, *args.Project)
+			assert.Equal(t, tc.path, *args.Path)
 		})
 	}
 }
@@ -381,7 +426,7 @@ func TestRunShow_ClientFactoryError(t *testing.T) {
 
 	deps := newDependenciesWithClientFactoryError(t, "org", errors.New("boom"))
 
-	err := runShow(deps.cmd, &showOptions{scopeArg: "org/Fabrikam", path: "Sprint 1"})
+	err := runShow(deps.cmd, &showOptions{scopeArg: "org/Fabrikam/Sprint 1"})
 
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "failed to get classification client")
@@ -393,10 +438,22 @@ func TestRunShow_SDKError(t *testing.T) {
 	deps := newDependencies(t, "org")
 	deps.wit.EXPECT().GetClassificationNode(gomock.Any(), gomock.Any()).Return(nil, errors.New("boom"))
 
-	err := runShow(deps.cmd, &showOptions{scopeArg: "org/Fabrikam", path: "Sprint 1"})
+	err := runShow(deps.cmd, &showOptions{scopeArg: "org/Fabrikam/Sprint 1"})
 
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "failed to get iteration")
+}
+
+func TestRunShow_NilResponse(t *testing.T) {
+	t.Parallel()
+
+	deps := newDependencies(t, "org")
+	deps.wit.EXPECT().GetClassificationNode(gomock.Any(), gomock.Any()).Return(nil, nil)
+
+	err := runShow(deps.cmd, &showOptions{scopeArg: "org/Fabrikam/Sprint 1"})
+
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "iteration node is nil")
 }
 
 func captureShowArgs(t *testing.T, deps *dependencies, opts *showOptions, response *workitemtracking.WorkItemClassificationNode) (workitemtracking.GetClassificationNodeArgs, error) {

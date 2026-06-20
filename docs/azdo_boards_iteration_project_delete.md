@@ -1,7 +1,7 @@
 ## Command `azdo boards iteration project delete`
 
 ```
-azdo boards iteration project delete [ORGANIZATION/]PROJECT --path <path> [flags]
+azdo boards iteration project delete [ORGANIZATION/]PROJECT[/PATH]/NAME [flags]
 ```
 
 Delete an iteration (sprint) from a project. The command prompts for
@@ -21,10 +21,6 @@ reclassified first.
 * `--json` `fields`
 
 	Output JSON with the specified fields. Prefix a field with &#39;-&#39; to exclude it.
-
-* `--path` `string`
-
-	Path of the iteration to delete (under /Iteration, leading /Iteration stripped).
 
 * `-r`, `--reclassify-id` `int`
 
@@ -53,17 +49,17 @@ reclassified first.
 
 ```bash
 # Delete a top-level iteration
-azdo boards iteration project delete Fabrikam --path "Sprint 1" --yes
+azdo boards iteration project delete Fabrikam/Sprint\ 1 --yes
 
 # Delete a nested iteration with a confirmation prompt
-azdo boards iteration project delete Fabrikam --path "Release 2025/Sprint 1"
+azdo boards iteration project delete Fabrikam/Release\ 2025/Sprint\ 1
 
 # Reclassify work items to node 42 before deletion
-azdo boards iteration project delete Fabrikam --path "Sprint 1" \
+azdo boards iteration project delete Fabrikam/Sprint\ 1 \
 	--reclassify-id 42 --yes
 
 # Emit JSON
-azdo boards iteration project delete Fabrikam --path "Sprint 1" --reclassify-id 42 --json
+azdo boards iteration project delete Fabrikam/Sprint\ 1 --reclassify-id 42 --json
 ```
 
 ### See also

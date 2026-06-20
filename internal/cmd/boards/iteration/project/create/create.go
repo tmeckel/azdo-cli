@@ -18,8 +18,6 @@ import (
 
 type createOptions struct {
 	scopeArg   string
-	name       string
-	path       string
 	startDate  string
 	finishDate string
 	attributes []string
@@ -30,41 +28,38 @@ func NewCmd(ctx util.CmdContext) *cobra.Command {
 	opts := &createOptions{}
 
 	cmd := &cobra.Command{
-		Use:   "create [ORGANIZATION/]PROJECT",
+		Use:   "create [ORGANIZATION/]PROJECT[/PATH]/NAME",
 		Short: "Create an iteration (sprint) in a project.",
 		Example: heredoc.Doc(`
 			# Create a top-level iteration
-			azdo boards iteration project create Fabrikam --name "Sprint 1"
+			azdo boards iteration project create Fabrikam/Sprint\ 1
 
 			# Schedule a sprint with start and finish dates
-			azdo boards iteration project create Fabrikam \
-				--name "Sprint 2" --start-date 2025-01-06 --finish-date 2025-01-19
+			azdo boards iteration project create Fabrikam/Sprint\ 2 \
+				--start-date 2025-01-06 --finish-date 2025-01-19
 
 			# Create a nested iteration under an existing release
-			azdo boards iteration project create myorg/Fabrikam --name "Sprint 2" --path "Release 2025"
+			azdo boards iteration project create myorg/Fabrikam/Release\ 2025/Sprint\ 2
 
 			# Set a custom attribute alongside the dates
-			azdo boards iteration project create Fabrikam \
-				--name "Sprint 1" --start-date 2025-01-06 --finish-date 2025-01-19 \
+			azdo boards iteration project create Fabrikam/Sprint\ 1 \
+				--start-date 2025-01-06 --finish-date 2025-01-19 \
 				--attributes goal="Ship login"
 
 			# Emit JSON
-			azdo boards iteration project create Fabrikam --name "Sprint 1" --json
+			azdo boards iteration project create Fabrikam/Sprint\ 1 --json
 		`),
 		Aliases: []string{"c", "cr"},
-		Args:    util.ExactArgs(1, "project argument required"),
+		Args:    util.ExactArgs(1, "target argument required"),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			opts.scopeArg = args[0]
 			return runCreate(ctx, opts)
 		},
 	}
 
-	cmd.Flags().StringVar(&opts.name, "name", "", "Name of the new iteration (required).")
-	cmd.Flags().StringVar(&opts.path, "path", "", "Parent iteration path under /Iteration. Omit to create at the project root.")
 	cmd.Flags().StringVar(&opts.startDate, "start-date", "", "Iteration start date (RFC 3339 or YYYY-MM-DD).")
 	cmd.Flags().StringVar(&opts.finishDate, "finish-date", "", "Iteration finish date (RFC 3339 or YYYY-MM-DD).")
 	cmd.Flags().StringSliceVar(&opts.attributes, "attributes", nil, "Custom attribute in key=value form. Repeatable. start-date/finish-date win on key conflict.")
-	_ = cmd.MarkFlagRequired("name")
 	util.AddJSONFlags(cmd, &opts.exporter, []string{
 		"id", "identifier", "name", "path", "structureType", "hasChildren", "attributes", "url", "_links",
 	})
@@ -81,19 +76,25 @@ func runCreate(ctx util.CmdContext, opts *createOptions) error {
 	ios.StartProgressIndicator()
 	defer ios.StopProgressIndicator()
 
-	scope, err := util.ParseProjectScope(ctx, opts.scopeArg)
+	target, err := util.Parse(ctx, opts.scopeArg, util.ParseOptions{
+		AllowImplicitOrg: true,
+		RequireProject:   true,
+		MinTargets:       1,
+		MaxTargets:       64,
+	})
 	if err != nil {
 		return util.FlagErrorWrap(err)
 	}
 
-	name := strings.TrimSpace(opts.name)
+	name := strings.TrimSpace(target.Targets[len(target.Targets)-1])
 	if name == "" {
-		return util.FlagErrorf("--name must not be empty")
+		return util.FlagErrorf("target name must not be empty")
 	}
+	rawParentPath := strings.Join(target.Targets[:len(target.Targets)-1], "/")
 
-	parentPath, err := shared.BuildClassificationPath(scope.Project, true, "Iteration", opts.path)
+	parentPath, err := shared.BuildClassificationPath(target.Project, true, "Iteration", rawParentPath)
 	if err != nil {
-		return util.FlagErrorf("invalid --path: %w", err)
+		return util.FlagErrorf("invalid target %q: %w", opts.scopeArg, err)
 	}
 
 	attrs, err := buildAttributes(opts)
@@ -110,7 +111,7 @@ func runCreate(ctx util.CmdContext, opts *createOptions) error {
 
 	args := workitemtracking.CreateOrUpdateClassificationNodeArgs{
 		PostedNode:     postedNode,
-		Project:        types.ToPtr(scope.Project),
+		Project:        types.ToPtr(target.Project),
 		StructureGroup: types.ToPtr(workitemtracking.TreeStructureGroupValues.Iterations),
 	}
 	if parentPath != "" {
@@ -119,14 +120,14 @@ func runCreate(ctx util.CmdContext, opts *createOptions) error {
 
 	zap.L().Debug(
 		"creating iteration",
-		zap.String("organization", scope.Organization),
-		zap.String("project", scope.Project),
+		zap.String("organization", target.Organization),
+		zap.String("project", target.Project),
 		zap.String("name", name),
 		zap.String("parentPath", parentPath),
 		zap.Int("attributeCount", len(attrs)),
 	)
 
-	wit, err := ctx.ClientFactory().WorkItemTracking(ctx.Context(), scope.Organization)
+	wit, err := ctx.ClientFactory().WorkItemTracking(ctx.Context(), target.Organization)
 	if err != nil {
 		return fmt.Errorf("failed to get classification client: %w", err)
 	}

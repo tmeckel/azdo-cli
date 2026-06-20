@@ -1,7 +1,7 @@
 ## Command `azdo boards iteration project list`
 
 ```
-azdo boards iteration project list [ORGANIZATION/]PROJECT [flags]
+azdo boards iteration project list [ORGANIZATION/]PROJECT[/PATH] [flags]
 ```
 
 List the iteration (sprint) hierarchy for a project within an Azure DevOps organization.
@@ -30,10 +30,6 @@ List the iteration (sprint) hierarchy for a project within an Azure DevOps organ
 
 	Output JSON with the specified fields. Prefix a field with &#39;-&#39; to exclude it.
 
-* `-p`, `--path` `string`
-
-	Iteration path relative to project root
-
 * `--start-date` `string`
 
 	Apply a comparison filter to iteration start dates; supports operators like &gt;= and special value &#34;today&#34; (e.g., &#34;&gt;=today&#34;)
@@ -59,7 +55,7 @@ List the iteration (sprint) hierarchy for a project within an Azure DevOps organ
 azdo boards iteration project list myorg/myproject
 
 # List from a specific path
-azdo boards iteration project list myproject --path "Release 2025/Sprint 1"
+azdo boards iteration project list myproject/Release\ 2025/Sprint\ 1
 
 # Include start and finish dates
 azdo boards iteration project list myproject --include-dates

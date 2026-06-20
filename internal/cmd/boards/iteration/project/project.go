@@ -7,6 +7,7 @@ import (
 	"github.com/tmeckel/azdo-cli/internal/cmd/boards/iteration/project/delete"
 	"github.com/tmeckel/azdo-cli/internal/cmd/boards/iteration/project/list"
 	"github.com/tmeckel/azdo-cli/internal/cmd/boards/iteration/project/show"
+	"github.com/tmeckel/azdo-cli/internal/cmd/boards/iteration/project/update"
 	"github.com/tmeckel/azdo-cli/internal/cmd/util"
 )
 
@@ -32,6 +33,7 @@ func NewCmd(ctx util.CmdContext) *cobra.Command {
 	cmd.AddCommand(delete.NewCmd(ctx))
 	cmd.AddCommand(list.NewCmd(ctx))
 	cmd.AddCommand(show.NewCmd(ctx))
+	cmd.AddCommand(update.NewCmd(ctx))
 
 	return cmd
 }

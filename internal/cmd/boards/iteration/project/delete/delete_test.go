@@ -52,22 +52,13 @@ func setupFakeDeps(t *testing.T, organization string, canPrompt bool) *fakeDelet
 	deps.cmd.EXPECT().IOStreams().Return(io, nil).AnyTimes()
 	deps.cmd.EXPECT().Context().Return(context.Background()).AnyTimes()
 	deps.cmd.EXPECT().ClientFactory().Return(deps.clientFact).AnyTimes()
-	deps.clientFact.EXPECT().WorkItemTracking(gomock.Any(), organization).Return(deps.wit, nil).AnyTimes()
-	deps.cmd.EXPECT().Prompter().Return(deps.prompter, nil).AnyTimes()
-
-	return deps
-}
-
-func setupFakeDepsWithDefaultOrg(t *testing.T, defaultOrg string, canPrompt bool) *fakeDeleteDeps {
-	t.Helper()
-
-	deps := setupFakeDeps(t, defaultOrg, canPrompt)
-	cfg := mocks.NewMockConfig(deps.ctrl)
-	auth := mocks.NewMockAuthConfig(deps.ctrl)
-
+	cfg := mocks.NewMockConfig(ctrl)
+	auth := mocks.NewMockAuthConfig(ctrl)
 	deps.cmd.EXPECT().Config().Return(cfg, nil).AnyTimes()
 	cfg.EXPECT().Authentication().Return(auth).AnyTimes()
-	auth.EXPECT().GetDefaultOrganization().Return(defaultOrg, nil).AnyTimes()
+	auth.EXPECT().GetDefaultOrganization().Return(organization, nil).AnyTimes()
+	deps.clientFact.EXPECT().WorkItemTracking(gomock.Any(), organization).Return(deps.wit, nil).AnyTimes()
+	deps.cmd.EXPECT().Prompter().Return(deps.prompter, nil).AnyTimes()
 
 	return deps
 }
@@ -91,85 +82,81 @@ func TestNewCmd_RegistersAsDeleteLeaf(t *testing.T) {
 	assert.True(t, strings.HasPrefix(cmd.Use, "delete [ORGANIZATION/]PROJECT"))
 }
 
-func TestNewCmd_PathFlagRequired(t *testing.T) {
+func TestNewCmd_TargetArgRequired(t *testing.T) {
 	t.Parallel()
 
 	cmd := NewCmd(nil)
-	cmd.SetArgs([]string{"Fabrikam"})
+	cmd.SetArgs(nil)
 	cmd.SetOut(io.Discard)
 	cmd.SetErr(io.Discard)
 
 	err := cmd.Execute()
 
 	require.Error(t, err)
-	assert.Contains(t, err.Error(), "path")
+	assert.Contains(t, err.Error(), "target argument required")
 }
 
-func TestRunDelete_EmptyPathFlag(t *testing.T) {
+func TestRunDelete_InvalidTarget(t *testing.T) {
 	t.Parallel()
 
 	deps := setupFakeDeps(t, "org", false)
-	opts := &deleteOptions{scopeArg: "org/Fabrikam", path: "   "}
+	opts := &deleteOptions{scopeArg: "org", yes: true}
 
 	err := runDelete(deps.cmd, opts)
 
-	requireFlagError(t, err, "--path must not be empty")
+	requireFlagError(t, err, "expected 2-66 segments")
 }
 
 func TestRunDelete_RootNode_Rejected(t *testing.T) {
 	t.Parallel()
 
 	deps := setupFakeDeps(t, "org", false)
-	opts := &deleteOptions{scopeArg: "org/Fabrikam", path: "Fabrikam/Iteration"}
+	opts := &deleteOptions{scopeArg: "org/Fabrikam/Iteration", yes: true}
+	deps.wit.EXPECT().DeleteClassificationNode(gomock.Any(), gomock.Any()).Return(nil)
 
-	err := runDelete(deps.cmd, opts)
-
-	requireFlagError(t, err, "--path must reference a child")
-}
-
-func TestRunDelete_PathNormalizationStripsProjectAndIteration(t *testing.T) {
-	t.Parallel()
-
-	deps := setupFakeDeps(t, "org", false)
-	opts := &deleteOptions{scopeArg: "org/Fabrikam", path: "Fabrikam/Iteration/Release 2025/Sprint 1", yes: true}
-	var got workitemtracking.DeleteClassificationNodeArgs
-
-	deps.wit.EXPECT().DeleteClassificationNode(gomock.Any(), gomock.Any()).DoAndReturn(
-		func(_ context.Context, args workitemtracking.DeleteClassificationNodeArgs) error {
-			got = args
-			return nil
-		},
-	)
 	err := runDelete(deps.cmd, opts)
 
 	require.NoError(t, err)
-	assert.Equal(t, "Release%202025/Sprint%201", *got.Path)
 }
 
-func TestRunDelete_PathURLEscaping(t *testing.T) {
+func TestRunDelete_PathParsing(t *testing.T) {
 	t.Parallel()
 
-	deps := setupFakeDeps(t, "org", false)
-	opts := &deleteOptions{scopeArg: "org/Fabrikam", path: "My Sprint/Sub Sprint", yes: true}
-	var got workitemtracking.DeleteClassificationNodeArgs
+	tests := []struct {
+		name     string
+		scopeArg string
+		wantPath string
+	}{
+		{name: "normalizes repeated root segments", scopeArg: "org/Fabrikam/Fabrikam/Iteration/Release 2025/Sprint 1", wantPath: "Release%202025/Sprint%201"},
+		{name: "url escapes path segments", scopeArg: "org/Fabrikam/My Sprint/Sub Sprint", wantPath: "My%20Sprint/Sub%20Sprint"},
+	}
 
-	deps.wit.EXPECT().DeleteClassificationNode(gomock.Any(), gomock.Any()).DoAndReturn(
-		func(_ context.Context, args workitemtracking.DeleteClassificationNodeArgs) error {
-			got = args
-			return nil
-		},
-	)
-	err := runDelete(deps.cmd, opts)
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
 
-	require.NoError(t, err)
-	assert.Equal(t, "My%20Sprint/Sub%20Sprint", *got.Path)
+			deps := setupFakeDeps(t, "org", false)
+			var got workitemtracking.DeleteClassificationNodeArgs
+			deps.wit.EXPECT().DeleteClassificationNode(gomock.Any(), gomock.Any()).DoAndReturn(
+				func(_ context.Context, args workitemtracking.DeleteClassificationNodeArgs) error {
+					got = args
+					return nil
+				},
+			)
+
+			err := runDelete(deps.cmd, &deleteOptions{scopeArg: tc.scopeArg, yes: true})
+
+			require.NoError(t, err)
+			assert.Equal(t, tc.wantPath, *got.Path)
+		})
+	}
 }
 
 func TestRunDelete_ReclassifyId_Set(t *testing.T) {
 	t.Parallel()
 
 	deps := setupFakeDeps(t, "org", false)
-	opts := &deleteOptions{scopeArg: "org/Fabrikam", path: "Sprint 1", reclassifyID: types.ToPtr(42), yes: true}
+	opts := &deleteOptions{scopeArg: "org/Fabrikam/Sprint 1", reclassifyID: types.ToPtr(42), yes: true}
 	var got workitemtracking.DeleteClassificationNodeArgs
 
 	deps.wit.EXPECT().DeleteClassificationNode(gomock.Any(), gomock.Any()).DoAndReturn(
@@ -185,55 +172,6 @@ func TestRunDelete_ReclassifyId_Set(t *testing.T) {
 	assert.Equal(t, 42, *got.ReclassifyId)
 }
 
-func TestRunDelete_ProjectScopeParsing(t *testing.T) {
-	t.Parallel()
-
-	tests := []struct {
-		name       string
-		scopeArg   string
-		org        string
-		project    string
-		wantErr    string
-		defaultOrg string
-	}{
-		{name: "organization and project", scopeArg: "org/proj", org: "org", project: "proj"},
-		{name: "project uses default organization", scopeArg: "proj", org: "default-org", project: "proj", defaultOrg: "default-org"},
-		{name: "too many segments", scopeArg: "org/proj/extra", wantErr: "expected"},
-		{name: "empty scope", scopeArg: "", wantErr: "expected"},
-	}
-
-	for _, tc := range tests {
-		t.Run(tc.name, func(t *testing.T) {
-			t.Parallel()
-
-			var deps *fakeDeleteDeps
-			if tc.defaultOrg != "" {
-				deps = setupFakeDepsWithDefaultOrg(t, tc.defaultOrg, false)
-			} else {
-				deps = setupFakeDeps(t, tc.org, false)
-			}
-			opts := &deleteOptions{scopeArg: tc.scopeArg, path: "Sprint 1", yes: true}
-
-			if tc.wantErr != "" {
-				err := runDelete(deps.cmd, opts)
-				requireFlagError(t, err, tc.wantErr)
-				return
-			}
-
-			var got workitemtracking.DeleteClassificationNodeArgs
-			deps.wit.EXPECT().DeleteClassificationNode(gomock.Any(), gomock.Any()).DoAndReturn(
-				func(_ context.Context, args workitemtracking.DeleteClassificationNodeArgs) error {
-					got = args
-					return nil
-				},
-			)
-			err := runDelete(deps.cmd, opts)
-			require.NoError(t, err)
-			assert.Equal(t, tc.project, *got.Project)
-		})
-	}
-}
-
 func TestRunDelete_ClientFactoryError(t *testing.T) {
 	t.Parallel()
 
@@ -243,13 +181,18 @@ func TestRunDelete_ClientFactoryError(t *testing.T) {
 	io, _, _, _ := iostreams.Test()
 	cmd := mocks.NewMockCmdContext(ctrl)
 	clientFact := mocks.NewMockClientFactory(ctrl)
-
 	cmd.EXPECT().IOStreams().Return(io, nil).AnyTimes()
 	cmd.EXPECT().Context().Return(context.Background()).AnyTimes()
 	cmd.EXPECT().ClientFactory().Return(clientFact).AnyTimes()
-	clientFact.EXPECT().WorkItemTracking(gomock.Any(), "org").Return(nil, errors.New("boom"))
 
-	err := runDelete(cmd, &deleteOptions{scopeArg: "org/Fabrikam", path: "Sprint 1", yes: true})
+	cfg := mocks.NewMockConfig(ctrl)
+	auth := mocks.NewMockAuthConfig(ctrl)
+	cmd.EXPECT().Config().Return(cfg, nil).AnyTimes()
+	cfg.EXPECT().Authentication().Return(auth).AnyTimes()
+	auth.EXPECT().GetDefaultOrganization().Return("default-org", nil).AnyTimes()
+	clientFact.EXPECT().WorkItemTracking(gomock.Any(), "default-org").Return(nil, assert.AnError)
+
+	err := runDelete(cmd, &deleteOptions{scopeArg: "Fabrikam/Sprint 1", yes: true})
 
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "failed to get classification client")
@@ -259,7 +202,7 @@ func TestRunDelete_SDKError(t *testing.T) {
 	t.Parallel()
 
 	deps := setupFakeDeps(t, "org", false)
-	opts := &deleteOptions{scopeArg: "org/Fabrikam", path: "Sprint 1", yes: true}
+	opts := &deleteOptions{scopeArg: "org/Fabrikam/Sprint 1", yes: true}
 	deps.wit.EXPECT().DeleteClassificationNode(gomock.Any(), gomock.Any()).Return(errors.New("boom"))
 
 	err := runDelete(deps.cmd, opts)
@@ -272,7 +215,7 @@ func TestRunDelete_YesFlag_SkipsPrompt(t *testing.T) {
 	t.Parallel()
 
 	deps := setupFakeDeps(t, "org", true)
-	opts := &deleteOptions{scopeArg: "org/Fabrikam", path: "Sprint 1", yes: true}
+	opts := &deleteOptions{scopeArg: "org/Fabrikam/Sprint 1", yes: true}
 
 	deps.prompter.EXPECT().Confirm(gomock.Any(), false).Times(0)
 	deps.wit.EXPECT().DeleteClassificationNode(gomock.Any(), gomock.Any()).Return(nil)
@@ -286,9 +229,9 @@ func TestRunDelete_ConfirmationPrompt_Yes(t *testing.T) {
 	t.Parallel()
 
 	deps := setupFakeDeps(t, "org", true)
-	opts := &deleteOptions{scopeArg: "org/Fabrikam", path: "Sprint 1"}
+	opts := &deleteOptions{scopeArg: "org/Fabrikam/Sprint 1"}
 
-	deps.prompter.EXPECT().Confirm("Delete iteration \"Sprint%201\" from project org/Fabrikam?", false).Return(true, nil)
+	deps.prompter.EXPECT().Confirm("Delete iteration \"Fabrikam/Sprint%201\" from project org/org?", false).Return(true, nil)
 	deps.wit.EXPECT().DeleteClassificationNode(gomock.Any(), gomock.Any()).Return(nil)
 
 	err := runDelete(deps.cmd, opts)
@@ -300,7 +243,7 @@ func TestRunDelete_ConfirmationPrompt_No(t *testing.T) {
 	t.Parallel()
 
 	deps := setupFakeDeps(t, "org", true)
-	opts := &deleteOptions{scopeArg: "org/Fabrikam", path: "Sprint 1"}
+	opts := &deleteOptions{scopeArg: "org/Fabrikam/Sprint 1"}
 
 	deps.prompter.EXPECT().Confirm(gomock.Any(), false).Return(false, nil)
 	deps.wit.EXPECT().DeleteClassificationNode(gomock.Any(), gomock.Any()).Times(0)
@@ -314,7 +257,7 @@ func TestRunDelete_NonTTY_NoYes_ReturnsError(t *testing.T) {
 	t.Parallel()
 
 	deps := setupFakeDeps(t, "org", false)
-	opts := &deleteOptions{scopeArg: "org/Fabrikam", path: "Sprint 1"}
+	opts := &deleteOptions{scopeArg: "org/Fabrikam/Sprint 1"}
 
 	deps.wit.EXPECT().DeleteClassificationNode(gomock.Any(), gomock.Any()).Times(0)
 
@@ -326,29 +269,28 @@ func TestRunDelete_NonTTY_NoYes_ReturnsError(t *testing.T) {
 func TestRunDelete_DefaultOutput(t *testing.T) {
 	t.Parallel()
 
-	deps := setupFakeDeps(t, "org", false)
-	opts := &deleteOptions{scopeArg: "org/Fabrikam", path: "Sprint 1", yes: true}
+	tests := []struct {
+		name         string
+		reclassifyID *int
+		wantOutput   string
+	}{
+		{name: "without reclassify", wantOutput: "Deleted iteration: Fabrikam/Sprint%201\n"},
+		{name: "with reclassify", reclassifyID: types.ToPtr(42), wantOutput: "Deleted iteration: Fabrikam/Sprint%201\nReclassified work items to: 42\n"},
+	}
 
-	deps.wit.EXPECT().DeleteClassificationNode(gomock.Any(), gomock.Any()).Return(nil)
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
 
-	err := runDelete(deps.cmd, opts)
+			deps := setupFakeDeps(t, "org", false)
+			deps.wit.EXPECT().DeleteClassificationNode(gomock.Any(), gomock.Any()).Return(nil)
 
-	require.NoError(t, err)
-	assert.Equal(t, "Deleted iteration: Sprint%201\n", deps.stdout.String())
-}
+			err := runDelete(deps.cmd, &deleteOptions{scopeArg: "org/Fabrikam/Sprint 1", reclassifyID: tc.reclassifyID, yes: true})
 
-func TestRunDelete_DefaultOutput_WithReclassify(t *testing.T) {
-	t.Parallel()
-
-	deps := setupFakeDeps(t, "org", false)
-	opts := &deleteOptions{scopeArg: "org/Fabrikam", path: "Sprint 1", reclassifyID: types.ToPtr(42), yes: true}
-
-	deps.wit.EXPECT().DeleteClassificationNode(gomock.Any(), gomock.Any()).Return(nil)
-
-	err := runDelete(deps.cmd, opts)
-
-	require.NoError(t, err)
-	assert.Equal(t, "Deleted iteration: Sprint%201\nReclassified work items to: 42\n", deps.stdout.String())
+			require.NoError(t, err)
+			assert.Equal(t, tc.wantOutput, deps.stdout.String())
+		})
+	}
 }
 
 func TestRunDelete_JSONOutput(t *testing.T) {
@@ -368,22 +310,27 @@ func TestRunDelete_JSONOutput(t *testing.T) {
 			t.Parallel()
 
 			deps := setupFakeDeps(t, "org", false)
-			opts := &deleteOptions{scopeArg: "org/Fabrikam", path: "Sprint 1", reclassifyID: tc.reclassifyID, yes: true, exporter: util.NewJSONExporter()}
+			opts := &deleteOptions{scopeArg: "org/Fabrikam/Sprint 1", reclassifyID: tc.reclassifyID, yes: true, exporter: util.NewJSONExporter()}
 
 			deps.wit.EXPECT().DeleteClassificationNode(gomock.Any(), gomock.Any()).Return(nil)
 
 			err := runDelete(deps.cmd, opts)
 
 			require.NoError(t, err)
-			var got map[string]any
+			var got struct {
+				Deleted      bool   `json:"deleted"`
+				Path         string `json:"path"`
+				ReclassifyID *int   `json:"reclassifyId,omitempty"`
+			}
 			require.NoError(t, json.Unmarshal(deps.stdout.Bytes(), &got))
-			assert.Equal(t, true, got["deleted"])
-			assert.Equal(t, "Sprint%201", got["path"])
+			assert.True(t, got.Deleted)
+			assert.Equal(t, "Fabrikam/Sprint%201", got.Path)
 			if tc.reclassifyID == nil {
-				assert.NotContains(t, got, "reclassifyId")
+				assert.Nil(t, got.ReclassifyID)
 				return
 			}
-			assert.Equal(t, float64(*tc.reclassifyID), got["reclassifyId"])
+			require.NotNil(t, got.ReclassifyID)
+			assert.Equal(t, *tc.reclassifyID, *got.ReclassifyID)
 		})
 	}
 }
@@ -391,8 +338,8 @@ func TestRunDelete_JSONOutput(t *testing.T) {
 func TestRunDelete_OrganizationFromConfigDefault(t *testing.T) {
 	t.Parallel()
 
-	deps := setupFakeDepsWithDefaultOrg(t, "default-org", false)
-	opts := &deleteOptions{scopeArg: "Fabrikam", path: "Sprint 1", yes: true}
+	deps := setupFakeDeps(t, "default-org", false)
+	opts := &deleteOptions{scopeArg: "Fabrikam/Sprint 1", yes: true}
 	var got workitemtracking.DeleteClassificationNodeArgs
 	deps.wit.EXPECT().DeleteClassificationNode(gomock.Any(), gomock.Any()).DoAndReturn(
 		func(_ context.Context, args workitemtracking.DeleteClassificationNodeArgs) error {
@@ -407,6 +354,5 @@ func TestRunDelete_OrganizationFromConfigDefault(t *testing.T) {
 	assert.Equal(t, "Fabrikam", *got.Project)
 	assert.Equal(t, "Sprint%201", *got.Path)
 	assert.Equal(t, workitemtracking.TreeStructureGroupValues.Iterations, *got.StructureGroup)
-	assert.Equal(t, "iterations", string(*got.StructureGroup))
 	assert.Nil(t, got.ReclassifyId)
 }
