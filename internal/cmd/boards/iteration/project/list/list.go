@@ -17,7 +17,6 @@ import (
 
 type listOptions struct {
 	scopeArg     string
-	path         string
 	depth        int
 	includeDates bool
 	exporter     util.Exporter
@@ -40,7 +39,7 @@ func NewCmd(ctx util.CmdContext) *cobra.Command {
 	}
 
 	cmd := &cobra.Command{
-		Use:   "list [ORGANIZATION/]PROJECT",
+		Use:   "list [ORGANIZATION/]PROJECT[/PATH]",
 		Short: "List iteration hierarchy for a project.",
 		Long: heredoc.Doc(`
 			List the iteration (sprint) hierarchy for a project within an Azure DevOps organization.
@@ -50,7 +49,7 @@ func NewCmd(ctx util.CmdContext) *cobra.Command {
 			azdo boards iteration project list myorg/myproject
 
 			# List from a specific path
-			azdo boards iteration project list myproject --path "Release 2025/Sprint 1"
+			azdo boards iteration project list myproject/Release\ 2025/Sprint\ 1
 
 			# Include start and finish dates
 			azdo boards iteration project list myproject --include-dates
@@ -72,7 +71,6 @@ func NewCmd(ctx util.CmdContext) *cobra.Command {
 		},
 	}
 
-	cmd.Flags().StringVarP(&opts.path, "path", "p", "", "Iteration path relative to project root")
 	cmd.Flags().IntVarP(&opts.depth, "depth", "d", opts.depth, "Depth to fetch (1-10)")
 	cmd.Flags().BoolVar(&opts.includeDates, "include-dates", false, "Include iteration start and finish dates")
 	cmd.Flags().StringVar(&opts.startFilter, "start-date", "", "Apply a comparison filter to iteration start dates; supports operators like >= and special value \"today\" (e.g., \">=today\")")
@@ -93,12 +91,18 @@ func runList(ctx util.CmdContext, opts *listOptions) error {
 		return util.FlagErrorf("--depth must be between 1 and 10")
 	}
 
-	scope, err := util.ParseProjectScope(ctx, opts.scopeArg)
+	scope, err := util.Parse(ctx, opts.scopeArg, util.ParseOptions{
+		AllowImplicitOrg: true,
+		RequireProject:   true,
+		MinTargets:       0,
+		MaxTargets:       64,
+	})
 	if err != nil {
 		return util.FlagErrorWrap(err)
 	}
 
-	normalizedPath, err := shared.BuildClassificationPath(scope.Project, true, "Iteration", opts.path)
+	rawPath := strings.Join(scope.Targets, "/")
+	normalizedPath, err := shared.BuildClassificationPath(scope.Project, true, "Iteration", rawPath)
 	if err != nil {
 		return err
 	}

@@ -53,6 +53,11 @@ func setupFakeDeps(t *testing.T, organization string) *fakeCreateDeps {
 	deps.cmd.EXPECT().IOStreams().Return(io, nil).AnyTimes()
 	deps.cmd.EXPECT().Context().Return(context.Background()).AnyTimes()
 	deps.cmd.EXPECT().ClientFactory().Return(deps.clientFact).AnyTimes()
+	cfg := mocks.NewMockConfig(ctrl)
+	auth := mocks.NewMockAuthConfig(ctrl)
+	deps.cmd.EXPECT().Config().Return(cfg, nil).AnyTimes()
+	cfg.EXPECT().Authentication().Return(auth).AnyTimes()
+	auth.EXPECT().GetDefaultOrganization().Return(organization, nil).AnyTimes()
 
 	tp, err := printer.NewTablePrinter(out, false, 200)
 	require.NoError(t, err)
@@ -103,45 +108,46 @@ func TestNewCmd_RegistersAsCreateLeaf(t *testing.T) {
 	assert.True(t, strings.HasPrefix(cmd.Use, "create [ORGANIZATION/]PROJECT"))
 }
 
-func TestNewCmd_NameFlagRequired(t *testing.T) {
+func TestNewCmd_TargetArgRequired(t *testing.T) {
 	t.Parallel()
 
 	cmd := NewCmd(nil)
-	cmd.SetArgs([]string{"Fabrikam"})
+	cmd.SetArgs(nil)
 	cmd.SetOut(io.Discard)
 	cmd.SetErr(io.Discard)
 
 	err := cmd.Execute()
 
 	require.Error(t, err)
-	assert.Contains(t, err.Error(), "name")
+	assert.Contains(t, err.Error(), "target argument required")
 }
 
-func TestRunCreate_EmptyNameFlag(t *testing.T) {
+func TestRunCreate_InvalidTarget(t *testing.T) {
 	t.Parallel()
 
 	deps := setupFakeDeps(t, "org")
-	opts := &createOptions{scopeArg: "org/Fabrikam", name: "   "}
+	opts := &createOptions{scopeArg: "org"}
 
 	err := runCreate(deps.cmd, opts)
 
-	requireFlagError(t, err, "--name")
+	requireFlagError(t, err, "expected 2-66 segments")
 }
 
 func TestRunCreate_RootLevelCreate(t *testing.T) {
 	t.Parallel()
 
 	deps := setupFakeDeps(t, "org")
-	opts := &createOptions{scopeArg: "org/Fabrikam", name: "Sprint 1"}
+	opts := &createOptions{scopeArg: "org/Fabrikam/Sprint 1"}
 
 	args, err := captureCreateArgs(t, deps, opts, minimalCreatedNode())
 
 	require.NoError(t, err)
 	require.NotNil(t, args.PostedNode)
-	assert.Nil(t, args.Path)
+	require.NotNil(t, args.Path)
+	assert.Equal(t, "Fabrikam", *args.Path)
 	assert.Equal(t, workitemtracking.TreeStructureGroupValues.Iterations, *args.StructureGroup)
 	assert.Equal(t, "iterations", string(*args.StructureGroup))
-	assert.Equal(t, "Fabrikam", *args.Project)
+	assert.Equal(t, "org", *args.Project)
 	assert.Equal(t, "Sprint 1", *args.PostedNode.Name)
 	assert.Nil(t, args.PostedNode.Id)
 	assert.Nil(t, args.PostedNode.Attributes)
@@ -151,46 +157,49 @@ func TestRunCreate_NestedPathCreate(t *testing.T) {
 	t.Parallel()
 
 	deps := setupFakeDeps(t, "org")
-	opts := &createOptions{scopeArg: "org/Fabrikam", name: "Sprint 2", path: "Release 2025"}
+	opts := &createOptions{scopeArg: "org/Fabrikam/Release 2025/Sprint 2"}
 
 	args, err := captureCreateArgs(t, deps, opts, minimalCreatedNode())
 
 	require.NoError(t, err)
 	require.NotNil(t, args.Path)
 	assert.Equal(t, "Release%202025", *args.Path)
+	assert.Equal(t, "Sprint 2", *args.PostedNode.Name)
 }
 
 func TestRunCreate_PathNormalizationStripsProjectAndIteration(t *testing.T) {
 	t.Parallel()
 
 	deps := setupFakeDeps(t, "org")
-	opts := &createOptions{scopeArg: "org/Fabrikam", name: "Sprint 2", path: "Fabrikam/Iteration/Release 2025/Sprint 1"}
+	opts := &createOptions{scopeArg: "org/Fabrikam/Fabrikam/Iteration/Release 2025/Sprint 1/Sprint 2"}
 
 	args, err := captureCreateArgs(t, deps, opts, minimalCreatedNode())
 
 	require.NoError(t, err)
 	require.NotNil(t, args.Path)
 	assert.Equal(t, "Release%202025/Sprint%201", *args.Path)
+	assert.Equal(t, "Sprint 2", *args.PostedNode.Name)
 }
 
 func TestRunCreate_PathURLEscaping(t *testing.T) {
 	t.Parallel()
 
 	deps := setupFakeDeps(t, "org")
-	opts := &createOptions{scopeArg: "org/Fabrikam", name: "Sprint 2", path: "My Sprint/Sub Sprint"}
+	opts := &createOptions{scopeArg: "org/Fabrikam/My Sprint/Sub Sprint/Sprint 2"}
 
 	args, err := captureCreateArgs(t, deps, opts, minimalCreatedNode())
 
 	require.NoError(t, err)
 	require.NotNil(t, args.Path)
 	assert.Equal(t, "My%20Sprint/Sub%20Sprint", *args.Path)
+	assert.Equal(t, "Sprint 2", *args.PostedNode.Name)
 }
 
 func TestRunCreate_StartDateOnly(t *testing.T) {
 	t.Parallel()
 
 	deps := setupFakeDeps(t, "org")
-	opts := &createOptions{scopeArg: "org/Fabrikam", name: "Sprint 1", startDate: "2025-01-06"}
+	opts := &createOptions{scopeArg: "org/Fabrikam/Sprint 1", startDate: "2025-01-06"}
 
 	args, err := captureCreateArgs(t, deps, opts, minimalCreatedNode())
 
@@ -204,7 +213,7 @@ func TestRunCreate_FinishDateOnly(t *testing.T) {
 	t.Parallel()
 
 	deps := setupFakeDeps(t, "org")
-	opts := &createOptions{scopeArg: "org/Fabrikam", name: "Sprint 1", finishDate: "2025-01-19T00:00:00Z"}
+	opts := &createOptions{scopeArg: "org/Fabrikam/Sprint 1", finishDate: "2025-01-19T00:00:00Z"}
 
 	args, err := captureCreateArgs(t, deps, opts, minimalCreatedNode())
 
@@ -219,8 +228,7 @@ func TestRunCreate_BothDates_RFC3339(t *testing.T) {
 
 	deps := setupFakeDeps(t, "org")
 	opts := &createOptions{
-		scopeArg:   "org/Fabrikam",
-		name:       "Sprint 1",
+		scopeArg:   "org/Fabrikam/Sprint 1",
 		startDate:  "2025-01-06T00:00:00Z",
 		finishDate: "2025-01-19T00:00:00Z",
 	}
@@ -237,7 +245,7 @@ func TestRunCreate_DateFlags_InvalidFormat(t *testing.T) {
 	t.Parallel()
 
 	deps := setupFakeDeps(t, "org")
-	opts := &createOptions{scopeArg: "org/Fabrikam", name: "Sprint 1", startDate: "yesterday"}
+	opts := &createOptions{scopeArg: "org/Fabrikam/Sprint 1", startDate: "yesterday"}
 
 	err := runCreate(deps.cmd, opts)
 
@@ -249,8 +257,7 @@ func TestRunCreate_DateFlags_FinishBeforeStart(t *testing.T) {
 
 	deps := setupFakeDeps(t, "org")
 	opts := &createOptions{
-		scopeArg:   "org/Fabrikam",
-		name:       "Sprint 1",
+		scopeArg:   "org/Fabrikam/Sprint 1",
 		startDate:  "2025-01-19",
 		finishDate: "2025-01-06",
 	}
@@ -265,8 +272,7 @@ func TestRunCreate_AttributesFlag_Merged(t *testing.T) {
 
 	deps := setupFakeDeps(t, "org")
 	opts := &createOptions{
-		scopeArg:   "org/Fabrikam",
-		name:       "Sprint 1",
+		scopeArg:   "org/Fabrikam/Sprint 1",
 		attributes: []string{"goal=Ship", "team=Alpha"},
 	}
 
@@ -283,8 +289,7 @@ func TestRunCreate_AttributesFlag_StartDateWins(t *testing.T) {
 
 	deps := setupFakeDeps(t, "org")
 	opts := &createOptions{
-		scopeArg:   "org/Fabrikam",
-		name:       "Sprint 1",
+		scopeArg:   "org/Fabrikam/Sprint 1",
 		startDate:  "2025-01-06",
 		attributes: []string{"startDate=2024-12-01"},
 	}
@@ -313,7 +318,7 @@ func TestRunCreate_AttributesFlag_InvalidFormat(t *testing.T) {
 			t.Parallel()
 
 			deps := setupFakeDeps(t, "org")
-			opts := &createOptions{scopeArg: "org/Fabrikam", name: "Sprint 1", attributes: tc.attributes}
+			opts := &createOptions{scopeArg: "org/Fabrikam/Sprint 1", attributes: tc.attributes}
 
 			err := runCreate(deps.cmd, opts)
 
@@ -333,9 +338,9 @@ func TestRunCreate_ProjectScopeParsing(t *testing.T) {
 		wantErr    string
 		defaultOrg string
 	}{
-		{name: "organization and project", scopeArg: "org/proj", org: "org", project: "proj"},
-		{name: "project uses default organization", scopeArg: "proj", org: "default-org", project: "proj", defaultOrg: "default-org"},
-		{name: "too many segments", scopeArg: "org/proj/extra", wantErr: "expected"},
+		{name: "organization and project", scopeArg: "org/proj/Sprint 1", org: "org", project: "org"},
+		{name: "project uses default organization", scopeArg: "proj/Sprint 1", org: "default-org", project: "proj", defaultOrg: "default-org"},
+		{name: "variable targets stay in parent path", scopeArg: "org/proj/release/Sprint 1", org: "org", project: "proj"},
 		{name: "empty scope", scopeArg: "", wantErr: "expected"},
 	}
 
@@ -349,7 +354,7 @@ func TestRunCreate_ProjectScopeParsing(t *testing.T) {
 			} else {
 				deps = setupFakeDeps(t, tc.org)
 			}
-			opts := &createOptions{scopeArg: tc.scopeArg, name: "Sprint 1"}
+			opts := &createOptions{scopeArg: tc.scopeArg}
 
 			if tc.wantErr != "" {
 				err := runCreate(deps.cmd, opts)
@@ -377,9 +382,14 @@ func TestRunCreate_ClientFactoryError(t *testing.T) {
 	cmd.EXPECT().IOStreams().Return(io, nil).AnyTimes()
 	cmd.EXPECT().Context().Return(context.Background()).AnyTimes()
 	cmd.EXPECT().ClientFactory().Return(clientFact).AnyTimes()
-	clientFact.EXPECT().WorkItemTracking(gomock.Any(), "org").Return(nil, errors.New("boom"))
+	cfg := mocks.NewMockConfig(ctrl)
+	auth := mocks.NewMockAuthConfig(ctrl)
+	cmd.EXPECT().Config().Return(cfg, nil).AnyTimes()
+	cfg.EXPECT().Authentication().Return(auth).AnyTimes()
+	auth.EXPECT().GetDefaultOrganization().Return("default-org", nil).AnyTimes()
+	clientFact.EXPECT().WorkItemTracking(gomock.Any(), "default-org").Return(nil, errors.New("boom"))
 
-	err := runCreate(cmd, &createOptions{scopeArg: "org/Fabrikam", name: "Sprint 1"})
+	err := runCreate(cmd, &createOptions{scopeArg: "org/Fabrikam/Sprint 1"})
 
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "failed to get classification client")
@@ -389,7 +399,7 @@ func TestRunCreate_SDKError(t *testing.T) {
 	t.Parallel()
 
 	deps := setupFakeDeps(t, "org")
-	opts := &createOptions{scopeArg: "org/Fabrikam", name: "Sprint 1"}
+	opts := &createOptions{scopeArg: "org/Fabrikam/Sprint 1"}
 	deps.clientFact.EXPECT().WorkItemTracking(gomock.Any(), "org").Return(deps.wit, nil).AnyTimes()
 	deps.wit.EXPECT().CreateOrUpdateClassificationNode(gomock.Any(), gomock.Any()).Return(nil, errors.New("boom"))
 
@@ -403,7 +413,7 @@ func TestRunCreate_TableOutput_AllColumns(t *testing.T) {
 	t.Parallel()
 
 	deps := setupFakeDeps(t, "org")
-	opts := &createOptions{scopeArg: "org/Fabrikam", name: "Sprint 1"}
+	opts := &createOptions{scopeArg: "org/Fabrikam/Sprint 1"}
 	deps.clientFact.EXPECT().WorkItemTracking(gomock.Any(), "org").Return(deps.wit, nil).AnyTimes()
 	deps.wit.EXPECT().CreateOrUpdateClassificationNode(gomock.Any(), gomock.Any()).Return(minimalCreatedNode(), nil)
 
@@ -427,7 +437,7 @@ func TestRunCreate_JSONOutput(t *testing.T) {
 	t.Parallel()
 
 	deps := setupFakeDeps(t, "org")
-	opts := &createOptions{scopeArg: "org/Fabrikam", name: "Sprint 1", exporter: util.NewJSONExporter()}
+	opts := &createOptions{scopeArg: "org/Fabrikam/Sprint 1", exporter: util.NewJSONExporter()}
 	identifier := uuid.New()
 	path := "Fabrikam\\Iteration\\Sprint 1"
 	jsonNode := &workitemtracking.WorkItemClassificationNode{
@@ -471,7 +481,7 @@ func TestRunCreate_OrganizationFromConfigDefault(t *testing.T) {
 	t.Parallel()
 
 	deps := setupFakeDepsWithDefaultOrg(t, "default-org")
-	opts := &createOptions{scopeArg: "Fabrikam", name: "Sprint 1"}
+	opts := &createOptions{scopeArg: "Fabrikam/Sprint 1"}
 	var got workitemtracking.CreateOrUpdateClassificationNodeArgs
 	deps.clientFact.EXPECT().WorkItemTracking(gomock.Any(), "default-org").Return(deps.wit, nil)
 	deps.wit.EXPECT().CreateOrUpdateClassificationNode(gomock.Any(), gomock.Any()).DoAndReturn(
