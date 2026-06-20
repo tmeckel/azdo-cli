@@ -208,6 +208,25 @@ Aliases
 view, status
 ```
 
+##### `azdo boards iteration project update [ORGANIZATION/]PROJECT[/PATH]/NAME [flags]`
+
+Update an iteration in a project.
+
+```
+    --attributes strings   Custom attribute in key=value form. Repeatable. Existing attributes not mentioned are preserved.
+    --finish-date string   New finish date (RFC 3339 or YYYY-MM-DD). Wins on conflict with --attributes finishDate. Must be on or after start-date when both are set.
+-q, --jq expression        Filter JSON output using a jq expression
+    --json fields[=*]      Output JSON with the specified fields. Prefix a field with '-' to exclude it.
+    --start-date string    New start date (RFC 3339 or YYYY-MM-DD). Wins on conflict with --attributes startDate.
+-t, --template string      Format JSON output using a Go template; see "azdo help formatting"
+```
+
+Aliases
+
+```
+u, up
+```
+
 ### `azdo boards work-item <command>`
 
 Work with Azure Boards work items.
