@@ -210,9 +210,9 @@ func TestExtractDate(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
-		name string
+		name  string
 		attrs map[string]any
-		want string
+		want  string
 	}{
 		{name: "parses RFC3339 string", attrs: map[string]any{"startDate": "2024-01-15T13:45:00Z"}, want: "2024-01-15T13:45:00Z"},
 		{name: "returns nil on unknown format", attrs: map[string]any{"startDate": 1234}},

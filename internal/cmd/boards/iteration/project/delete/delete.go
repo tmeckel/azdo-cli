@@ -109,10 +109,10 @@ func runDelete(ctx util.CmdContext, opts *deleteOptions) error {
 		}
 		if !confirmed {
 			zap.L().Debug(
-			"iteration deletion canceled by user",
-			zap.String("organization", target.Organization),
-			zap.String("project", target.Project),
-			zap.String("path", nodePath),
+				"iteration deletion canceled by user",
+				zap.String("organization", target.Organization),
+				zap.String("project", target.Project),
+				zap.String("path", nodePath),
 			)
 			return util.ErrCancel
 		}

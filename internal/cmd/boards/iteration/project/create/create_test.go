@@ -352,15 +352,15 @@ func TestRunCreate_JSONOutput(t *testing.T) {
 
 	require.NoError(t, err)
 	var got struct {
-		ID            int                    `json:"id"`
-		Identifier    string                 `json:"identifier"`
-		Name          string                 `json:"name"`
-		Path          string                 `json:"path"`
-		HasChildren   bool                   `json:"hasChildren"`
-		URL           string                 `json:"url"`
-		StructureType string                 `json:"structureType"`
-		Attributes    map[string]any         `json:"attributes"`
-		Links         map[string]any         `json:"_links"`
+		ID            int            `json:"id"`
+		Identifier    string         `json:"identifier"`
+		Name          string         `json:"name"`
+		Path          string         `json:"path"`
+		HasChildren   bool           `json:"hasChildren"`
+		URL           string         `json:"url"`
+		StructureType string         `json:"structureType"`
+		Attributes    map[string]any `json:"attributes"`
+		Links         map[string]any `json:"_links"`
 	}
 	require.NoError(t, json.Unmarshal(deps.stdout.Bytes(), &got))
 	assert.Equal(t, 42, got.ID)

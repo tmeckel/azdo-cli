@@ -318,9 +318,9 @@ func TestRunDelete_JSONOutput(t *testing.T) {
 
 			require.NoError(t, err)
 			var got struct {
-				Deleted      bool `json:"deleted"`
+				Deleted      bool   `json:"deleted"`
 				Path         string `json:"path"`
-				ReclassifyID *int `json:"reclassifyId,omitempty"`
+				ReclassifyID *int   `json:"reclassifyId,omitempty"`
 			}
 			require.NoError(t, json.Unmarshal(deps.stdout.Bytes(), &got))
 			assert.True(t, got.Deleted)
