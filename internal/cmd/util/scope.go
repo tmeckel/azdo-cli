@@ -41,7 +41,7 @@ type ParseOptions struct {
 //   - RequireProject requires one project segment before any target segments.
 //   - MinTargets defines required trailing target count.
 //   - MaxTargets defines allowed trailing target count. When MaxTargets is zero, Parse
-//     treats it as exactly MinTargets.
+//     treats the target count as unbounded (arbitrary length).
 //
 // Parse only supports at most two non-target prefix segments: optional organization and
 // optional project. Targets are always the trailing segments and the prefix is the
@@ -49,9 +49,14 @@ type ParseOptions struct {
 // the target count is n - prefixLen, and only candidates whose target count falls
 // within [MinTargets, MaxTargets] are considered.
 //
-// When MinTargets == MaxTargets the target count is fixed, so the prefix is simply the
-// remaining leading segments (0, 1, or 2). When MaxTargets > MinTargets multiple
-// prefix lengths may be valid. In that case Parse disambiguates as follows:
+// When MaxTargets is zero the target count is unbounded. In that case Parse pins the
+// prefix to its maximum shape so that explicitly provided organization and project are
+// retained and only the genuinely trailing segments are treated as targets.
+//
+// When MaxTargets is non-zero and MinTargets == MaxTargets the target count is fixed,
+// so the prefix is simply the remaining leading segments (0, 1, or 2). When
+// MaxTargets > MinTargets multiple prefix lengths may be valid. In that case Parse
+// disambiguates as follows:
 //
 //   - If the smallest valid prefix would push targets to MaxTargets, prefer the largest
 //     prefix so target capacity is not exhausted.
@@ -86,12 +91,15 @@ type ParseOptions struct {
 //	Parse(nil, "org/project/target/extra", ParseOptions{MinTargets: 1, MaxTargets: 2})
 //	// => &Path{Organization: "org", Project: "project", Targets: []string{"target", "extra"}}
 //
+//	Parse(ctx, "org/project/a/b/c", ParseOptions{AllowImplicitOrg: false, MinTargets: 0, MaxTargets: 0})
+//	// => &Path{Organization: "org", Project: "project", Targets: []string{"a", "b", "c"}}
+//
 // Error conditions:
 //   - opts are invalid, for example MaxTargets is non-zero and smaller than MinTargets
 //   - any segment is empty after trimming, for example "org/" or "org/ /project"
 //   - total segment count falls outside the allowed range derived from opts
 //   - only a sub-maximum prefix is valid, organization is required, and target count is
-//     variable — the input is ambiguous
+//     variable (bounded) — the input is ambiguous
 //   - organization is omitted but ctx is nil
 //   - organization is omitted and default organization lookup fails or returns empty
 func Parse(ctx CmdContext, raw string, opts ParseOptions) (*Path, error) {
@@ -109,17 +117,16 @@ func Parse(ctx CmdContext, raw string, opts ParseOptions) (*Path, error) {
 
 	n := len(parts)
 
-	// Validate and normalize the allowed target range.
 	minTargets := opts.MinTargets
 	maxTargets := opts.MaxTargets
-	if maxTargets == 0 {
-		maxTargets = minTargets
+	unbounded := maxTargets == 0
+	if minTargets < 0 {
+		return nil, fmt.Errorf("invalid options: target range [%d,%d] is not satisfiable", opts.MinTargets, opts.MaxTargets)
 	}
-	if minTargets < 0 || maxTargets < minTargets {
+	if !unbounded && maxTargets < minTargets {
 		return nil, fmt.Errorf("invalid options: target range [%d,%d] is not satisfiable", opts.MinTargets, opts.MaxTargets)
 	}
 
-	// Prefix (organization + project) segment ranges.
 	minOrg := 0
 	if !opts.AllowImplicitOrg {
 		minOrg = 1
@@ -134,86 +141,102 @@ func Parse(ctx CmdContext, raw string, opts ParseOptions) (*Path, error) {
 	maxPrefix := maxOrg + maxProject
 
 	minTotal := minPrefix + minTargets
-	maxTotal := maxPrefix + maxTargets
 
-	// Range check.
-	if n < minTotal || n > maxTotal {
-		return nil, fmt.Errorf("invalid input %q: expected %d-%d segments, got %d", raw, minTotal, maxTotal, n)
-	}
-
-	// Determine prefix length by collecting valid candidates from the back.
-	// Targets occupy the trailing segments, so for each candidate prefix
-	// length the target count is n - prefixLen.
-	var validPrefixes []int
-	for pl := maxPrefix; pl >= minPrefix; pl-- {
-		tc := n - pl
-		if tc >= minTargets && tc <= maxTargets {
-			validPrefixes = append(validPrefixes, pl)
-		}
-	}
-
-	if len(validPrefixes) == 0 {
-		return nil, fmt.Errorf("invalid input %q: expected %d-%d segments, got %d", raw, minTotal, maxTotal, n)
-	}
-
-	var prefixLen int
-	if len(validPrefixes) == 1 {
-		prefixLen = validPrefixes[0]
-		// When only a sub-maximum prefix is valid the full org+project
-		// prefix does not fit.  If org is required and the target count
-		// is variable the input is ambiguous — the missing segment could
-		// be org or project — so reject rather than guess.
-		if prefixLen < maxPrefix && !opts.AllowImplicitOrg && minTargets != maxTargets {
-			return nil, fmt.Errorf("invalid input %q: expected %d-%d segments, got %d", raw, minTotal, maxTotal, n)
+	if unbounded {
+		if n < minTotal {
+			return nil, fmt.Errorf("invalid input %q: expected at least %d segments, got %d", raw, minTotal, n)
 		}
 	} else {
-		// Multiple valid prefix lengths — disambiguate.
-		high := validPrefixes[0]                   // largest prefix, fewest targets
-		low := validPrefixes[len(validPrefixes)-1] // smallest prefix, most targets
-		tHigh := n - high
-		tLow := n - low
+		maxTotal := maxPrefix + maxTargets
+		if n < minTotal || n > maxTotal {
+			return nil, fmt.Errorf("invalid input %q: expected %d-%d segments, got %d", raw, minTotal, maxTotal, n)
+		}
+	}
+
+	type candidate struct {
+		hasOrg     bool
+		hasProject bool
+		prefixLen  int
+	}
+
+	var candidates []candidate
+	candidates = append(candidates, candidate{true, true, 2})
+	if !opts.RequireProject {
+		candidates = append(candidates, candidate{true, false, 1})
+	}
+	if opts.AllowImplicitOrg && opts.RequireProject {
+		candidates = append(candidates, candidate{false, true, 1})
+	}
+	if opts.AllowImplicitOrg && !opts.RequireProject {
+		candidates = append(candidates, candidate{false, false, 0})
+	}
+
+	var feasible []candidate
+	for _, c := range candidates {
+		if c.prefixLen > n {
+			continue
+		}
+		tc := n - c.prefixLen
+		if tc < minTargets {
+			continue
+		}
+		if !unbounded && tc > maxTargets {
+			continue
+		}
+		feasible = append(feasible, c)
+	}
+
+	if len(feasible) == 0 {
+		if unbounded {
+			return nil, fmt.Errorf("invalid input %q: expected at least %d segments, got %d", raw, minTotal, n)
+		}
+		maxTotal := maxPrefix + maxTargets
+		return nil, fmt.Errorf("invalid input %q: expected %d-%d segments, got %d", raw, minTotal, maxTotal, n)
+	}
+
+	var chosen candidate
+	if len(feasible) == 1 {
+		chosen = feasible[0]
+	} else {
+		high := feasible[0]
+		low := feasible[len(feasible)-1]
+		tHigh := n - high.prefixLen
+		tLow := n - low.prefixLen
 
 		switch {
+		case unbounded:
+			if opts.AllowImplicitOrg && opts.RequireProject && n-high.prefixLen == 1 {
+				chosen = low
+			} else {
+				chosen = high
+			}
 		case tLow == maxTargets:
-			// Smallest prefix pushes targets to the maximum — prefer the
-			// largest prefix so target capacity is not exhausted.
-			prefixLen = high
+			chosen = high
 		case tHigh == minTargets:
-			// Largest prefix pushes targets to the minimum — prefer the
-			// smallest prefix to preserve target capacity.
-			prefixLen = low
+			chosen = low
 		case !opts.RequireProject:
-			// Project is optional — prefer the smallest prefix so the
-			// optional project segment is not consumed.
-			prefixLen = low
+			chosen = low
 		case opts.AllowImplicitOrg:
-			// Organization is optional — prefer the largest prefix so
-			// an explicitly provided organization is retained.
-			prefixLen = high
+			chosen = high
 		default:
-			prefixLen = high
+			chosen = high
 		}
 	}
-
-	targetCount := n - prefixLen
 
 	p := &Path{}
+	targetCount := n - chosen.prefixLen
 	if targetCount > 0 {
 		p.Targets = make([]string, targetCount)
-		copy(p.Targets, parts[prefixLen:])
+		copy(p.Targets, parts[chosen.prefixLen:])
 	}
 
-	switch prefixLen {
-	case 0:
-	case 1:
-		if opts.RequireProject {
-			p.Project = parts[0]
-		} else {
-			p.Organization = parts[0]
-		}
-	case 2:
-		p.Organization = parts[0]
-		p.Project = parts[1]
+	idx := 0
+	if chosen.hasOrg {
+		p.Organization = parts[idx]
+		idx++
+	}
+	if chosen.hasProject {
+		p.Project = parts[idx]
 	}
 
 	if p.Organization == "" {
@@ -251,14 +274,14 @@ func ParseScope(ctx CmdContext, scope string) (*Path, error) {
 // ParseOrganizationArg resolves the organization from an input argument of the form "[ORGANIZATION]".
 // When the input is empty, the default organization from the user configuration is returned.
 func ParseOrganizationArg(ctx CmdContext, arg string) (string, error) {
+	if strings.Count(arg, "/") > 0 {
+		return "", fmt.Errorf("project or target scopes are not allowed")
+	}
 	scope, err := Parse(ctx, arg, ParseOptions{
 		AllowImplicitOrg: true,
 	})
 	if err != nil {
 		return "", err
-	}
-	if scope.Project != "" {
-		return "", fmt.Errorf("project scope not allowed for this command")
 	}
 	return scope.Organization, nil
 }
@@ -267,6 +290,9 @@ func ParseOrganizationArg(ctx CmdContext, arg string) (string, error) {
 // segment is omitted the default organization from the user's configuration is used. The function
 // trims whitespace around individual segments and ensures the resulting values are non-empty.
 func ParseProjectScope(ctx CmdContext, arg string) (*Path, error) {
+	if strings.Count(arg, "/") > 1 {
+		return nil, fmt.Errorf("invalid project target %q", arg)
+	}
 	return Parse(ctx, arg, ParseOptions{
 		AllowImplicitOrg: true,
 		RequireProject:   true,
