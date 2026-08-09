@@ -36,12 +36,3 @@ func GetServiceEndpointTypes(cmdCtx util.CmdContext, organization string) ([]ser
 	typesCache.Store(organization, *res)
 	return *res, nil
 }
-
-// Helpers for tests
-func setTypesCacheForTest(org string, types []serviceendpoint.ServiceEndpointType) {
-	typesCache.Store(org, types)
-}
-
-func clearTypesCacheForTest() {
-	typesCache = sync.Map{}
-}

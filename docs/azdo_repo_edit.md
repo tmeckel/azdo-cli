@@ -1,7 +1,7 @@
 ## Command `azdo repo edit`
 
 ```
-azdo repo edit [organization/]project/repository [flags]
+azdo repo edit [ORG:]PROJECT/REPOSITORY [flags]
 ```
 
 Modify properties of an Azure DevOps Git repository, including changing its default branch, renaming it, or toggling its disabled state.
@@ -60,7 +60,7 @@ Constraints for disabled repositories:
 azdo repo edit myproject/myrepo --default-branch live
 
 # Change the default branch with a full ref
-azdo repo edit myorg/myproject/myrepo --default-branch refs/heads/live
+azdo repo edit myorg:myproject/myrepo --default-branch refs/heads/live
 
 # Rename a repository
 azdo repo edit myproject/myrepo --name NewRepoName

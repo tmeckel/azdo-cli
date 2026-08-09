@@ -25,7 +25,7 @@ func NewCmd(ctx util.CmdContext) *cobra.Command {
 	o := &opts{}
 
 	cmd := &cobra.Command{
-		Use:   "list [ORGANIZATION]",
+		Use:   "list [ORG]",
 		Short: "List security permission namespaces.",
 		Long: heredoc.Doc(`
 			List all security permission namespaces available in an Azure DevOps organization.

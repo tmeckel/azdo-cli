@@ -60,10 +60,7 @@ func NewCmdContext() (ctx CmdContext, err error) {
 		return ctx, err
 	}
 
-	iostrms, err := newIOStreams(cfg)
-	if err != nil {
-		return ctx, err
-	}
+	iostrms := newIOStreams(cfg)
 
 	p, err := newPrompter(cfg, iostrms)
 	if err != nil {
@@ -253,7 +250,7 @@ func (c *cmdContext) Repo() (result azdo.Repository, err error) {
 	return result, err
 }
 
-func newIOStreams(cfg config.Config) (*iostreams.IOStreams, error) {
+func newIOStreams(cfg config.Config) *iostreams.IOStreams {
 	io := iostreams.System()
 
 	if _, ghPromptDisabled := os.LookupEnv("AZDO_PROMPT_DISABLED"); ghPromptDisabled {
@@ -272,7 +269,7 @@ func newIOStreams(cfg config.Config) (*iostreams.IOStreams, error) {
 		io.SetPager(pager)
 	}
 
-	return io, nil
+	return io
 }
 
 func newPrompter(cfg config.Config, io *iostreams.IOStreams) (p prompter.Prompter, err error) {

@@ -1,12 +1,12 @@
 ## Command `azdo service-endpoint create`
 
 ```
-azdo service-endpoint create [ORGANIZATION/]PROJECT --from-file <path> [flags]
+azdo service-endpoint create [ORG:]PROJECT --from-file <path> [flags]
 ```
 
 Create Azure DevOps service endpoints (service connections) from a JSON definition file.
 
-The project scope accepts the form [ORGANIZATION/]PROJECT. When the organization segment
+The project scope accepts the form [ORG:]PROJECT. When the ORG: prefix
 is omitted the default organization from configuration is used.
 
 Check the available subcommands to create service connections of specific well-known types.
@@ -53,10 +53,10 @@ Check the available subcommands to create service connections of specific well-k
 
 ```bash
 # Create a service endpoint from a UTF-8 JSON file
-azdo service-endpoint create my-org/my-project --from-file ./endpoint.json
+azdo service-endpoint create myorg:my-project --from-file ./endpoint.json
 
 # Read the definition from stdin using UTF-16LE encoding
-cat endpoint.json | azdo service-endpoint create my-org/my-project --from-file - --encoding utf-16le
+cat endpoint.json | azdo service-endpoint create myorg:my-project --from-file - --encoding utf-16le
 ```
 
 ### See also

@@ -74,7 +74,7 @@ func TestList_EmptyResult(t *testing.T) {
 		Return(&[]webapi.TeamMember{}, nil)
 
 	cmd := NewCmd(deps.cmd)
-	cmd.SetArgs([]string{"myOrg/myProject/MyTeam"})
+	cmd.SetArgs([]string{"myOrg:myProject/MyTeam"})
 	err := cmd.Execute()
 	require.NoError(t, err)
 }
@@ -92,7 +92,7 @@ func TestList_NoFilters(t *testing.T) {
 		Return(&members, nil)
 
 	cmd := NewCmd(deps.cmd)
-	cmd.SetArgs([]string{"myOrg/myProject/MyTeam"})
+	cmd.SetArgs([]string{"myOrg:myProject/MyTeam"})
 	err := cmd.Execute()
 	require.NoError(t, err)
 
@@ -118,7 +118,7 @@ func TestList_FiltersPassedToSDK(t *testing.T) {
 		})
 
 	cmd := NewCmd(deps.cmd)
-	cmd.SetArgs([]string{"myOrg/myProject/MyTeam", "--top", "10", "--skip", "5"})
+	cmd.SetArgs([]string{"myOrg:myProject/MyTeam", "--top", "10", "--skip", "5"})
 	err := cmd.Execute()
 	require.NoError(t, err)
 
@@ -143,7 +143,7 @@ func TestList_MaxItemsCap(t *testing.T) {
 		Return(&members, nil)
 
 	cmd := NewCmd(deps.cmd)
-	cmd.SetArgs([]string{"myOrg/myProject/MyTeam", "--max-items", "3"})
+	cmd.SetArgs([]string{"myOrg:myProject/MyTeam", "--max-items", "3"})
 	err := cmd.Execute()
 	require.NoError(t, err)
 
@@ -171,7 +171,7 @@ func TestList_JSONOutput(t *testing.T) {
 		Return(&members, nil)
 
 	cmd := NewCmd(deps.cmd)
-	cmd.SetArgs([]string{"myOrg/myProject/MyTeam", "--json=identity,isTeamAdmin"})
+	cmd.SetArgs([]string{"myOrg:myProject/MyTeam", "--json=identity,isTeamAdmin"})
 	err := cmd.Execute()
 	require.NoError(t, err)
 
@@ -209,7 +209,7 @@ func TestList_PaginatesUntilShortPage(t *testing.T) {
 		}).Times(2)
 
 	cmd := NewCmd(deps.cmd)
-	cmd.SetArgs([]string{"myOrg/myProject/MyTeam", "--top", "2"})
+	cmd.SetArgs([]string{"myOrg:myProject/MyTeam", "--top", "2"})
 	err := cmd.Execute()
 	require.NoError(t, err)
 	assert.Equal(t, 2, callCount)
@@ -229,7 +229,7 @@ func TestList_TargetArg_ParsesOrgSlashProjectSlashTeam(t *testing.T) {
 		})
 
 	cmd := NewCmd(deps.cmd)
-	cmd.SetArgs([]string{"myOrg/myProject/My Team"})
+	cmd.SetArgs([]string{"myOrg:myProject/My Team"})
 	err := cmd.Execute()
 	require.NoError(t, err)
 
@@ -250,7 +250,7 @@ func TestList_IdentityRefs_NilSafe(t *testing.T) {
 		Return(&members, nil)
 
 	cmd := NewCmd(deps.cmd)
-	cmd.SetArgs([]string{"myOrg/myProject/MyTeam"})
+	cmd.SetArgs([]string{"myOrg:myProject/MyTeam"})
 	err := cmd.Execute()
 	require.NoError(t, err)
 }
@@ -273,7 +273,7 @@ func TestList_IdentityDisplayFallsBackToUniqueName(t *testing.T) {
 		Return(&members, nil)
 
 	cmd := NewCmd(deps.cmd)
-	cmd.SetArgs([]string{"myOrg/myProject/MyTeam"})
+	cmd.SetArgs([]string{"myOrg:myProject/MyTeam"})
 	err := cmd.Execute()
 	require.NoError(t, err)
 
@@ -286,4 +286,55 @@ func boolPtr(b bool) *bool {
 
 func strPtr(s string) *string {
 	return &s
+}
+
+func TestList_LegacyOrgSlashFormRejected(t *testing.T) {
+	deps, _ := setupFakeDeps(t, "myOrg")
+
+	cmd := NewCmd(deps.cmd)
+	cmd.SetArgs([]string{"myOrg/myProject/MyTeam"})
+	err := cmd.Execute()
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "legacy ORGANIZATION/... form is not supported, use ORG: syntax")
+}
+
+func TestList_DefaultsToConfiguredOrganization(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	t.Cleanup(ctrl.Finish)
+
+	io, _, out, _ := iostreams.Test()
+	io.SetStdoutTTY(false)
+	io.SetStderrTTY(false)
+
+	mockCmdCtx := mocks.NewMockCmdContext(ctrl)
+	mockClientFactory := mocks.NewMockClientFactory(ctrl)
+	mockCoreClient := mocks.NewMockCoreClient(ctrl)
+	mockConfig := mocks.NewMockConfig(ctrl)
+	mockAuthCfg := mocks.NewMockAuthConfig(ctrl)
+
+	defaultOrg := "defaultOrg"
+
+	mockCmdCtx.EXPECT().Config().Return(mockConfig, nil).AnyTimes()
+	mockConfig.EXPECT().Authentication().Return(mockAuthCfg).AnyTimes()
+	mockAuthCfg.EXPECT().GetDefaultOrganization().Return(defaultOrg, nil).AnyTimes()
+	mockCmdCtx.EXPECT().IOStreams().Return(io, nil).AnyTimes()
+	mockCmdCtx.EXPECT().Context().Return(context.Background()).AnyTimes()
+	mockCmdCtx.EXPECT().ClientFactory().Return(mockClientFactory).AnyTimes()
+	mockClientFactory.EXPECT().Core(gomock.Any(), defaultOrg).Return(mockCoreClient, nil).AnyTimes()
+
+	mockCoreClient.EXPECT().GetTeamMembersWithExtendedProperties(gomock.Any(), gomock.Any()).
+		DoAndReturn(func(_ context.Context, args core.GetTeamMembersWithExtendedPropertiesArgs) (*[]webapi.TeamMember, error) {
+			assert.Equal(t, "myProject", *args.ProjectId)
+			assert.Equal(t, "MyTeam", *args.TeamId)
+			return &[]webapi.TeamMember{}, nil
+		})
+
+	tp, err := printer.NewTablePrinter(out, false, 200)
+	require.NoError(t, err)
+	mockCmdCtx.EXPECT().Printer(gomock.Any()).Return(tp, nil).AnyTimes()
+
+	cmd := NewCmd(mockCmdCtx)
+	cmd.SetArgs([]string{"myProject/MyTeam"})
+	err = cmd.Execute()
+	require.NoError(t, err)
 }

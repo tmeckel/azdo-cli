@@ -33,22 +33,22 @@ func NewCmd(ctx util.CmdContext) *cobra.Command {
 	opts := &showOptions{}
 
 	cmd := &cobra.Command{
-		Use:   "show [ORGANIZATION/]POOL",
+		Use:   "show [ORG:]/POOL",
 		Short: "Show details of an agent pool",
 		Long: heredoc.Doc(`
 			Display the details of a single Azure DevOps agent pool.
 			The pool is identified by integer ID or name, with an
-			optional organization prefix.
+			optional ORG: prefix.
 		`),
 		Example: heredoc.Doc(`
 			# Show a pool by ID
-			azdo pipelines pool show 42
+			azdo pipelines pool show /42
 
 			# Show a pool by name
-			azdo pipelines pool show 'Default'
+			azdo pipelines pool show '/Default'
 
 			# Show a pool in a specific organization
-			azdo pipelines pool show 'myorg/Default'
+			azdo pipelines pool show 'myorg:/Default'
 		`),
 		Aliases: []string{"view", "status"},
 		Args:    util.ExactArgs(1, "pool target is required"),
@@ -76,13 +76,14 @@ func runShow(cmdCtx util.CmdContext, opts *showOptions) error {
 	ios.StartProgressIndicator()
 	defer ios.StopProgressIndicator()
 
-	scope, err := util.ParseTargetWithDefaultOrganization(cmdCtx, opts.targetArg)
+	scope, err := util.Parse(cmdCtx, opts.targetArg, util.ParseOptions{
+		AllowImplicitOrg: true,
+		DisallowProject:  true,
+		MinTargets:       1,
+		MaxTargets:       1,
+	})
 	if err != nil {
 		return util.FlagErrorWrap(err)
-	}
-
-	if len(scope.Targets) == 0 {
-		return util.FlagErrorf("pool target is required")
 	}
 	poolTarget := scope.Targets[0]
 

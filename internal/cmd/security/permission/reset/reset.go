@@ -35,7 +35,7 @@ func NewCmd(ctx util.CmdContext) *cobra.Command {
 	o := &opts{}
 
 	cmd := &cobra.Command{
-		Use:   "reset <TARGET>",
+		Use:   "reset [ORG:][/]SUBJECT | [ORG:]PROJECT/SUBJECT",
 		Short: "Reset explicit permission bits for a user or group.",
 		Long: heredoc.Doc(`
 			Reset the explicit allow/deny permission bits for a user or group on a securable resource (identified by a token).
@@ -46,21 +46,26 @@ func NewCmd(ctx util.CmdContext) *cobra.Command {
 			  - a textual action name or display name matching the namespace action (e.g. "Read").
 
 			Accepted TARGET formats:
-			  - ORGANIZATION/SUBJECT
-			  - ORGANIZATION/PROJECT/SUBJECT
+			  - /SUBJECT                       → reset permissions in the default organization
+			  - ORG:/SUBJECT                   → reset permissions in an explicit organization
+			  - PROJECT/SUBJECT                → reset permissions scoped to the project
+			  - ORG:PROJECT/SUBJECT            → reset permissions scoped to the project in an explicit organization
+
+			A legacy two-segment input such as ORG/SUBJECT is interpreted as PROJECT/SUBJECT
+			in the default organization. Use ORG:/SUBJECT for organization-level subjects.
 		`),
 		Example: heredoc.Doc(`
 			# Reset the Read action (textual) for a user on a token
-			azdo security permission reset fabrikam/user@example.com --namespace-id 71356614-aad7-4757-8f2c-0fb3bff6f680 --token '$/696416ee-f7ff-4ee3-934a-979b00dce74f' --permission-bit Read
+			azdo security permission reset org:/user@example.com --namespace-id 71356614-aad7-4757-8f2c-0fb3bff6f680 --token '$/696416ee-f7ff-4ee3-934a-979b00dce74f' --permission-bit Read
 
 			# Reset multiple actions by specifying --permission-bit multiple times
-			azdo security permission reset fabrikam/user@example.com --namespace-id bf7bfa03-b2b7-47db-8113-fa2e002cc5b1 --token vstfs:///Classification/Node/18c76992-93fa-4eb2-aac0-0abc0be212d6 --permission-bit Read --permission-bit Contribute
+			azdo security permission reset org:/user@example.com --namespace-id bf7bfa03-b2b7-47db-8113-fa2e002cc5b1 --token vstfs:///Classification/Node/18c76992-93fa-4eb2-aac0-0abc0be212d6 --permission-bit Read --permission-bit Contribute
 
 			# Reset multiple actions using a single comma-separated value (shells may need quoting)
-			azdo security permission reset fabrikam/user@example.com --namespace-id 302acaca-b667-436d-a946-87133492041c --token BuildPrivileges --permission-bit "Read,Contribute,0x4"
+			azdo security permission reset org:/user@example.com --namespace-id 302acaca-b667-436d-a946-87133492041c --token BuildPrivileges --permission-bit "Read,Contribute,0x4"
 
 			# Use --yes to skip confirmation prompts
-			azdo security permission reset fabrikam/user@example.com --namespace-id 8adf73b7-389a-4276-b638-fe1653f7efc7 --token '$/f6ad111f-42cb-4e2d-b22a-cd0bd6f5aebd/00000000-0000-0000-0000-000000000000' --permission-bit Read --yes
+			azdo security permission reset org:/user@example.com --namespace-id 8adf73b7-389a-4276-b638-fe1653f7efc7 --token '$/f6ad111f-42cb-4e2d-b22a-cd0bd6f5aebd/00000000-0000-0000-0000-000000000000' --permission-bit Read --yes
 		`),
 		Aliases: []string{
 			"r",

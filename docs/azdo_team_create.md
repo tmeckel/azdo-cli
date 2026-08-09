@@ -1,7 +1,7 @@
 ## Command `azdo team create`
 
 ```
-azdo team create [ORGANIZATION/]PROJECT [flags]
+azdo team create [ORG:]PROJECT [flags]
 ```
 
 Create a new team in the specified project. The --name flag is required.
@@ -53,7 +53,7 @@ configured default when omitted.
 azdo team create Fabrikam --name "Fabrikam Engineering"
 
 # Create a team with a description
-azdo team create MyOrg/Fabrikam --name "My Team" --description "Owns the web app"
+azdo team create MyOrg:Fabrikam --name "My Team" --description "Owns the web app"
 ```
 
 ### See also

@@ -25,13 +25,15 @@ type usersListOptions struct {
 func NewCmd(ctx util.CmdContext) *cobra.Command {
 	opts := &usersListOptions{}
 	cmd := &cobra.Command{
-		Use:   "list [project]",
+		Use:   "list [PROJECT]",
 		Short: "List users and groups in Azure DevOps",
 		Long: heredoc.Doc(`
 			List users and groups from an Azure DevOps project or organization.
 
 			By default, it lists users in the organization. You can scope the search to a specific
-			project by providing the project name as an argument.
+			project by providing the project name as an argument. When an organization is supplied
+			with --organization together with a project argument, the project scope is resolved as
+			ORG:PROJECT.
 
 			The command allows filtering by user type (e.g., 'aad', 'msa', 'svc') and supports
 			prefix-based filtering on user display names.
@@ -42,6 +44,9 @@ func NewCmd(ctx util.CmdContext) *cobra.Command {
 
 			# List all users in a specific project
 			azdo graph user list "My Project"
+
+			# List users in a project of a specific organization (equivalent to ORG:PROJECT)
+			azdo graph user list "My Project" --organization "MyOrganization"
 
 			# List all users with the 'msa' subject type (Microsoft Account)
 			azdo graph user list --type msa
@@ -89,7 +94,7 @@ func runCmd(ctx util.CmdContext, opts *usersListOptions) error {
 	var scope *util.Path
 	switch {
 	case opts.projectName != "" && opts.organizationName != "":
-		scope, err = util.ParseProjectScope(ctx, fmt.Sprintf("%s/%s", opts.organizationName, opts.projectName))
+		scope, err = util.ParseProjectScope(ctx, fmt.Sprintf("%s:%s", opts.organizationName, opts.projectName))
 	case opts.projectName != "":
 		scope, err = util.ParseProjectScope(ctx, opts.projectName)
 	default:

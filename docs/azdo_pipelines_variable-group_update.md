@@ -1,7 +1,7 @@
 ## Command `azdo pipelines variable-group update`
 
 ```
-azdo pipelines variable-group update [ORGANIZATION/]PROJECT/VARIABLE_GROUP_ID_OR_NAME [flags]
+azdo pipelines variable-group update [ORG:]PROJECT/VARIABLE_GROUP_ID_OR_NAME [flags]
 ```
 
 Update a variable group's metadata (name, description, type, providerData),

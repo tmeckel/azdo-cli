@@ -1,11 +1,11 @@
 ## Command `azdo boards iteration project update`
 
 ```
-azdo boards iteration project update [ORGANIZATION/]PROJECT[/PATH]/NAME [flags]
+azdo boards iteration project update [ORG:]PROJECT[/PATH]/NAME [flags]
 ```
 
 Update an iteration (sprint) in a project. The positional argument identifies
-the iteration as [ORGANIZATION/]PROJECT[/PATH]/NAME.
+the iteration as [ORG:]PROJECT[/PATH]/NAME.
 
 Supports changing start/finish dates and setting arbitrary attributes.
 
@@ -59,7 +59,7 @@ azdo boards iteration project update Fabrikam/Release\ 2025/Sprint\ 1 \
 	--attributes goal="Ship login"
 
 # Combine: reschedule + set a custom attribute
-azdo boards iteration project update myorg/Fabrikam/Release\ 2025/Sprint\ 1 \
+azdo boards iteration project update myorg:Fabrikam/Release\ 2025/Sprint\ 1 \
 	--start-date 2025-01-06 --finish-date 2025-01-19 \
 	--attributes goal="Ship login"
 

@@ -10,6 +10,7 @@
 extend-exclude = [
   "**/.mise.toml",
   "vendor/**",
+  "**/create_acc_test.go",
 ]
 
 [default]

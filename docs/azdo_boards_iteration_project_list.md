@@ -1,7 +1,7 @@
 ## Command `azdo boards iteration project list`
 
 ```
-azdo boards iteration project list [ORGANIZATION/]PROJECT[/PATH] [flags]
+azdo boards iteration project list [ORG:]PROJECT[/PATH] [flags]
 ```
 
 List the iteration (sprint) hierarchy for a project within an Azure DevOps organization.
@@ -52,7 +52,7 @@ List the iteration (sprint) hierarchy for a project within an Azure DevOps organ
 
 ```bash
 # List the top-level iterations (depth 3)
-azdo boards iteration project list myorg/myproject
+azdo boards iteration project list myorg:myproject
 
 # List from a specific path
 azdo boards iteration project list myproject/Release\ 2025/Sprint\ 1

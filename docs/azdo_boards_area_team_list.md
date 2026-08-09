@@ -1,13 +1,13 @@
 ## Command `azdo boards area team list`
 
 ```
-azdo boards area team list [ORGANIZATION/]PROJECT/TEAM [flags]
+azdo boards area team list [ORG:]PROJECT/TEAM [flags]
 ```
 
 List Azure Boards area paths assigned to a team. The TEAM argument accepts
 the ID (GUID) or name of the team. The argument accepts the form
-[ORGANIZATION/]PROJECT/TEAM. When the organization segment is omitted,
-the default organization from configuration is used.
+[ORG:]PROJECT/TEAM. When the ORG: prefix is omitted, the default
+organization from configuration is used.
 
 
 ### Options
@@ -42,7 +42,7 @@ the default organization from configuration is used.
 azdo boards area team list Fabrikam/"Fabrikam Engineering"
 
 # List area paths for a team in a specific organization
-azdo boards area team list MyOrg/Fabrikam/"My Team"
+azdo boards area team list MyOrg:Fabrikam/"My Team"
 ```
 
 ### See also

@@ -1,7 +1,7 @@
 ## Command `azdo pipelines run`
 
 ```
-azdo pipelines run [ORGANIZATION/]PROJECT/PIPELINE [flags]
+azdo pipelines run [ORG:]PROJECT/PIPELINE [flags]
 ```
 
 Queue (run) an existing Azure Pipeline definition. The pipeline is
@@ -52,7 +52,7 @@ resolved by positive numeric ID or by name.  Supply --branch,
 azdo pipelines run Fabrikam/42
 
 # Queue against a specific branch
-azdo pipelines run MyOrg/Fabrikam/42 --branch main
+azdo pipelines run MyOrg:Fabrikam/42 --branch main
 
 # Queue with a commit and a variable
 azdo pipelines run Fabrikam/MyPipeline --commit-id abc123 --variable env=prod

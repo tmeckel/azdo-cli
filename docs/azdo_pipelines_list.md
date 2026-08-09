@@ -1,7 +1,7 @@
 ## Command `azdo pipelines list`
 
 ```
-azdo pipelines list [ORGANIZATION/]PROJECT [flags]
+azdo pipelines list [ORG:]PROJECT [flags]
 ```
 
 List pipeline definitions (YAML or classic) in a project.
@@ -65,6 +65,9 @@ List pipeline definitions (YAML or classic) in a project.
 ```bash
 # List all pipelines in a project
 $ azdo pipelines list "my-project"
+
+# List pipelines in a specific organization
+$ azdo pipelines list "my-org:my-project"
 
 # List pipelines with a specific name
 $ azdo pipelines list "my-project" --name "my-pipeline"

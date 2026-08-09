@@ -1,7 +1,7 @@
 ## Command `azdo pipelines queue list`
 
 ```
-azdo pipelines queue list [ORGANIZATION/]PROJECT [flags]
+azdo pipelines queue list [ORG:]PROJECT [flags]
 ```
 
 List agent queues in an Azure DevOps project.
@@ -51,10 +51,10 @@ List agent queues in an Azure DevOps project.
 azdo pipelines queue list Fabrikam
 
 # List queues in a specific organization
-azdo pipelines queue list myorg/Fabrikam
+azdo pipelines queue list myorg:Fabrikam
 
 # List queues filtered by name
-azdo pipelines queue list myorg/Fabrikam --name Default
+azdo pipelines queue list myorg:Fabrikam --name Default
 
 # Output as JSON
 azdo pipelines queue list Fabrikam --json

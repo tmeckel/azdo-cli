@@ -79,7 +79,7 @@ func TestNewCmd_RegistersAsDeleteLeaf(t *testing.T) {
 
 	assert.Equal(t, "delete", cmd.Name())
 	assert.Equal(t, []string{"d", "del", "rm"}, cmd.Aliases)
-	assert.True(t, strings.HasPrefix(cmd.Use, "delete [ORGANIZATION/]PROJECT"))
+	assert.True(t, strings.HasPrefix(cmd.Use, "delete [ORG:]PROJECT"))
 }
 
 func TestNewCmd_TargetArgRequired(t *testing.T) {
@@ -104,19 +104,21 @@ func TestRunDelete_InvalidTarget(t *testing.T) {
 
 	err := runDelete(deps.cmd, opts)
 
-	requireFlagError(t, err, "expected 2-66 segments")
+	requireFlagError(t, err, "expected 1-64 targets, got 0")
 }
 
-func TestRunDelete_RootNode_Rejected(t *testing.T) {
+func TestRunDelete_RootNodeRejected(t *testing.T) {
 	t.Parallel()
 
+	// The iteration scope "Iteration" normalizes to the /Iteration root node,
+	// which cannot be deleted.
 	deps := setupFakeDeps(t, "org", false)
-	opts := &deleteOptions{scopeArg: "org/Fabrikam/Iteration", yes: true}
-	deps.wit.EXPECT().DeleteClassificationNode(gomock.Any(), gomock.Any()).Return(nil)
+	opts := &deleteOptions{scopeArg: "org:Fabrikam/Iteration", yes: true}
+	deps.wit.EXPECT().DeleteClassificationNode(gomock.Any(), gomock.Any()).Times(0)
 
 	err := runDelete(deps.cmd, opts)
 
-	require.NoError(t, err)
+	requireFlagError(t, err, "target must reference a child of /Iteration")
 }
 
 func TestRunDelete_PathParsing(t *testing.T) {
@@ -127,8 +129,8 @@ func TestRunDelete_PathParsing(t *testing.T) {
 		scopeArg string
 		wantPath string
 	}{
-		{name: "normalizes repeated root segments", scopeArg: "org/Fabrikam/Fabrikam/Iteration/Release 2025/Sprint 1", wantPath: "Release%202025/Sprint%201"},
-		{name: "url escapes path segments", scopeArg: "org/Fabrikam/My Sprint/Sub Sprint", wantPath: "My%20Sprint/Sub%20Sprint"},
+		{name: "normalizes repeated root segments", scopeArg: "org:Fabrikam/Fabrikam/Iteration/Release 2025/Sprint 1", wantPath: "Release%202025/Sprint%201"},
+		{name: "url escapes path segments", scopeArg: "org:Fabrikam/My Sprint/Sub Sprint", wantPath: "My%20Sprint/Sub%20Sprint"},
 	}
 
 	for _, tc := range tests {
@@ -156,7 +158,7 @@ func TestRunDelete_ReclassifyId_Set(t *testing.T) {
 	t.Parallel()
 
 	deps := setupFakeDeps(t, "org", false)
-	opts := &deleteOptions{scopeArg: "org/Fabrikam/Sprint 1", reclassifyID: types.ToPtr(42), yes: true}
+	opts := &deleteOptions{scopeArg: "org:Fabrikam/Sprint 1", reclassifyID: types.ToPtr(42), yes: true}
 	var got workitemtracking.DeleteClassificationNodeArgs
 
 	deps.wit.EXPECT().DeleteClassificationNode(gomock.Any(), gomock.Any()).DoAndReturn(
@@ -202,7 +204,7 @@ func TestRunDelete_SDKError(t *testing.T) {
 	t.Parallel()
 
 	deps := setupFakeDeps(t, "org", false)
-	opts := &deleteOptions{scopeArg: "org/Fabrikam/Sprint 1", yes: true}
+	opts := &deleteOptions{scopeArg: "org:Fabrikam/Sprint 1", yes: true}
 	deps.wit.EXPECT().DeleteClassificationNode(gomock.Any(), gomock.Any()).Return(errors.New("boom"))
 
 	err := runDelete(deps.cmd, opts)
@@ -215,7 +217,7 @@ func TestRunDelete_YesFlag_SkipsPrompt(t *testing.T) {
 	t.Parallel()
 
 	deps := setupFakeDeps(t, "org", true)
-	opts := &deleteOptions{scopeArg: "org/Fabrikam/Sprint 1", yes: true}
+	opts := &deleteOptions{scopeArg: "org:Fabrikam/Sprint 1", yes: true}
 
 	deps.prompter.EXPECT().Confirm(gomock.Any(), false).Times(0)
 	deps.wit.EXPECT().DeleteClassificationNode(gomock.Any(), gomock.Any()).Return(nil)
@@ -229,9 +231,9 @@ func TestRunDelete_ConfirmationPrompt_Yes(t *testing.T) {
 	t.Parallel()
 
 	deps := setupFakeDeps(t, "org", true)
-	opts := &deleteOptions{scopeArg: "org/Fabrikam/Sprint 1"}
+	opts := &deleteOptions{scopeArg: "org:Fabrikam/Sprint 1"}
 
-	deps.prompter.EXPECT().Confirm("Delete iteration \"Fabrikam/Sprint%201\" from project org/org?", false).Return(true, nil)
+	deps.prompter.EXPECT().Confirm("Delete iteration \"Sprint%201\" from project org/Fabrikam?", false).Return(true, nil)
 	deps.wit.EXPECT().DeleteClassificationNode(gomock.Any(), gomock.Any()).Return(nil)
 
 	err := runDelete(deps.cmd, opts)
@@ -243,7 +245,7 @@ func TestRunDelete_ConfirmationPrompt_No(t *testing.T) {
 	t.Parallel()
 
 	deps := setupFakeDeps(t, "org", true)
-	opts := &deleteOptions{scopeArg: "org/Fabrikam/Sprint 1"}
+	opts := &deleteOptions{scopeArg: "org:Fabrikam/Sprint 1"}
 
 	deps.prompter.EXPECT().Confirm(gomock.Any(), false).Return(false, nil)
 	deps.wit.EXPECT().DeleteClassificationNode(gomock.Any(), gomock.Any()).Times(0)
@@ -257,7 +259,7 @@ func TestRunDelete_NonTTY_NoYes_ReturnsError(t *testing.T) {
 	t.Parallel()
 
 	deps := setupFakeDeps(t, "org", false)
-	opts := &deleteOptions{scopeArg: "org/Fabrikam/Sprint 1"}
+	opts := &deleteOptions{scopeArg: "org:Fabrikam/Sprint 1"}
 
 	deps.wit.EXPECT().DeleteClassificationNode(gomock.Any(), gomock.Any()).Times(0)
 
@@ -274,8 +276,8 @@ func TestRunDelete_DefaultOutput(t *testing.T) {
 		reclassifyID *int
 		wantOutput   string
 	}{
-		{name: "without reclassify", wantOutput: "Deleted iteration: Fabrikam/Sprint%201\n"},
-		{name: "with reclassify", reclassifyID: types.ToPtr(42), wantOutput: "Deleted iteration: Fabrikam/Sprint%201\nReclassified work items to: 42\n"},
+		{name: "without reclassify", wantOutput: "Deleted iteration: Sprint%201\n"},
+		{name: "with reclassify", reclassifyID: types.ToPtr(42), wantOutput: "Deleted iteration: Sprint%201\nReclassified work items to: 42\n"},
 	}
 
 	for _, tc := range tests {
@@ -285,7 +287,7 @@ func TestRunDelete_DefaultOutput(t *testing.T) {
 			deps := setupFakeDeps(t, "org", false)
 			deps.wit.EXPECT().DeleteClassificationNode(gomock.Any(), gomock.Any()).Return(nil)
 
-			err := runDelete(deps.cmd, &deleteOptions{scopeArg: "org/Fabrikam/Sprint 1", reclassifyID: tc.reclassifyID, yes: true})
+			err := runDelete(deps.cmd, &deleteOptions{scopeArg: "org:Fabrikam/Sprint 1", reclassifyID: tc.reclassifyID, yes: true})
 
 			require.NoError(t, err)
 			assert.Equal(t, tc.wantOutput, deps.stdout.String())
@@ -310,7 +312,7 @@ func TestRunDelete_JSONOutput(t *testing.T) {
 			t.Parallel()
 
 			deps := setupFakeDeps(t, "org", false)
-			opts := &deleteOptions{scopeArg: "org/Fabrikam/Sprint 1", reclassifyID: tc.reclassifyID, yes: true, exporter: util.NewJSONExporter()}
+			opts := &deleteOptions{scopeArg: "org:Fabrikam/Sprint 1", reclassifyID: tc.reclassifyID, yes: true, exporter: util.NewJSONExporter()}
 
 			deps.wit.EXPECT().DeleteClassificationNode(gomock.Any(), gomock.Any()).Return(nil)
 
@@ -324,7 +326,7 @@ func TestRunDelete_JSONOutput(t *testing.T) {
 			}
 			require.NoError(t, json.Unmarshal(deps.stdout.Bytes(), &got))
 			assert.True(t, got.Deleted)
-			assert.Equal(t, "Fabrikam/Sprint%201", got.Path)
+			assert.Equal(t, "Sprint%201", got.Path)
 			if tc.reclassifyID == nil {
 				assert.Nil(t, got.ReclassifyID)
 				return

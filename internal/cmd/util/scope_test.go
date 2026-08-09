@@ -16,311 +16,880 @@ import (
 	"go.uber.org/mock/gomock"
 )
 
+// defaultOrgCtx returns a CmdContext whose configuration resolves the default
+// organization to "default-org".
+func defaultOrgCtx(t *testing.T) util.CmdContext {
+	ctrl := gomock.NewController(t)
+	t.Cleanup(ctrl.Finish)
+
+	mockCtx := mocks.NewMockCmdContext(ctrl)
+	mockConfig := mocks.NewMockConfig(ctrl)
+	mockAuth := mocks.NewMockAuthConfig(ctrl)
+
+	mockCtx.EXPECT().Config().Return(mockConfig, nil).AnyTimes()
+	mockConfig.EXPECT().Authentication().Return(mockAuth).AnyTimes()
+	mockAuth.EXPECT().GetDefaultOrganization().Return("default-org", nil).AnyTimes()
+
+	return mockCtx
+}
+
+// emptyOrgCtx returns a CmdContext whose configuration resolves the default
+// organization to an empty string.
+func emptyOrgCtx(t *testing.T) util.CmdContext {
+	ctrl := gomock.NewController(t)
+	t.Cleanup(ctrl.Finish)
+
+	mockCtx := mocks.NewMockCmdContext(ctrl)
+	mockConfig := mocks.NewMockConfig(ctrl)
+	mockAuth := mocks.NewMockAuthConfig(ctrl)
+
+	mockCtx.EXPECT().Config().Return(mockConfig, nil).AnyTimes()
+	mockConfig.EXPECT().Authentication().Return(mockAuth).AnyTimes()
+	mockAuth.EXPECT().GetDefaultOrganization().Return("", nil).AnyTimes()
+
+	return mockCtx
+}
+
+// parseCase drives a single table-driven parse expectation.
+type parseCase struct {
+	name    string
+	raw     string
+	ctx     util.CmdContext
+	opts    util.ParseOptions
+	want    *util.Path
+	wantErr string
+}
+
+func runParseCase(t *testing.T, tt parseCase, parse func(util.CmdContext, string) (*util.Path, error)) {
+	t.Helper()
+	t.Run(tt.name, func(t *testing.T) {
+		got, err := parse(tt.ctx, tt.raw)
+		if tt.wantErr != "" {
+			require.Error(t, err)
+			assert.Contains(t, err.Error(), tt.wantErr)
+			return
+		}
+		require.NoError(t, err)
+		require.NotNil(t, got)
+		assert.Equal(t, tt.want, got)
+	})
+}
+
 func TestParseScope(t *testing.T) {
-	t.Run("explicit organization only", func(t *testing.T) {
-		ctrl := gomock.NewController(t)
-		t.Cleanup(ctrl.Finish)
+	ctx := defaultOrgCtx(t)
+	tests := []parseCase{
+		{
+			name: "empty input resolves default organization",
+			raw:  "",
+			ctx:  ctx,
+			want: &util.Path{Organization: "default-org"},
+		},
+		{
+			name: "project uses default organization",
+			raw:  "myproject",
+			ctx:  ctx,
+			want: &util.Path{Organization: "default-org", Project: "myproject"},
+		},
+		{
+			name: "explicit organization with project",
+			raw:  "myorg:myproject",
+			ctx:  ctx,
+			want: &util.Path{Organization: "myorg", Project: "myproject"},
+		},
+		{
+			name: "explicit organization only",
+			raw:  "myorg:",
+			ctx:  ctx,
+			want: &util.Path{Organization: "myorg"},
+		},
+		{
+			name: "bare segment is a project not an organization",
+			raw:  "myorg",
+			ctx:  ctx,
+			want: &util.Path{Organization: "default-org", Project: "myorg"},
+		},
+		{
+			name:    "legacy organization slash project is rejected",
+			raw:     "org/project",
+			ctx:     ctx,
+			wantErr: "legacy ORGANIZATION/... form is not supported, use ORG: syntax",
+		},
+		{
+			name:    "legacy three segment form is rejected",
+			raw:     "org/project/extra",
+			ctx:     ctx,
+			wantErr: "legacy ORGANIZATION/... form is not supported, use ORG: syntax",
+		},
+		{
+			name:    "targets are not allowed",
+			raw:     "myorg:myproject/extra",
+			ctx:     ctx,
+			wantErr: "targets are not allowed",
+		},
+		{
+			name:    "no-project marker is not valid without targets",
+			raw:     "/myproject",
+			ctx:     ctx,
+			wantErr: "targets are not allowed",
+		},
+		{
+			name:    "misplaced colon is rejected",
+			raw:     "org/proj:ect",
+			ctx:     ctx,
+			wantErr: "colon must directly follow the organization",
+		},
+		{
+			name:    "multiple colons are rejected",
+			raw:     "org::proj",
+			ctx:     ctx,
+			wantErr: "contains multiple colons",
+		},
+		{
+			name:    "empty organization prefix is rejected",
+			raw:     ":project",
+			ctx:     ctx,
+			wantErr: "organization must not be empty",
+		},
+		{
+			name:    "trailing slash is rejected",
+			raw:     "myproject/",
+			ctx:     ctx,
+			wantErr: "contains empty segment",
+		},
+		{
+			name: "whitespace around segments is trimmed",
+			raw:  " myorg : myproject ",
+			ctx:  ctx,
+			want: &util.Path{Organization: "myorg", Project: "myproject"},
+		},
+		{
+			name:    "empty input without default organization errors",
+			raw:     "",
+			ctx:     nil,
+			wantErr: "no organization specified and no default organization configured",
+		},
+		{
+			name:    "empty configured default organization errors",
+			raw:     "project",
+			ctx:     emptyOrgCtx(t),
+			wantErr: "no organization specified and no default organization configured",
+		},
+	}
 
-		mockCtx := mocks.NewMockCmdContext(ctrl)
-
-		scope, err := util.ParseScope(mockCtx, "myorg")
-		require.NoError(t, err)
-		assert.Equal(t, "myorg", scope.Organization)
-		assert.Empty(t, scope.Project)
-	})
-
-	t.Run("explicit organization and project", func(t *testing.T) {
-		ctrl := gomock.NewController(t)
-		t.Cleanup(ctrl.Finish)
-
-		mockCtx := mocks.NewMockCmdContext(ctrl)
-
-		scope, err := util.ParseScope(mockCtx, "myorg/myproject")
-		require.NoError(t, err)
-		assert.Equal(t, "myorg", scope.Organization)
-		assert.Equal(t, "myproject", scope.Project)
-	})
-
-	t.Run("default organization from config", func(t *testing.T) {
-		ctrl := gomock.NewController(t)
-		t.Cleanup(ctrl.Finish)
-
-		mockCtx := mocks.NewMockCmdContext(ctrl)
-		mockConfig := mocks.NewMockConfig(ctrl)
-		mockAuth := mocks.NewMockAuthConfig(ctrl)
-
-		mockCtx.EXPECT().Config().Return(mockConfig, nil)
-		mockConfig.EXPECT().Authentication().Return(mockAuth).AnyTimes()
-		mockAuth.EXPECT().GetDefaultOrganization().Return("default-org", nil)
-
-		scope, err := util.ParseScope(mockCtx, "")
-		require.NoError(t, err)
-		assert.Equal(t, "default-org", scope.Organization)
-		assert.Empty(t, scope.Project)
-	})
-
-	t.Run("invalid scope format", func(t *testing.T) {
-		ctrl := gomock.NewController(t)
-		t.Cleanup(ctrl.Finish)
-
-		mockCtx := mocks.NewMockCmdContext(ctrl)
-
-		_, err := util.ParseScope(mockCtx, "org/")
-		require.Error(t, err)
-	})
-
-	t.Run("rejects more than two segments", func(t *testing.T) {
-		ctrl := gomock.NewController(t)
-		t.Cleanup(ctrl.Finish)
-
-		mockCtx := mocks.NewMockCmdContext(ctrl)
-
-		_, err := util.ParseScope(mockCtx, "org/proj/extra")
-		require.Error(t, err)
-	})
+	for _, tt := range tests {
+		runParseCase(t, tt, util.ParseScope)
+	}
 }
 
 func TestParseOrganizationArg(t *testing.T) {
-	t.Run("explicit organization", func(t *testing.T) {
-		ctrl := gomock.NewController(t)
-		t.Cleanup(ctrl.Finish)
+	ctx := defaultOrgCtx(t)
+	tests := []parseCase{
+		{
+			name: "bare organization",
+			raw:  "myorg",
+			ctx:  ctx,
+			want: &util.Path{Organization: "myorg"},
+		},
+		{
+			name: "organization with trailing colon",
+			raw:  "myorg:",
+			ctx:  ctx,
+			want: &util.Path{Organization: "myorg"},
+		},
+		{
+			name: "empty input resolves default organization",
+			raw:  "",
+			ctx:  ctx,
+			want: &util.Path{Organization: "default-org"},
+		},
+		{
+			name: "whitespace around organization is trimmed",
+			raw:  "  myorg  ",
+			ctx:  ctx,
+			want: &util.Path{Organization: "myorg"},
+		},
+		{
+			name:    "project segment is not allowed",
+			raw:     "org/project",
+			ctx:     ctx,
+			wantErr: "project scope not allowed for this command",
+		},
+		{
+			name:    "colon project form is not allowed",
+			raw:     "org:project",
+			ctx:     ctx,
+			wantErr: "project scope not allowed for this command",
+		},
+		{
+			name:    "no-project marker is not allowed",
+			raw:     "org:/target",
+			ctx:     ctx,
+			wantErr: "expected ORG or ORG: syntax",
+		},
+		{
+			name:    "leading slash is not allowed",
+			raw:     "/org",
+			ctx:     ctx,
+			wantErr: "expected ORG or ORG: syntax",
+		},
+		{
+			name:    "multiple colons are rejected",
+			raw:     "org::x",
+			ctx:     ctx,
+			wantErr: "contains multiple colons",
+		},
+		{
+			name:    "empty organization prefix is rejected",
+			raw:     ":org",
+			ctx:     ctx,
+			wantErr: "organization must not be empty",
+		},
+		{
+			name:    "empty input without default organization errors",
+			raw:     "",
+			ctx:     nil,
+			wantErr: "no organization specified and no default organization configured",
+		},
+		{
+			name:    "empty configured default organization errors",
+			raw:     "",
+			ctx:     emptyOrgCtx(t),
+			wantErr: "no organization specified and no default organization configured",
+		},
+	}
 
-		mockCtx := mocks.NewMockCmdContext(ctrl)
-
-		org, err := util.ParseOrganizationArg(mockCtx, "myorg")
-		require.NoError(t, err)
-		assert.Equal(t, "myorg", org)
-	})
-
-	t.Run("default organization from config", func(t *testing.T) {
-		ctrl := gomock.NewController(t)
-		t.Cleanup(ctrl.Finish)
-
-		mockCtx := mocks.NewMockCmdContext(ctrl)
-		mockConfig := mocks.NewMockConfig(ctrl)
-		mockAuth := mocks.NewMockAuthConfig(ctrl)
-
-		mockCtx.EXPECT().Config().Return(mockConfig, nil)
-		mockConfig.EXPECT().Authentication().Return(mockAuth).AnyTimes()
-		mockAuth.EXPECT().GetDefaultOrganization().Return("default-org", nil)
-
-		org, err := util.ParseOrganizationArg(mockCtx, "")
-		require.NoError(t, err)
-		assert.Equal(t, "default-org", org)
-	})
-
-	t.Run("project segment not allowed", func(t *testing.T) {
-		ctrl := gomock.NewController(t)
-		t.Cleanup(ctrl.Finish)
-
-		mockCtx := mocks.NewMockCmdContext(ctrl)
-
-		_, err := util.ParseOrganizationArg(mockCtx, "org/project")
-		require.Error(t, err)
-	})
+	for _, tt := range tests {
+		runParseCase(t, tt, func(ctx util.CmdContext, raw string) (*util.Path, error) {
+			org, err := util.ParseOrganizationArg(ctx, raw)
+			if err != nil {
+				return nil, err
+			}
+			return &util.Path{Organization: org}, nil
+		})
+	}
 }
 
 func TestParseProjectScope(t *testing.T) {
-	t.Run("explicit organization and project", func(t *testing.T) {
-		ctrl := gomock.NewController(t)
-		t.Cleanup(ctrl.Finish)
+	ctx := defaultOrgCtx(t)
+	tests := []parseCase{
+		{
+			name: "project uses default organization",
+			raw:  "myproject",
+			ctx:  ctx,
+			want: &util.Path{Organization: "default-org", Project: "myproject"},
+		},
+		{
+			name: "explicit organization and project",
+			raw:  "myorg:myproject",
+			ctx:  ctx,
+			want: &util.Path{Organization: "myorg", Project: "myproject"},
+		},
+		{
+			name:    "empty input misses project",
+			raw:     "",
+			ctx:     ctx,
+			wantErr: "project is required",
+		},
+		{
+			name:    "organization only misses project",
+			raw:     "myorg:",
+			ctx:     ctx,
+			wantErr: "project is required",
+		},
+		{
+			name:    "legacy organization slash project is rejected",
+			raw:     "org/project",
+			ctx:     ctx,
+			wantErr: "legacy ORGANIZATION/... form is not supported, use ORG: syntax",
+		},
+		{
+			name:    "extra segment is rejected",
+			raw:     "org:project/extra",
+			ctx:     ctx,
+			wantErr: "targets are not allowed",
+		},
+		{
+			name:    "no-project marker misses project",
+			raw:     "/project",
+			ctx:     ctx,
+			wantErr: "project is required",
+		},
+		{
+			name:    "project without default organization errors",
+			raw:     "myproject",
+			ctx:     nil,
+			wantErr: "no organization specified and no default organization configured",
+		},
+	}
 
-		scope, err := util.ParseProjectScope(mocks.NewMockCmdContext(ctrl), "org/project")
-		require.NoError(t, err)
-		assert.Equal(t, "org", scope.Organization)
-		assert.Equal(t, "project", scope.Project)
-	})
-
-	t.Run("default organization for project only input", func(t *testing.T) {
-		ctrl := gomock.NewController(t)
-		t.Cleanup(ctrl.Finish)
-
-		mockCtx := mocks.NewMockCmdContext(ctrl)
-		mockConfig := mocks.NewMockConfig(ctrl)
-		mockAuth := mocks.NewMockAuthConfig(ctrl)
-
-		mockCtx.EXPECT().Config().Return(mockConfig, nil)
-		mockConfig.EXPECT().Authentication().Return(mockAuth).AnyTimes()
-		mockAuth.EXPECT().GetDefaultOrganization().Return("default-org", nil)
-
-		scope, err := util.ParseProjectScope(mockCtx, "project")
-		require.NoError(t, err)
-		assert.Equal(t, "default-org", scope.Organization)
-		assert.Equal(t, "project", scope.Project)
-	})
-
-	t.Run("invalid project argument", func(t *testing.T) {
-		ctrl := gomock.NewController(t)
-		t.Cleanup(ctrl.Finish)
-
-		_, err := util.ParseProjectScope(mocks.NewMockCmdContext(ctrl), "")
-		require.Error(t, err)
-	})
-
-	t.Run("too many segments", func(t *testing.T) {
-		ctrl := gomock.NewController(t)
-		t.Cleanup(ctrl.Finish)
-
-		_, err := util.ParseProjectScope(mocks.NewMockCmdContext(ctrl), "org/project/extra")
-		require.Error(t, err)
-		assert.Contains(t, err.Error(), "expected 1-2 segments, got 3")
-	})
+	for _, tt := range tests {
+		runParseCase(t, tt, util.ParseProjectScope)
+	}
 }
 
 func TestParseTarget(t *testing.T) {
-	t.Run("organization and group", func(t *testing.T) {
-		result, err := util.ParseTarget("org/group")
-		require.NoError(t, err)
-		assert.Equal(t, "org", result.Organization)
-		assert.Empty(t, result.Project)
-		assert.Equal(t, "group", result.Targets[0])
-	})
+	tests := []parseCase{
+		{
+			name: "organization and target without project",
+			raw:  "myorg:/target",
+			want: &util.Path{Organization: "myorg", Targets: []string{"target"}},
+		},
+		{
+			name: "organization project and target",
+			raw:  "myorg:myproject/target",
+			want: &util.Path{Organization: "myorg", Project: "myproject", Targets: []string{"target"}},
+		},
+		{
+			name:    "legacy organization slash target is rejected",
+			raw:     "org/target",
+			wantErr: "explicit organization is required, use ORG: syntax",
+		},
+		{
+			name:    "legacy organization project target is rejected",
+			raw:     "org/project/target",
+			wantErr: "explicit organization is required, use ORG: syntax",
+		},
+		{
+			name:    "no-project marker without organization is rejected",
+			raw:     "/target",
+			wantErr: "explicit organization is required, use ORG: syntax",
+		},
+		{
+			name:    "bare target is rejected",
+			raw:     "target",
+			wantErr: "explicit organization is required, use ORG: syntax",
+		},
+		{
+			name:    "organization only requires the no-project marker",
+			raw:     "myorg:",
+			wantErr: "use ORG:/ to specify an organization without a project or targets",
+		},
+		{
+			name:    "zero targets are rejected",
+			raw:     "myorg:/",
+			wantErr: "expected exactly 1 targets, got 0",
+		},
+		{
+			name:    "too many targets are rejected",
+			raw:     "myorg:/target/extra",
+			wantErr: "expected exactly 1 targets, got 2",
+		},
+		{
+			name:    "too many targets with project are rejected",
+			raw:     "myorg:project/target/extra",
+			wantErr: "expected exactly 1 targets, got 2",
+		},
+		{
+			name:    "multiple colons are rejected",
+			raw:     "org::target",
+			wantErr: "contains multiple colons",
+		},
+	}
 
-	t.Run("organization project group", func(t *testing.T) {
-		result, err := util.ParseTarget("org/project/group")
-		require.NoError(t, err)
-		assert.Equal(t, "org", result.Organization)
-		assert.Equal(t, "project", result.Project)
-		assert.Equal(t, "group", result.Targets[0])
-	})
-
-	t.Run("invalid format", func(t *testing.T) {
-		_, err := util.ParseTarget("justone")
-		require.Error(t, err)
-	})
+	for _, tt := range tests {
+		runParseCase(t, tt, func(ctx util.CmdContext, raw string) (*util.Path, error) {
+			return util.ParseTarget(raw)
+		})
+	}
 }
 
 func TestParseTargetWithDefaultOrganization(t *testing.T) {
-	t.Run("implicit organization", func(t *testing.T) {
-		ctrl := gomock.NewController(t)
-		t.Cleanup(ctrl.Finish)
+	ctx := defaultOrgCtx(t)
+	tests := []parseCase{
+		{
+			name: "no-project marker uses default organization",
+			raw:  "/target",
+			ctx:  ctx,
+			want: &util.Path{Organization: "default-org", Targets: []string{"target"}},
+		},
+		{
+			name: "project and target use default organization",
+			raw:  "project/target",
+			ctx:  ctx,
+			want: &util.Path{Organization: "default-org", Project: "project", Targets: []string{"target"}},
+		},
+		{
+			name: "explicit organization with target",
+			raw:  "myorg:/target",
+			ctx:  ctx,
+			want: &util.Path{Organization: "myorg", Targets: []string{"target"}},
+		},
+		{
+			name: "explicit organization with project and target",
+			raw:  "myorg:project/target",
+			ctx:  ctx,
+			want: &util.Path{Organization: "myorg", Project: "project", Targets: []string{"target"}},
+		},
+		{
+			name: "legacy organization slash subject is project first",
+			raw:  "org/group",
+			ctx:  ctx,
+			want: &util.Path{Organization: "default-org", Project: "org", Targets: []string{"group"}},
+		},
+		{
+			name:    "single segment is a project not a target",
+			raw:     "target",
+			ctx:     ctx,
+			wantErr: "expected exactly 1 targets, got 0",
+		},
+		{
+			name:    "legacy organization project target is rejected",
+			raw:     "org/project/target",
+			ctx:     ctx,
+			wantErr: "legacy ORGANIZATION/... form is not supported, use ORG: syntax",
+		},
+		{
+			name:    "empty input misses target",
+			raw:     "",
+			ctx:     ctx,
+			wantErr: "expected exactly 1 targets, got 0",
+		},
+		{
+			name:    "organization only requires the no-project marker",
+			raw:     "org:",
+			ctx:     ctx,
+			wantErr: "use ORG:/ to specify an organization without a project or targets",
+		},
+		{
+			name:    "too many targets are rejected",
+			raw:     "/a/b",
+			ctx:     ctx,
+			wantErr: "expected exactly 1 targets, got 2",
+		},
+		{
+			name:    "no-project target without default organization errors",
+			raw:     "/target",
+			ctx:     nil,
+			wantErr: "no organization specified and no default organization configured",
+		},
+		{
+			name:    "project target without default organization errors",
+			raw:     "project/target",
+			ctx:     nil,
+			wantErr: "no organization specified and no default organization configured",
+		},
+	}
 
-		mockCtx := mocks.NewMockCmdContext(ctrl)
-		mockConfig := mocks.NewMockConfig(ctrl)
-		mockAuth := mocks.NewMockAuthConfig(ctrl)
-
-		mockCtx.EXPECT().Config().Return(mockConfig, nil)
-		mockConfig.EXPECT().Authentication().Return(mockAuth).AnyTimes()
-		mockAuth.EXPECT().GetDefaultOrganization().Return("default-org", nil)
-
-		result, err := util.ParseTargetWithDefaultOrganization(mockCtx, "group")
-		require.NoError(t, err)
-		assert.Equal(t, "default-org", result.Organization)
-		assert.Equal(t, "group", result.Targets[0])
-	})
-
-	t.Run("explicit organization", func(t *testing.T) {
-		ctrl := gomock.NewController(t)
-		t.Cleanup(ctrl.Finish)
-
-		result, err := util.ParseTargetWithDefaultOrganization(mocks.NewMockCmdContext(ctrl), "org/group")
-		require.NoError(t, err)
-		assert.Equal(t, "org", result.Organization)
-		assert.Equal(t, "group", result.Targets[0])
-	})
-
-	t.Run("organization project group", func(t *testing.T) {
-		ctrl := gomock.NewController(t)
-		t.Cleanup(ctrl.Finish)
-
-		result, err := util.ParseTargetWithDefaultOrganization(mocks.NewMockCmdContext(ctrl), "org/project/group")
-		require.NoError(t, err)
-		assert.Equal(t, "org", result.Organization)
-		assert.Equal(t, "project", result.Project)
-		assert.Equal(t, "group", result.Targets[0])
-	})
-
-	t.Run("missing default organization", func(t *testing.T) {
-		ctrl := gomock.NewController(t)
-		t.Cleanup(ctrl.Finish)
-
-		mockCtx := mocks.NewMockCmdContext(ctrl)
-		mockConfig := mocks.NewMockConfig(ctrl)
-		mockAuth := mocks.NewMockAuthConfig(ctrl)
-
-		mockCtx.EXPECT().Config().Return(mockConfig, nil)
-		mockConfig.EXPECT().Authentication().Return(mockAuth).AnyTimes()
-		mockAuth.EXPECT().GetDefaultOrganization().Return("", nil)
-
-		_, err := util.ParseTargetWithDefaultOrganization(mockCtx, "group")
-		require.Error(t, err)
-	})
-
-	t.Run("invalid format", func(t *testing.T) {
-		ctrl := gomock.NewController(t)
-		t.Cleanup(ctrl.Finish)
-
-		_, err := util.ParseTargetWithDefaultOrganization(mocks.NewMockCmdContext(ctrl), "")
-		require.Error(t, err)
-	})
+	for _, tt := range tests {
+		runParseCase(t, tt, util.ParseTargetWithDefaultOrganization)
+	}
 }
 
 func TestParseProjectTargetWithDefaultOrganization(t *testing.T) {
-	t.Run("implicit organization", func(t *testing.T) {
-		ctrl := gomock.NewController(t)
-		t.Cleanup(ctrl.Finish)
+	ctx := defaultOrgCtx(t)
+	tests := []parseCase{
+		{
+			name: "project and target use default organization",
+			raw:  "project/target",
+			ctx:  ctx,
+			want: &util.Path{Organization: "default-org", Project: "project", Targets: []string{"target"}},
+		},
+		{
+			name: "explicit organization with project and target",
+			raw:  "myorg:project/target",
+			ctx:  ctx,
+			want: &util.Path{Organization: "myorg", Project: "project", Targets: []string{"target"}},
+		},
+		{
+			name:    "legacy organization project target is rejected",
+			raw:     "org/project/target",
+			ctx:     ctx,
+			wantErr: "legacy ORGANIZATION/... form is not supported, use ORG: syntax",
+		},
+		{
+			name:    "no-project marker misses project",
+			raw:     "/target",
+			ctx:     ctx,
+			wantErr: "project is required",
+		},
+		{
+			name:    "single segment misses target",
+			raw:     "target",
+			ctx:     ctx,
+			wantErr: "expected exactly 1 targets, got 0",
+		},
+		{
+			name:    "organization only misses project",
+			raw:     "org:",
+			ctx:     ctx,
+			wantErr: "project is required",
+		},
+		{
+			name:    "empty input misses project",
+			raw:     "",
+			ctx:     ctx,
+			wantErr: "project is required",
+		},
+		{
+			name:    "too many targets are rejected",
+			raw:     "org:project/target/extra",
+			ctx:     ctx,
+			wantErr: "expected exactly 1 targets, got 2",
+		},
+		{
+			name:    "project target without default organization errors",
+			raw:     "project/target",
+			ctx:     nil,
+			wantErr: "no organization specified and no default organization configured",
+		},
+	}
 
-		mockCtx := mocks.NewMockCmdContext(ctrl)
-		mockConfig := mocks.NewMockConfig(ctrl)
-		mockAuth := mocks.NewMockAuthConfig(ctrl)
+	for _, tt := range tests {
+		runParseCase(t, tt, util.ParseProjectTargetWithDefaultOrganization)
+	}
+}
 
-		mockCtx.EXPECT().Config().Return(mockConfig, nil)
-		mockConfig.EXPECT().Authentication().Return(mockAuth).AnyTimes()
-		mockAuth.EXPECT().GetDefaultOrganization().Return("default-org", nil)
+func TestParsePoolAgentTargetWithDefaultOrganization(t *testing.T) {
+	ctx := defaultOrgCtx(t)
+	tests := []parseCase{
+		{
+			name: "pool agent uses default organization",
+			raw:  "/pool/agent",
+			ctx:  ctx,
+			want: &util.Path{Organization: "default-org", Targets: []string{"pool", "agent"}},
+		},
+		{
+			name: "explicit organization with pool and agent",
+			raw:  "myorg:/pool/agent",
+			ctx:  ctx,
+			want: &util.Path{Organization: "myorg", Targets: []string{"pool", "agent"}},
+		},
+		{
+			name:    "legacy pool agent slash form is rejected",
+			raw:     "pool/agent",
+			ctx:     ctx,
+			wantErr: "project is not allowed, use the / no-project marker",
+		},
+		{
+			name:    "legacy organization pool agent form is rejected",
+			raw:     "org/pool/agent",
+			ctx:     ctx,
+			wantErr: "project is not allowed, use the / no-project marker",
+		},
+		{
+			name:    "bare segment is rejected without marker",
+			raw:     "pool",
+			ctx:     ctx,
+			wantErr: "project is not allowed, use the / no-project marker",
+		},
+		{
+			name:    "single target is rejected",
+			raw:     "/pool",
+			ctx:     ctx,
+			wantErr: "expected exactly 2 targets, got 1",
+		},
+		{
+			name:    "three targets are rejected",
+			raw:     "/pool/agent/extra",
+			ctx:     ctx,
+			wantErr: "expected exactly 2 targets, got 3",
+		},
+		{
+			name:    "organization only requires the no-project marker",
+			raw:     "org:",
+			ctx:     ctx,
+			wantErr: "use ORG:/ to specify an organization without a project or targets",
+		},
+		{
+			name:    "empty input misses targets",
+			raw:     "",
+			ctx:     ctx,
+			wantErr: "expected exactly 2 targets, got 0",
+		},
+		{
+			name:    "pool agent without default organization errors",
+			raw:     "/pool/agent",
+			ctx:     nil,
+			wantErr: "no organization specified and no default organization configured",
+		},
+	}
 
-		result, err := util.ParseProjectTargetWithDefaultOrganization(mockCtx, "project/target")
-		require.NoError(t, err)
-		require.NotNil(t, result)
-		assert.Equal(t, "default-org", result.Organization)
-		assert.Equal(t, "project", result.Project)
-		assert.Equal(t, "target", result.Targets[0])
-	})
-
-	t.Run("explicit organization", func(t *testing.T) {
-		ctrl := gomock.NewController(t)
-		t.Cleanup(ctrl.Finish)
-
-		result, err := util.ParseProjectTargetWithDefaultOrganization(mocks.NewMockCmdContext(ctrl), "org/project/target")
-		require.NoError(t, err)
-		assert.Equal(t, "org", result.Organization)
-		assert.Equal(t, "project", result.Project)
-		assert.Equal(t, "target", result.Targets[0])
-	})
-
-	t.Run("missing default organization", func(t *testing.T) {
-		ctrl := gomock.NewController(t)
-		t.Cleanup(ctrl.Finish)
-
-		mockCtx := mocks.NewMockCmdContext(ctrl)
-		mockConfig := mocks.NewMockConfig(ctrl)
-		mockAuth := mocks.NewMockAuthConfig(ctrl)
-
-		mockCtx.EXPECT().Config().Return(mockConfig, nil)
-		mockConfig.EXPECT().Authentication().Return(mockAuth).AnyTimes()
-		mockAuth.EXPECT().GetDefaultOrganization().Return("", nil)
-
-		_, err := util.ParseProjectTargetWithDefaultOrganization(mockCtx, "project/target")
-		require.Error(t, err)
-	})
-
-	t.Run("missing project segment", func(t *testing.T) {
-		ctrl := gomock.NewController(t)
-		t.Cleanup(ctrl.Finish)
-
-		_, err := util.ParseProjectTargetWithDefaultOrganization(mocks.NewMockCmdContext(ctrl), "justtarget")
-		require.Error(t, err)
-	})
-
-	t.Run("invalid format", func(t *testing.T) {
-		ctrl := gomock.NewController(t)
-		t.Cleanup(ctrl.Finish)
-
-		_, err := util.ParseProjectTargetWithDefaultOrganization(mocks.NewMockCmdContext(ctrl), "")
-		require.Error(t, err)
-	})
+	for _, tt := range tests {
+		runParseCase(t, tt, util.ParsePoolAgentTargetWithDefaultOrganization)
+	}
 }
 
 func TestParse(t *testing.T) {
+	ctx := defaultOrgCtx(t)
+	tests := []parseCase{
+		{
+			name: "empty input with implicit organization",
+			raw:  "",
+			opts: util.ParseOptions{AllowImplicitOrg: true},
+			want: &util.Path{Organization: "default-org"},
+		},
+		{
+			name:    "empty input without implicit organization",
+			raw:     "",
+			opts:    util.ParseOptions{AllowImplicitOrg: false},
+			wantErr: "explicit organization is required, use ORG: syntax",
+		},
+		{
+			name: "bare segment is a project with implicit organization",
+			raw:  "myorg",
+			opts: util.ParseOptions{AllowImplicitOrg: true},
+			want: &util.Path{Organization: "default-org", Project: "myorg"},
+		},
+		{
+			name: "explicit organization and project",
+			raw:  "myorg:myproject",
+			opts: util.ParseOptions{AllowImplicitOrg: true},
+			want: &util.Path{Organization: "myorg", Project: "myproject"},
+		},
+		{
+			name: "explicit organization and project without implicit organization",
+			raw:  "myorg:myproject",
+			opts: util.ParseOptions{AllowImplicitOrg: false},
+			want: &util.Path{Organization: "myorg", Project: "myproject"},
+		},
+		{
+			name: "explicit organization only with targets disallowed",
+			raw:  "myorg:",
+			opts: util.ParseOptions{AllowImplicitOrg: true, DisallowTargets: true},
+			want: &util.Path{Organization: "myorg"},
+		},
+		{
+			name: "explicit organization with target and no project",
+			raw:  "org:/group",
+			opts: util.ParseOptions{AllowImplicitOrg: false, MinTargets: 1, MaxTargets: 1},
+			want: &util.Path{Organization: "org", Targets: []string{"group"}},
+		},
+		{
+			name: "explicit organization with project and target",
+			raw:  "org:project/group",
+			opts: util.ParseOptions{AllowImplicitOrg: false, MinTargets: 1, MaxTargets: 1},
+			want: &util.Path{Organization: "org", Project: "project", Targets: []string{"group"}},
+		},
+		{
+			name: "no-project target uses default organization",
+			raw:  "/group",
+			opts: util.ParseOptions{AllowImplicitOrg: true, MinTargets: 1, MaxTargets: 1},
+			want: &util.Path{Organization: "default-org", Targets: []string{"group"}},
+		},
+		{
+			name: "project target uses default organization",
+			raw:  "project/group",
+			opts: util.ParseOptions{AllowImplicitOrg: true, RequireProject: true, MinTargets: 1, MaxTargets: 1},
+			want: &util.Path{Organization: "default-org", Project: "project", Targets: []string{"group"}},
+		},
+		{
+			name: "project target with optional project",
+			raw:  "project/group",
+			opts: util.ParseOptions{AllowImplicitOrg: true, MinTargets: 1, MaxTargets: 1},
+			want: &util.Path{Organization: "default-org", Project: "project", Targets: []string{"group"}},
+		},
+		{
+			name: "legacy organization slash subject is project first",
+			raw:  "org/group",
+			opts: util.ParseOptions{AllowImplicitOrg: true, MinTargets: 1, MaxTargets: 1},
+			want: &util.Path{Organization: "default-org", Project: "org", Targets: []string{"group"}},
+		},
+		{
+			name:    "legacy organization project target is rejected",
+			raw:     "org/project/group",
+			opts:    util.ParseOptions{AllowImplicitOrg: true, MinTargets: 1, MaxTargets: 1},
+			wantErr: "legacy ORGANIZATION/... form is not supported, use ORG: syntax",
+		},
+		{
+			name:    "explicit organization required without prefix",
+			raw:     "project/group",
+			opts:    util.ParseOptions{AllowImplicitOrg: false, MinTargets: 1, MaxTargets: 1},
+			wantErr: "explicit organization is required, use ORG: syntax",
+		},
+		{
+			name:    "organization only requires marker when targets allowed",
+			raw:     "org:",
+			opts:    util.ParseOptions{AllowImplicitOrg: true, MinTargets: 0, MaxTargets: 0},
+			wantErr: "use ORG:/ to specify an organization without a project or targets",
+		},
+		{
+			name: "no-project marker with zero targets allowed",
+			raw:  "/",
+			opts: util.ParseOptions{AllowImplicitOrg: true, MinTargets: 0, MaxTargets: 0},
+			want: &util.Path{Organization: "default-org"},
+		},
+		{
+			name: "explicit organization marker with zero targets allowed",
+			raw:  "org:/",
+			opts: util.ParseOptions{AllowImplicitOrg: true, MinTargets: 0, MaxTargets: 0},
+			want: &util.Path{Organization: "org"},
+		},
+		{
+			name: "zero targets with project allowed",
+			raw:  "project",
+			opts: util.ParseOptions{AllowImplicitOrg: true, MinTargets: 0, MaxTargets: 2},
+			want: &util.Path{Organization: "default-org", Project: "project"},
+		},
+		{
+			name: "unbounded targets with required project",
+			raw:  "project/target/extra",
+			opts: util.ParseOptions{AllowImplicitOrg: true, RequireProject: true, MinTargets: 1, MaxTargets: 0},
+			want: &util.Path{Organization: "default-org", Project: "project", Targets: []string{"target", "extra"}},
+		},
+		{
+			name: "unbounded targets with explicit organization",
+			raw:  "org:project/target/extra",
+			opts: util.ParseOptions{AllowImplicitOrg: true, RequireProject: true, MinTargets: 1, MaxTargets: 0},
+			want: &util.Path{Organization: "org", Project: "project", Targets: []string{"target", "extra"}},
+		},
+		{
+			name: "unbounded targets with disallowed project",
+			raw:  "/a/b/c",
+			opts: util.ParseOptions{AllowImplicitOrg: true, DisallowProject: true, MinTargets: 1, MaxTargets: 0},
+			want: &util.Path{Organization: "default-org", Targets: []string{"a", "b", "c"}},
+		},
+		{
+			name: "legacy organization project target is project first when unbounded",
+			raw:  "org/project/target",
+			opts: util.ParseOptions{AllowImplicitOrg: true, RequireProject: true, MinTargets: 1, MaxTargets: 0},
+			want: &util.Path{Organization: "default-org", Project: "org", Targets: []string{"project", "target"}},
+		},
+		{
+			name: "variable target range",
+			raw:  "org:project/a/b",
+			opts: util.ParseOptions{AllowImplicitOrg: false, MinTargets: 1, MaxTargets: 2},
+			want: &util.Path{Organization: "org", Project: "project", Targets: []string{"a", "b"}},
+		},
+		{
+			name:    "too many targets for variable range",
+			raw:     "org:project/a/b/c",
+			opts:    util.ParseOptions{AllowImplicitOrg: false, MinTargets: 1, MaxTargets: 2},
+			wantErr: "expected 1-2 targets, got 3",
+		},
+		{
+			name:    "too many non-colon segments for variable range",
+			raw:     "a/b/c/d",
+			opts:    util.ParseOptions{AllowImplicitOrg: true, MinTargets: 1, MaxTargets: 2},
+			wantErr: "expected 1-2 targets, got 3",
+		},
+		{
+			name:    "too few targets",
+			raw:     "org:project",
+			opts:    util.ParseOptions{AllowImplicitOrg: false, MinTargets: 1, MaxTargets: 2},
+			wantErr: "expected 1-2 targets, got 0",
+		},
+		{
+			name:    "project required with empty input",
+			raw:     "",
+			opts:    util.ParseOptions{AllowImplicitOrg: true, RequireProject: true, DisallowTargets: true},
+			wantErr: "project is required",
+		},
+		{
+			name:    "project required with no-project marker",
+			raw:     "/target",
+			opts:    util.ParseOptions{AllowImplicitOrg: true, RequireProject: true, MinTargets: 1, MaxTargets: 1},
+			wantErr: "project is required",
+		},
+		{
+			name:    "targets disallowed with project",
+			raw:     "org:project/extra",
+			opts:    util.ParseOptions{AllowImplicitOrg: true, DisallowTargets: true},
+			wantErr: "targets are not allowed",
+		},
+		{
+			name:    "targets disallowed with no-project marker",
+			raw:     "/extra",
+			opts:    util.ParseOptions{AllowImplicitOrg: true, DisallowTargets: true},
+			wantErr: "targets are not allowed",
+		},
+		{
+			name:    "legacy form with targets disallowed",
+			raw:     "org/project",
+			opts:    util.ParseOptions{AllowImplicitOrg: true, DisallowTargets: true},
+			wantErr: "legacy ORGANIZATION/... form is not supported, use ORG: syntax",
+		},
+		{
+			name:    "project disallowed without marker",
+			raw:     "pool/agent",
+			opts:    util.ParseOptions{AllowImplicitOrg: true, DisallowProject: true, MinTargets: 2, MaxTargets: 2},
+			wantErr: "project is not allowed, use the / no-project marker",
+		},
+		{
+			name: "project disallowed with marker",
+			raw:  "/pool/agent",
+			opts: util.ParseOptions{AllowImplicitOrg: true, DisallowProject: true, MinTargets: 2, MaxTargets: 2},
+			want: &util.Path{Organization: "default-org", Targets: []string{"pool", "agent"}},
+		},
+		{
+			name: "project disallowed with explicit organization and marker",
+			raw:  "org:/pool/agent",
+			opts: util.ParseOptions{AllowImplicitOrg: true, DisallowProject: true, MinTargets: 2, MaxTargets: 2},
+			want: &util.Path{Organization: "org", Targets: []string{"pool", "agent"}},
+		},
+		{
+			name:    "project disallowed with explicit organization without marker",
+			raw:     "org:pool/agent",
+			opts:    util.ParseOptions{AllowImplicitOrg: true, DisallowProject: true, MinTargets: 2, MaxTargets: 2},
+			wantErr: "project is not allowed, use the / no-project marker",
+		},
+		{
+			name:    "empty segment",
+			raw:     "org:/target/",
+			opts:    util.ParseOptions{AllowImplicitOrg: true, MinTargets: 1, MaxTargets: 1},
+			wantErr: "contains empty segment",
+		},
+		{
+			name:    "whitespace segment",
+			raw:     "org:project/ /extra",
+			opts:    util.ParseOptions{AllowImplicitOrg: true, MinTargets: 1, MaxTargets: 1},
+			wantErr: "contains empty segment",
+		},
+		{
+			name:    "whitespace between colon and marker",
+			raw:     "org: /target",
+			opts:    util.ParseOptions{AllowImplicitOrg: true, MinTargets: 1, MaxTargets: 1},
+			wantErr: "contains empty segment",
+		},
+		{
+			name:    "whitespace only input without implicit organization",
+			raw:     "   ",
+			opts:    util.ParseOptions{AllowImplicitOrg: false},
+			wantErr: "explicit organization is required, use ORG: syntax",
+		},
+		{
+			name: "whitespace only input with implicit organization",
+			raw:  "   ",
+			opts: util.ParseOptions{AllowImplicitOrg: true, MinTargets: 0, MaxTargets: 0},
+			want: &util.Path{Organization: "default-org"},
+		},
+		{
+			name:    "multiple colons",
+			raw:     "a:b:c",
+			opts:    util.ParseOptions{AllowImplicitOrg: true},
+			wantErr: "contains multiple colons",
+		},
+		{
+			name:    "misplaced colon",
+			raw:     "a/b:c",
+			opts:    util.ParseOptions{AllowImplicitOrg: true},
+			wantErr: "colon must directly follow the organization",
+		},
+		{
+			name:    "empty organization prefix",
+			raw:     ":project",
+			opts:    util.ParseOptions{AllowImplicitOrg: true},
+			wantErr: "organization must not be empty",
+		},
+		{
+			name:    "no default organization configured",
+			raw:     "/target",
+			ctx:     emptyOrgCtx(t),
+			opts:    util.ParseOptions{AllowImplicitOrg: true, MinTargets: 1, MaxTargets: 1},
+			wantErr: "no organization specified and no default organization configured",
+		},
+	}
+
+	for i := range tests {
+		if tests[i].ctx == nil {
+			tests[i].ctx = ctx
+		}
+		runParseCase(t, tests[i], func(ctx util.CmdContext, raw string) (*util.Path, error) {
+			return util.Parse(ctx, raw, tests[i].opts)
+		})
+	}
+}
+
+func TestParseInvalidOptions(t *testing.T) {
 	tests := []struct {
 		name    string
 		raw     string
@@ -329,202 +898,64 @@ func TestParse(t *testing.T) {
 		wantErr string
 	}{
 		{
-			name: "empty input with implicit org",
-			raw:  "",
-			opts: util.ParseOptions{AllowImplicitOrg: true},
-			want: &util.Path{Organization: "default-org"},
+			name:    "negative min targets",
+			raw:     "org:/a/b",
+			opts:    util.ParseOptions{MinTargets: -1},
+			wantErr: "target counts must not be negative",
 		},
 		{
-			name:    "empty input without implicit org",
-			raw:     "",
-			opts:    util.ParseOptions{AllowImplicitOrg: false},
-			wantErr: "expected 1-",
+			name:    "negative max targets",
+			raw:     "org:/a/b",
+			opts:    util.ParseOptions{MaxTargets: -1},
+			wantErr: "target counts must not be negative",
 		},
 		{
-			name: "single segment with implicit org",
-			raw:  "myorg",
-			opts: util.ParseOptions{AllowImplicitOrg: true},
-			want: &util.Path{Organization: "myorg"},
+			name:    "max targets below min targets",
+			raw:     "org:/a/b",
+			opts:    util.ParseOptions{MinTargets: 3, MaxTargets: 2},
+			wantErr: "target range [3,2] is not satisfiable",
 		},
 		{
-			name: "two segments with implicit org",
-			raw:  "myorg/myproject",
-			opts: util.ParseOptions{AllowImplicitOrg: true},
-			want: &util.Path{Organization: "myorg", Project: "myproject"},
+			name:    "disallowed targets with min targets",
+			raw:     "org:/a/b",
+			opts:    util.ParseOptions{DisallowTargets: true, MinTargets: 1},
+			wantErr: "targets are disallowed but min targets is 1",
 		},
 		{
-			name: "single segment without implicit org",
-			raw:  "myorg",
-			opts: util.ParseOptions{AllowImplicitOrg: false},
-			want: &util.Path{Organization: "myorg"},
+			name:    "disallowed targets with max targets",
+			raw:     "org:/a/b",
+			opts:    util.ParseOptions{DisallowTargets: true, MaxTargets: 2},
+			wantErr: "targets are disallowed but max targets is 2",
 		},
 		{
-			name: "explicit org with target (no project)",
-			raw:  "org/group",
-			opts: util.ParseOptions{AllowImplicitOrg: false, MinTargets: 1, MaxTargets: 1},
-			want: &util.Path{Organization: "org", Targets: []string{"group"}},
+			name:    "project required and disallowed",
+			raw:     "org:/a/b",
+			opts:    util.ParseOptions{RequireProject: true, DisallowProject: true},
+			wantErr: "project cannot be required and disallowed at the same time",
 		},
 		{
-			name: "explicit org and project with target",
-			raw:  "org/project/group",
-			opts: util.ParseOptions{AllowImplicitOrg: false, MinTargets: 1, MaxTargets: 1},
-			want: &util.Path{Organization: "org", Project: "project", Targets: []string{"group"}},
+			name: "disallowed targets with zero bounds is valid",
+			raw:  "org:",
+			opts: util.ParseOptions{AllowImplicitOrg: true, DisallowTargets: true},
+			want: &util.Path{},
 		},
 		{
-			name: "project target with implicit org",
-			raw:  "project/target",
-			opts: util.ParseOptions{AllowImplicitOrg: true, RequireProject: true, MinTargets: 1, MaxTargets: 1},
-			want: &util.Path{Organization: "default-org", Project: "project", Targets: []string{"target"}},
-		},
-		{
-			name: "target only with implicit org",
-			raw:  "target",
-			opts: util.ParseOptions{AllowImplicitOrg: true, MinTargets: 1, MaxTargets: 1},
-			want: &util.Path{Organization: "default-org", Targets: []string{"target"}},
-		},
-		{
-			name:    "empty segment",
-			raw:     "org/",
-			opts:    util.ParseOptions{AllowImplicitOrg: true},
-			wantErr: "contains empty segment",
-		},
-		{
-			name:    "whitespace only input",
-			raw:     "  ",
-			opts:    util.ParseOptions{AllowImplicitOrg: false},
-			wantErr: "expected 1-",
-		},
-		{
-			name:    "whitespace segment",
-			raw:     "org/ /project",
-			opts:    util.ParseOptions{AllowImplicitOrg: true},
-			wantErr: "contains empty segment",
-		},
-		{
-			name:    "unbounded targets when MaxTargets unset rejects extras",
-			raw:     "a/b/c/d",
-			opts:    util.ParseOptions{AllowImplicitOrg: false, MinTargets: 1},
-			wantErr: "expected 2-3 segments, got 4",
-		},
-		{
-			name:    "scope with extra segments is rejected",
-			raw:     "org/proj/extra",
-			opts:    util.ParseOptions{AllowImplicitOrg: true},
-			wantErr: "expected 0-2 segments, got 3",
-		},
-		{
-			name: "variable target counts allow one target",
-			raw:  "org/project/target",
-			opts: util.ParseOptions{AllowImplicitOrg: false, MinTargets: 1, MaxTargets: 2},
-			want: &util.Path{
-				Organization: "org",
-				Project:      "project",
-				Targets:      []string{"target"},
-			},
-		},
-		{
-			name: "variable target counts allow two targets",
-			raw:  "org/project/target/extra",
-			opts: util.ParseOptions{AllowImplicitOrg: false, MinTargets: 1, MaxTargets: 2},
-			want: &util.Path{
-				Organization: "org",
-				Project:      "project",
-				Targets:      []string{"target", "extra"},
-			},
-		},
-		{
-			name: "variable target counts with required project keep explicit organization",
-			raw:  "org/project/target/extra",
-			opts: util.ParseOptions{AllowImplicitOrg: true, RequireProject: true, MinTargets: 1, MaxTargets: 64},
-			want: &util.Path{
-				Organization: "org",
-				Project:      "project",
-				Targets:      []string{"target", "extra"},
-			},
-		},
-		{
-			name: "variable target counts with required project allow implicit organization",
-			raw:  "project/target/extra",
-			opts: util.ParseOptions{AllowImplicitOrg: true, RequireProject: true, MinTargets: 1, MaxTargets: 64},
-			want: &util.Path{
-				Organization: "default-org",
-				Project:      "project",
-				Targets:      []string{"target", "extra"},
-			},
-		},
-		{
-			name: "variable target counts with required project allow implicit organization single target",
-			raw:  "project/target",
-			opts: util.ParseOptions{AllowImplicitOrg: true, RequireProject: true, MinTargets: 1, MaxTargets: 64},
-			want: &util.Path{
-				Organization: "default-org",
-				Project:      "project",
-				Targets:      []string{"target"},
-			},
-		},
-		{
-			name: "variable target counts with required project and required organization",
-			raw:  "org/project/target/extra",
-			opts: util.ParseOptions{AllowImplicitOrg: false, RequireProject: true, MinTargets: 1, MaxTargets: 64},
-			want: &util.Path{
-				Organization: "org",
-				Project:      "project",
-				Targets:      []string{"target", "extra"},
-			},
-		},
-		{
-			name: "variable target counts with optional project and required organization",
-			raw:  "org/target1/target2/extra",
-			opts: util.ParseOptions{AllowImplicitOrg: false, RequireProject: false, MinTargets: 1, MaxTargets: 64},
-			want: &util.Path{
-				Organization: "org",
-				Project:      "",
-				Targets:      []string{"target1", "target2", "extra"},
-			},
-		},
-		{
-			name:    "variable target counts reject too few targets",
-			raw:     "org/project",
-			opts:    util.ParseOptions{AllowImplicitOrg: false, MinTargets: 1, MaxTargets: 2},
-			wantErr: "expected 2-4 segments, got 2",
-		},
-		{
-			name:    "variable target counts reject too many targets",
-			raw:     "org/project/target/extra/extra2",
-			opts:    util.ParseOptions{AllowImplicitOrg: false, MinTargets: 1, MaxTargets: 2},
-			wantErr: "expected 2-4 segments, got 5",
+			name: "unbounded targets with min targets is valid",
+			raw:  "org:/a/b",
+			opts: util.ParseOptions{AllowImplicitOrg: true, MinTargets: 2},
+			want: &util.Path{},
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			var ctx util.CmdContext
-			if tt.opts.AllowImplicitOrg || tt.raw == "" {
-				ctrl := gomock.NewController(t)
-				t.Cleanup(ctrl.Finish)
-
-				mockCtx := mocks.NewMockCmdContext(ctrl)
-				mockConfig := mocks.NewMockConfig(ctrl)
-				mockAuth := mocks.NewMockAuthConfig(ctrl)
-
-				mockCtx.EXPECT().Config().Return(mockConfig, nil).AnyTimes()
-				mockConfig.EXPECT().Authentication().Return(mockAuth).AnyTimes()
-				mockAuth.EXPECT().GetDefaultOrganization().Return("default-org", nil).AnyTimes()
-
-				ctx = mockCtx
-			}
-
-			got, err := util.Parse(ctx, tt.raw, tt.opts)
-			if tt.wantErr != "" {
-				require.Error(t, err)
-				assert.Contains(t, err.Error(), tt.wantErr)
+			_, err := util.Parse(defaultOrgCtx(t), tt.raw, tt.opts)
+			if tt.want != nil {
+				require.NoError(t, err)
 				return
 			}
-			require.NoError(t, err)
-			require.NotNil(t, got)
-			assert.Equal(t, tt.want.Organization, got.Organization)
-			assert.Equal(t, tt.want.Project, got.Project)
-			assert.Equal(t, tt.want.Targets, got.Targets)
+			require.Error(t, err)
+			assert.Contains(t, err.Error(), tt.wantErr)
 		})
 	}
 }
@@ -611,4 +1042,115 @@ func TestResolveScopeDescriptor_CoreClientError(t *testing.T) {
 	require.Error(t, err)
 	assert.Nil(t, descriptor)
 	assert.Nil(t, projectID)
+}
+
+func TestResolveScopeDescriptor_GetProjectError(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	t.Cleanup(ctrl.Finish)
+
+	mockCtx := mocks.NewMockCmdContext(ctrl)
+	mockClientFactory := mocks.NewMockClientFactory(ctrl)
+	mockCoreClient := mocks.NewMockCoreClient(ctrl)
+
+	mockCtx.EXPECT().ClientFactory().Return(mockClientFactory).AnyTimes()
+	mockCtx.EXPECT().Context().Return(context.Background()).AnyTimes()
+	mockClientFactory.EXPECT().
+		Core(gomock.Any(), "org").
+		Return(mockCoreClient, nil)
+	mockCoreClient.EXPECT().
+		GetProject(gomock.Any(), gomock.AssignableToTypeOf(core.GetProjectArgs{})).
+		Return(nil, errors.New("boom"))
+
+	descriptor, projectID, err := util.ResolveScopeDescriptor(mockCtx, "org", "project")
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "failed to get project")
+	assert.Nil(t, descriptor)
+	assert.Nil(t, projectID)
+}
+
+func TestResolveScopeDescriptor_MissingProjectID(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	t.Cleanup(ctrl.Finish)
+
+	mockCtx := mocks.NewMockCmdContext(ctrl)
+	mockClientFactory := mocks.NewMockClientFactory(ctrl)
+	mockCoreClient := mocks.NewMockCoreClient(ctrl)
+
+	mockCtx.EXPECT().ClientFactory().Return(mockClientFactory).AnyTimes()
+	mockCtx.EXPECT().Context().Return(context.Background()).AnyTimes()
+	mockClientFactory.EXPECT().
+		Core(gomock.Any(), "org").
+		Return(mockCoreClient, nil)
+	mockCoreClient.EXPECT().
+		GetProject(gomock.Any(), gomock.AssignableToTypeOf(core.GetProjectArgs{})).
+		Return(&core.TeamProject{}, nil)
+
+	descriptor, projectID, err := util.ResolveScopeDescriptor(mockCtx, "org", "project")
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "project storage key is missing")
+	assert.Nil(t, descriptor)
+	assert.Nil(t, projectID)
+}
+
+func TestResolveScopeDescriptor_GraphClientError(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	t.Cleanup(ctrl.Finish)
+
+	mockCtx := mocks.NewMockCmdContext(ctrl)
+	mockClientFactory := mocks.NewMockClientFactory(ctrl)
+	mockCoreClient := mocks.NewMockCoreClient(ctrl)
+
+	mockCtx.EXPECT().ClientFactory().Return(mockClientFactory).AnyTimes()
+	mockCtx.EXPECT().Context().Return(context.Background()).AnyTimes()
+
+	projectID := uuid.New()
+	mockClientFactory.EXPECT().
+		Core(gomock.Any(), "org").
+		Return(mockCoreClient, nil)
+	mockCoreClient.EXPECT().
+		GetProject(gomock.Any(), gomock.AssignableToTypeOf(core.GetProjectArgs{})).
+		Return(&core.TeamProject{Id: types.ToPtr(projectID)}, nil)
+	mockClientFactory.EXPECT().
+		Graph(gomock.Any(), "org").
+		Return(nil, errors.New("boom"))
+
+	descriptor, projectIDPtr, err := util.ResolveScopeDescriptor(mockCtx, "org", "project")
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "failed to create graph client")
+	assert.Nil(t, descriptor)
+	assert.Nil(t, projectIDPtr)
+}
+
+func TestResolveScopeDescriptor_EmptyDescriptor(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	t.Cleanup(ctrl.Finish)
+
+	mockCtx := mocks.NewMockCmdContext(ctrl)
+	mockClientFactory := mocks.NewMockClientFactory(ctrl)
+	mockCoreClient := mocks.NewMockCoreClient(ctrl)
+	mockGraphClient := mocks.NewMockGraphClient(ctrl)
+
+	mockCtx.EXPECT().ClientFactory().Return(mockClientFactory).AnyTimes()
+	mockCtx.EXPECT().Context().Return(context.Background()).AnyTimes()
+
+	projectID := uuid.New()
+	mockClientFactory.EXPECT().
+		Core(gomock.Any(), "org").
+		Return(mockCoreClient, nil)
+	mockCoreClient.EXPECT().
+		GetProject(gomock.Any(), gomock.AssignableToTypeOf(core.GetProjectArgs{})).
+		Return(&core.TeamProject{Id: types.ToPtr(projectID)}, nil)
+	mockClientFactory.EXPECT().
+		Graph(gomock.Any(), "org").
+		Return(mockGraphClient, nil)
+	empty := ""
+	mockGraphClient.EXPECT().
+		GetDescriptor(gomock.Any(), gomock.AssignableToTypeOf(graph.GetDescriptorArgs{})).
+		Return(&graph.GraphDescriptorResult{Value: &empty}, nil)
+
+	descriptor, projectIDPtr, err := util.ResolveScopeDescriptor(mockCtx, "org", "project")
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "project descriptor is empty")
+	assert.Nil(t, descriptor)
+	assert.Nil(t, projectIDPtr)
 }

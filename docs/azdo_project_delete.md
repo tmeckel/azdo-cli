@@ -3,7 +3,7 @@
 Delete a project
 
 ```
-azdo project delete [ORGANIZATION/]PROJECT [flags]
+azdo project delete [ORG:]PROJECT [flags]
 ```
 
 ### Options
@@ -49,7 +49,7 @@ azdo project delete [ORGANIZATION/]PROJECT [flags]
 azdo project delete myproject
 
 # delete a project in a specific organization
-azdo project delete myorg/myproject```
+azdo project delete myorg:myproject```
 
 ### See also
 

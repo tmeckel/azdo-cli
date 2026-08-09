@@ -55,7 +55,7 @@ func NewCmd(ctx util.CmdContext) *cobra.Command {
 	}
 
 	cmd := &cobra.Command{
-		Use:   "create [ORGANIZATION/]PROJECT/NAME",
+		Use:   "create [ORG:]PROJECT/NAME",
 		Short: "Create a variable group",
 		Long: heredoc.Doc(`
 			Create a variable group in a project, optionally seeding variables, linking Key Vault secrets,
@@ -63,7 +63,7 @@ func NewCmd(ctx util.CmdContext) *cobra.Command {
 		`),
 		Example: heredoc.Doc(`
 			# Create a generic variable group with seeded variables
-			azdo pipelines variable-group create MyOrg/MyProject/SharedConfig \
+			azdo pipelines variable-group create MyOrg:MyProject/SharedConfig \
 				--description "Shared non-secret settings" \
 				--variable env=prod --variable region=westus;readOnly=true
 
@@ -74,10 +74,10 @@ func NewCmd(ctx util.CmdContext) *cobra.Command {
 				--authorize
 
 			# Share a group with an additional project by name
-			azdo pipelines variable-group create MyOrg/ProjectA/CrossProject \
+			azdo pipelines variable-group create MyOrg:ProjectA/CrossProject \
 				--project-reference ProjectB
 		`),
-		Args: util.ExactArgs(1, "target argument is required and must be in the form [ORGANIZATION/]PROJECT/NAME"),
+		Args: util.ExactArgs(1, "target argument is required and must be in the form [ORG:]PROJECT/NAME"),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			opts.targetArg = args[0]
 			return run(ctx, opts)

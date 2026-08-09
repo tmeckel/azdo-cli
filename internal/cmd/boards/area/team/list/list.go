@@ -28,20 +28,20 @@ func NewCmd(ctx util.CmdContext) *cobra.Command {
 	opts := &listOptions{}
 
 	cmd := &cobra.Command{
-		Use:   "list [ORGANIZATION/]PROJECT/TEAM",
+		Use:   "list [ORG:]PROJECT/TEAM",
 		Short: "List area paths assigned to a team.",
 		Long: heredoc.Doc(`
 			List Azure Boards area paths assigned to a team. The TEAM argument accepts
 			the ID (GUID) or name of the team. The argument accepts the form
-			[ORGANIZATION/]PROJECT/TEAM. When the organization segment is omitted,
-			the default organization from configuration is used.
+			[ORG:]PROJECT/TEAM. When the ORG: prefix is omitted, the default
+			organization from configuration is used.
 		`),
 		Example: heredoc.Doc(`
 			# List area paths for a team using the default organization
 			azdo boards area team list Fabrikam/"Fabrikam Engineering"
 
 			# List area paths for a team in a specific organization
-			azdo boards area team list MyOrg/Fabrikam/"My Team"
+			azdo boards area team list MyOrg:Fabrikam/"My Team"
 		`),
 		Aliases: []string{"ls", "l"},
 		Args:    util.ExactArgs(1, "team argument required"),

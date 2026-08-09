@@ -93,7 +93,7 @@ func TestList_EmptyResult(t *testing.T) {
 		Return(&[]core.WebApiTeam{}, nil)
 
 	cmd := NewCmd(deps.cmd)
-	cmd.SetArgs([]string{"myOrg/myProject"})
+	cmd.SetArgs([]string{"myOrg:myProject"})
 	err := cmd.Execute()
 	require.NoError(t, err)
 }
@@ -106,7 +106,7 @@ func TestList_NoFilters(t *testing.T) {
 		Return(&teams, nil)
 
 	cmd := NewCmd(deps.cmd)
-	cmd.SetArgs([]string{"myOrg/myProject"})
+	cmd.SetArgs([]string{"myOrg:myProject"})
 	err := cmd.Execute()
 	require.NoError(t, err)
 
@@ -137,7 +137,7 @@ func TestList_FiltersPassedToSDK(t *testing.T) {
 		})
 
 	cmd := NewCmd(deps.cmd)
-	cmd.SetArgs([]string{"myOrg/myProject", "--top", "10", "--skip", "5", "--mine"})
+	cmd.SetArgs([]string{"myOrg:myProject", "--top", "10", "--skip", "5", "--mine"})
 	err := cmd.Execute()
 	require.NoError(t, err)
 }
@@ -150,7 +150,7 @@ func TestList_MaxItemsCap(t *testing.T) {
 		Return(&teams, nil)
 
 	cmd := NewCmd(deps.cmd)
-	cmd.SetArgs([]string{"myOrg/myProject", "--max-items", "2"})
+	cmd.SetArgs([]string{"myOrg:myProject", "--max-items", "2"})
 	err := cmd.Execute()
 	require.NoError(t, err)
 
@@ -171,7 +171,7 @@ func TestList_JSONOutput(t *testing.T) {
 		Return(&teams, nil)
 
 	cmd := NewCmd(deps.cmd)
-	cmd.SetArgs([]string{"myOrg/myProject", "--json=id,name"})
+	cmd.SetArgs([]string{"myOrg:myProject", "--json=id,name"})
 	err := cmd.Execute()
 	require.NoError(t, err)
 
@@ -212,7 +212,7 @@ func TestList_PaginatesUntilShortPage(t *testing.T) {
 		}).Times(2)
 
 	cmd := NewCmd(deps.cmd)
-	cmd.SetArgs([]string{"myOrg/myProject", "--top", "2"})
+	cmd.SetArgs([]string{"myOrg:myProject", "--top", "2"})
 	err := cmd.Execute()
 	require.NoError(t, err)
 
@@ -253,9 +253,19 @@ func TestList_ScopeArg_ParsesOrgSlashProject(t *testing.T) {
 	mockCmdCtx.EXPECT().Printer("list").Return(tp, nil).AnyTimes()
 
 	cmd := NewCmd(mockCmdCtx)
-	cmd.SetArgs([]string{"myOrg/myProject"})
+	cmd.SetArgs([]string{"myOrg:myProject"})
 	err = cmd.Execute()
 	require.NoError(t, err)
+}
+
+func TestList_LegacyOrgSlashFormRejected(t *testing.T) {
+	deps := setupFakeDeps(t, "myOrg")
+
+	cmd := NewCmd(deps.cmd)
+	cmd.SetArgs([]string{"myOrg/myProject"})
+	err := cmd.Execute()
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "legacy ORGANIZATION/... form is not supported, use ORG: syntax")
 }
 
 func TestList_PropagatesSDKError(t *testing.T) {
@@ -265,7 +275,7 @@ func TestList_PropagatesSDKError(t *testing.T) {
 		Return(nil, errors.New("API error"))
 
 	cmd := NewCmd(deps.cmd)
-	cmd.SetArgs([]string{"myOrg/myProject"})
+	cmd.SetArgs([]string{"myOrg:myProject"})
 	err := cmd.Execute()
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "failed to list teams: API error")
@@ -275,7 +285,7 @@ func TestList_MaxItemsNegative_ReturnsError(t *testing.T) {
 	deps := setupFakeDeps(t, "myOrg")
 
 	cmd := NewCmd(deps.cmd)
-	cmd.SetArgs([]string{"myOrg/myProject", "--max-items", "-1"})
+	cmd.SetArgs([]string{"myOrg:myProject", "--max-items", "-1"})
 	err := cmd.Execute()
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "--max-items must be >= 0")

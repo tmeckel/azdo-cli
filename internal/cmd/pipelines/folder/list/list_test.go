@@ -93,7 +93,7 @@ func TestNewCmd_list(t *testing.T) {
 	t.Parallel()
 
 	cmd := NewCmd(nil)
-	assert.Equal(t, "list [ORGANIZATION/]PROJECT", cmd.Use)
+	assert.Equal(t, "list [ORG:]PROJECT", cmd.Use)
 	assert.ElementsMatch(t, []string{"ls", "l"}, cmd.Aliases)
 	assert.NotNil(t, cmd.RunE)
 
@@ -140,7 +140,7 @@ func TestRunList_success(t *testing.T) {
 	}{
 		{
 			name: "no path",
-			opts: opts{targetArg: "myorg/Fabrikam"},
+			opts: opts{targetArg: "myorg:Fabrikam"},
 			returned: []build.Folder{
 				sampleFolder("P/Foo", "Foo folder"),
 				sampleFolder("P/Bar", "Bar folder"),
@@ -162,7 +162,7 @@ func TestRunList_success(t *testing.T) {
 		},
 		{
 			name:     "with path",
-			opts:     opts{targetArg: "myorg/Fabrikam", path: "P"},
+			opts:     opts{targetArg: "myorg:Fabrikam", path: "P"},
 			returned: []build.Folder{sampleFolder("P/Foo", "")},
 			assertArgs: func(t *testing.T, args build.GetFoldersArgs) {
 				t.Helper()
@@ -176,7 +176,7 @@ func TestRunList_success(t *testing.T) {
 		},
 		{
 			name:     "query order asc",
-			opts:     opts{targetArg: "myorg/Fabrikam", queryOrder: "asc"},
+			opts:     opts{targetArg: "myorg:Fabrikam", queryOrder: "asc"},
 			returned: []build.Folder{sampleFolder("P/Foo", "")},
 			assertArgs: func(t *testing.T, args build.GetFoldersArgs) {
 				t.Helper()
@@ -190,7 +190,7 @@ func TestRunList_success(t *testing.T) {
 		},
 		{
 			name:     "query order desc",
-			opts:     opts{targetArg: "myorg/Fabrikam", queryOrder: "desc"},
+			opts:     opts{targetArg: "myorg:Fabrikam", queryOrder: "desc"},
 			returned: []build.Folder{sampleFolder("P/Foo", "")},
 			assertArgs: func(t *testing.T, args build.GetFoldersArgs) {
 				t.Helper()
@@ -246,7 +246,7 @@ func TestRunList_success_maxItems(t *testing.T) {
 	require.NoError(t, err)
 	deps.cmd.EXPECT().Printer("list").Return(tp, nil).AnyTimes()
 
-	err = runList(deps.cmd, &opts{targetArg: "myorg/Fabrikam", maxItems: 2})
+	err = runList(deps.cmd, &opts{targetArg: "myorg:Fabrikam", maxItems: 2})
 	require.NoError(t, err)
 
 	output := deps.stdout.String()
@@ -269,7 +269,7 @@ func TestRunList_success_JSON(t *testing.T) {
 	deps.cmd.EXPECT().Printer(gomock.Any()).Times(0)
 
 	exporter := util.NewJSONExporter()
-	err := runList(deps.cmd, &opts{targetArg: "myorg/Fabrikam", exporter: exporter})
+	err := runList(deps.cmd, &opts{targetArg: "myorg:Fabrikam", exporter: exporter})
 	require.NoError(t, err)
 
 	var parsed []build.Folder
@@ -308,7 +308,7 @@ func TestRunList_empty(t *testing.T) {
 	require.NoError(t, err)
 	deps.cmd.EXPECT().Printer("list").Return(tp, nil).AnyTimes()
 
-	err = runList(deps.cmd, &opts{targetArg: "myorg/Fabrikam"})
+	err = runList(deps.cmd, &opts{targetArg: "myorg:Fabrikam"})
 	require.NoError(t, err)
 	assert.Equal(t, "\n", deps.stdout.String())
 }
@@ -319,7 +319,7 @@ func TestRunList_APIError(t *testing.T) {
 	deps := newDependencies(t, "myorg")
 	deps.buildCli.EXPECT().GetFolders(gomock.Any(), gomock.Any()).Return(nil, fmt.Errorf("boom"))
 
-	err := runList(deps.cmd, &opts{targetArg: "myorg/Fabrikam"})
+	err := runList(deps.cmd, &opts{targetArg: "myorg:Fabrikam"})
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "boom")
 }
@@ -340,7 +340,7 @@ func TestRunList_invalidMaxItems(t *testing.T) {
 
 	deps := newDependencies(t, "myorg")
 
-	err := runList(deps.cmd, &opts{targetArg: "myorg/Fabrikam", maxItems: -1})
+	err := runList(deps.cmd, &opts{targetArg: "myorg:Fabrikam", maxItems: -1})
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "--max-items must be >= 0")
 }

@@ -162,7 +162,7 @@ func TestRunList_DefaultNoFilters(t *testing.T) {
 	deps.build.EXPECT().GetBuilds(gomock.Any(), gomock.Any()).
 		Return(&build.GetBuildsResponseValue{Value: builds, ContinuationToken: ""}, nil)
 
-	err := runCmd(deps.cmd, &runOptions{scopeArg: "MyOrg/Fabrikam"})
+	err := runCmd(deps.cmd, &runOptions{scopeArg: "MyOrg:Fabrikam"})
 	require.NoError(t, err)
 }
 
@@ -177,7 +177,7 @@ func TestRunList_ScopeParsing(t *testing.T) {
 		withCfg  bool
 	}{
 		{name: "project without org uses config default", scopeArg: "Fabrikam", wantOrg: "default-org", wantProj: "Fabrikam", withCfg: true},
-		{name: "org/project parses both parts", scopeArg: "MyOrg/Fabrikam", wantOrg: "MyOrg", wantProj: "Fabrikam", withCfg: false},
+		{name: "org:project parses both parts", scopeArg: "MyOrg:Fabrikam", wantOrg: "MyOrg", wantProj: "Fabrikam", withCfg: false},
 	}
 
 	for _, tt := range tests {
@@ -214,7 +214,7 @@ func TestRunList_PipelineID(t *testing.T) {
 			return &build.GetBuildsResponseValue{ContinuationToken: ""}, nil
 		})
 
-	err := runCmd(deps.cmd, &runOptions{scopeArg: "MyOrg/Fabrikam", pipelineIDs: []int{42}})
+	err := runCmd(deps.cmd, &runOptions{scopeArg: "MyOrg:Fabrikam", pipelineIDs: []int{42}})
 	require.NoError(t, err)
 }
 
@@ -229,7 +229,7 @@ func TestRunList_BranchRefsHeadsPrepended(t *testing.T) {
 			return &build.GetBuildsResponseValue{ContinuationToken: ""}, nil
 		})
 
-	err := runCmd(deps.cmd, &runOptions{scopeArg: "MyOrg/Fabrikam", branch: types.ToPtr("main")})
+	err := runCmd(deps.cmd, &runOptions{scopeArg: "MyOrg:Fabrikam", branch: types.ToPtr("main")})
 	require.NoError(t, err)
 }
 
@@ -244,7 +244,7 @@ func TestRunList_BranchRefsUnchanged(t *testing.T) {
 			return &build.GetBuildsResponseValue{ContinuationToken: ""}, nil
 		})
 
-	err := runCmd(deps.cmd, &runOptions{scopeArg: "MyOrg/Fabrikam", branch: types.ToPtr("refs/tags/v1.0")})
+	err := runCmd(deps.cmd, &runOptions{scopeArg: "MyOrg:Fabrikam", branch: types.ToPtr("refs/tags/v1.0")})
 	require.NoError(t, err)
 }
 
@@ -269,7 +269,7 @@ func TestRunList_RequestedForAtMe(t *testing.T) {
 			return &build.GetBuildsResponseValue{ContinuationToken: ""}, nil
 		})
 
-	err := runCmd(deps.cmd, &runOptions{scopeArg: "MyOrg/Fabrikam", requestedFor: types.ToPtr("@me")})
+	err := runCmd(deps.cmd, &runOptions{scopeArg: "MyOrg:Fabrikam", requestedFor: types.ToPtr("@me")})
 	require.NoError(t, err)
 	assert.Equal(t, "Alice <alice@x.com>", capturedRequestedFor)
 }
@@ -285,7 +285,7 @@ func TestRunList_QueryOrder(t *testing.T) {
 			return &build.GetBuildsResponseValue{ContinuationToken: ""}, nil
 		})
 
-	err := runCmd(deps.cmd, &runOptions{scopeArg: "MyOrg/Fabrikam", queryOrder: types.ToPtr("queueTimeDescending")})
+	err := runCmd(deps.cmd, &runOptions{scopeArg: "MyOrg:Fabrikam", queryOrder: types.ToPtr("queueTimeDescending")})
 	require.NoError(t, err)
 }
 
@@ -300,7 +300,7 @@ func TestRunList_Top(t *testing.T) {
 			return &build.GetBuildsResponseValue{ContinuationToken: ""}, nil
 		})
 
-	err := runCmd(deps.cmd, &runOptions{scopeArg: "MyOrg/Fabrikam", top: 50})
+	err := runCmd(deps.cmd, &runOptions{scopeArg: "MyOrg:Fabrikam", top: 50})
 	require.NoError(t, err)
 }
 
@@ -330,7 +330,7 @@ func TestRunList_Pagination(t *testing.T) {
 				return &build.GetBuildsResponseValue{Value: page2, ContinuationToken: ""}, nil
 			}).Times(2)
 
-		err := runCmd(deps.cmd, &runOptions{scopeArg: "MyOrg/Fabrikam"})
+		err := runCmd(deps.cmd, &runOptions{scopeArg: "MyOrg:Fabrikam"})
 		require.NoError(t, err)
 		assert.Equal(t, "next-token", capturedToken)
 
@@ -348,7 +348,7 @@ func TestRunList_Pagination(t *testing.T) {
 				return &build.GetBuildsResponseValue{Value: builds, ContinuationToken: "more-token"}, nil
 			}).Times(1)
 
-		err := runCmd(deps.cmd, &runOptions{scopeArg: "MyOrg/Fabrikam", maxItems: 2})
+		err := runCmd(deps.cmd, &runOptions{scopeArg: "MyOrg:Fabrikam", maxItems: 2})
 		require.NoError(t, err)
 
 		output := deps.stdout.String()
@@ -368,7 +368,7 @@ func TestRunList_JSONOutput(t *testing.T) {
 
 	spy := &spyExporter{}
 	err := runCmd(deps.cmd, &runOptions{
-		scopeArg: "MyOrg/Fabrikam",
+		scopeArg: "MyOrg:Fabrikam",
 		exporter: spy,
 	})
 	require.NoError(t, err)
@@ -389,7 +389,7 @@ func TestRunList_TableOutput(t *testing.T) {
 	deps.build.EXPECT().GetBuilds(gomock.Any(), gomock.Any()).
 		Return(&build.GetBuildsResponseValue{Value: builds, ContinuationToken: ""}, nil)
 
-	err := runCmd(deps.cmd, &runOptions{scopeArg: "MyOrg/Fabrikam"})
+	err := runCmd(deps.cmd, &runOptions{scopeArg: "MyOrg:Fabrikam"})
 	require.NoError(t, err)
 
 	output := deps.stdout.String()

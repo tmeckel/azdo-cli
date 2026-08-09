@@ -19,7 +19,7 @@ func NewCmd(ctx util.CmdContext) *cobra.Command {
 	opts := &deleteOptions{}
 
 	cmd := &cobra.Command{
-		Use:   "delete [ORGANIZATION/]PROJECT/TEAM",
+		Use:   "delete [ORG:]PROJECT/TEAM",
 		Short: "Delete a team.",
 		Long: heredoc.Doc(`
 			Delete a team from a project.
@@ -32,7 +32,7 @@ func NewCmd(ctx util.CmdContext) *cobra.Command {
 			azdo team delete Fabrikam/"Old Team"
 
 			# Delete a team without confirmation
-			azdo team delete MyOrg/Fabrikam/00000002-0000-0000-0000-000000000000 --yes
+			azdo team delete MyOrg:Fabrikam/00000002-0000-0000-0000-000000000000 --yes
 		`),
 		Aliases: []string{"d", "del", "rm"},
 		Args:    util.ExactArgs(1, "team argument required"),

@@ -1,12 +1,12 @@
 ## Command `azdo pipelines agent show`
 
 ```
-azdo pipelines agent show [ORGANIZATION/]POOL/AGENT [flags]
+azdo pipelines agent show [ORG:]/POOL/AGENT [flags]
 ```
 
 Display the details of a single Azure DevOps pipeline agent.
 The agent is specified as a pool and agent ID or name, with
-an optional organization prefix.
+an optional ORG: prefix.
 
 
 ### Options
@@ -46,19 +46,19 @@ an optional organization prefix.
 
 ```bash
 # Show an agent by pool ID and agent ID
-azdo pipelines agent show 1/42
+azdo pipelines agent show /1/42
 
 # Show an agent by pool name and agent name
-azdo pipelines agent show 'Default/my-agent'
+azdo pipelines agent show '/Default/my-agent'
 
 # Show an agent in a specific organization
-azdo pipelines agent show 'myorg/Default/my-agent'
+azdo pipelines agent show 'myorg:/Default/my-agent'
 
 # Show an agent with capabilities
-azdo pipelines agent show 1/42 --include-capabilities
+azdo pipelines agent show /1/42 --include-capabilities
 
 # Show agent as JSON
-azdo pipelines agent show 1/42 --json
+azdo pipelines agent show /1/42 --json
 ```
 
 ### See also

@@ -3,7 +3,7 @@
 Create a new repository in a project
 
 ```
-azdo repo create [ORGANIZATION/]<PROJECT>/<NAME> [flags]
+azdo repo create [ORG:]<PROJECT>/<NAME> [flags]
 ```
 
 ### Options
@@ -19,7 +19,7 @@ azdo repo create [ORGANIZATION/]<PROJECT>/<NAME> [flags]
 
 * `--parent` `string`
 
-	[PROJECT/]REPO to fork from (same organization)
+	[ORG:]PROJECT/REPO to fork from (same organization)
 
 * `--source-branch` `string`
 
@@ -44,8 +44,8 @@ azdo repo create [ORGANIZATION/]<PROJECT>/<NAME> [flags]
 # create a repository in specified project (org from default config)
 azdo repo create myproject/myrepo
 
-# create a repository in specified org/project
-azdo repo create myorg/myproject/myrepo
+# create a repository in specified org:project
+azdo repo create myorg:myproject/myrepo
 
 # create a fork of an existing repo in another project
 azdo repo create myproject/myfork --parent otherproject/otherrepo

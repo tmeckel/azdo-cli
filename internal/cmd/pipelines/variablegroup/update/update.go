@@ -51,13 +51,13 @@ func NewCmd(ctx util.CmdContext) *cobra.Command {
 	o := &opts{}
 
 	cmd := &cobra.Command{
-		Use:   "update [ORGANIZATION/]PROJECT/VARIABLE_GROUP_ID_OR_NAME",
+		Use:   "update [ORG:]PROJECT/VARIABLE_GROUP_ID_OR_NAME",
 		Short: "Update variable group metadata and permissions",
 		Long: heredoc.Doc(`
             Update a variable group's metadata (name, description, type, providerData),
             manage cross-project sharing, and optionally toggle 'authorize for all pipelines'.
         `),
-		Args: util.ExactArgs(1, "target argument is required and must be in the form [ORGANIZATION/]PROJECT/VARIABLE_GROUP_ID_OR_NAME"),
+		Args: util.ExactArgs(1, "target argument is required and must be in the form [ORG:]PROJECT/VARIABLE_GROUP_ID_OR_NAME"),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			o.targetArg = args[0]
 

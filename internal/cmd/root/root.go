@@ -47,7 +47,7 @@ func NewCmdRoot(ctx util.CmdContext, version, buildDate string) (*cobra.Command,
 		Long:  `Work seamlessly with Azure DevOps from the command line.`,
 		Example: heredoc.Doc(`
 		$ azdo project list
-		$ azdo repo clone myorg/myrepo
+		$ azdo repo clone myorg:myproject/myrepo
 	`),
 		Annotations: map[string]string{
 			"versionInfo": versionCmd.Format(version, buildDate),

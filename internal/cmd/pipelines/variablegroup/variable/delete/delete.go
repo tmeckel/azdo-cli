@@ -24,7 +24,7 @@ func NewCmd(ctx util.CmdContext) *cobra.Command {
 	o := &opts{}
 
 	cmd := &cobra.Command{
-		Use:   "delete [ORGANIZATION/]PROJECT/VARIABLE_GROUP_ID_OR_NAME --name VARIABLE_NAME",
+		Use:   "delete [ORG:]PROJECT/VARIABLE_GROUP_ID_OR_NAME --name VARIABLE_NAME",
 		Short: "Delete a variable from a variable group",
 		Long: heredoc.Doc(`
 			Remove a variable from a variable group. The variable name lookup is case-insensitive.

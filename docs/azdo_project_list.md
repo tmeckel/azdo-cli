@@ -3,7 +3,7 @@
 List the projects for an organization
 
 ```
-azdo project list [organization] [flags]
+azdo project list [ORG] [flags]
 ```
 
 ### Options
@@ -35,6 +35,9 @@ azdo project list
 
 # list the projects for an Azure DevOps organization including closed projects
 azdo project list myorg
+
+# list the projects for an organization using the ORG: form
+azdo project list myorg:
 ```
 
 ### See also

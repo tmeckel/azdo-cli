@@ -137,12 +137,10 @@ func rootHelpFunc(iostrms *iostreams.IOStreams, command *cobra.Command, _ []stri
 	// longest is `azdo accessibility` with 13 characters + 1 space.
 	//
 	// Should consider novel way to calculate this in the future [AF]
-	namePadding := 14
-
 	for _, g := range GroupedCommands(command) {
 		var names []string
 		for _, c := range g.Commands {
-			names = append(names, rpad(c.Name()+":", namePadding)+c.Short)
+			names = append(names, rpad(c.Name()+":")+c.Short)
 		}
 		helpEntries = append(helpEntries, helpEntry{
 			Title: strings.ToUpper(g.Title),
@@ -153,13 +151,13 @@ func rootHelpFunc(iostrms *iostreams.IOStreams, command *cobra.Command, _ []stri
 	if isRootCmd(command) {
 		var helpTopics []string
 		if c := findCommand(command, "accessibility"); c != nil {
-			helpTopics = append(helpTopics, rpad(c.Name()+":", namePadding)+c.Short)
+			helpTopics = append(helpTopics, rpad(c.Name()+":")+c.Short)
 		}
 		if c := findCommand(command, "actions"); c != nil {
-			helpTopics = append(helpTopics, rpad(c.Name()+":", namePadding)+c.Short)
+			helpTopics = append(helpTopics, rpad(c.Name()+":")+c.Short)
 		}
 		for _, helpTopic := range HelpTopics {
-			helpTopics = append(helpTopics, rpad(helpTopic.name+":", namePadding)+helpTopic.short)
+			helpTopics = append(helpTopics, rpad(helpTopic.name+":")+helpTopic.short)
 		}
 		sort.Strings(helpTopics)
 		helpEntries = append(helpEntries, helpEntry{"HELP TOPICS", strings.Join(helpTopics, "\n")})
@@ -255,9 +253,12 @@ func GroupedCommands(cmd *cobra.Command) []CommandGroup {
 	return res
 }
 
+// namePadding is the static column width used to align command names in help output.
+const namePadding = 14
+
 // rpad adds padding to the right of a string.
-func rpad(s string, padding int) string {
-	template := fmt.Sprintf("%%-%ds ", padding)
+func rpad(s string) string {
+	template := fmt.Sprintf("%%-%ds ", namePadding)
 	return fmt.Sprintf(template, s)
 }
 

@@ -235,13 +235,23 @@ func TestFromFullName(t *testing.T) {
 		wantErr          error
 	}{
 		{
-			name:             "ORG/PROJECT/REPO combo",
-			input:            "ORG/PROJECT/REPO",
+			name:             "ORG:PROJECT/REPO combo",
+			input:            "ORG:PROJECT/REPO",
 			wantHost:         "dev.azure.com",
 			wantOrganization: "ORG",
 			wantProject:      "PROJECT",
 			wantName:         "REPO",
 			wantURL:          "https://dev.azure.com/ORG/PROJECT/_git/REPO",
+			wantErr:          nil,
+		},
+		{
+			name:             "git:PROJECT/REPO parsed as name not URL",
+			input:            "git:PROJECT/REPO",
+			wantHost:         "dev.azure.com",
+			wantOrganization: "git",
+			wantProject:      "PROJECT",
+			wantName:         "REPO",
+			wantURL:          "https://dev.azure.com/git/PROJECT/_git/REPO",
 			wantErr:          nil,
 		},
 		{
@@ -255,19 +265,69 @@ func TestFromFullName(t *testing.T) {
 			wantErr:          nil,
 		},
 		{
+			name:    "legacy ORGANIZATION/PROJECT/REPO combo",
+			input:   "ORG/PROJECT/REPO",
+			wantErr: errors.New(`not a valid repository name, legacy ORGANIZATION/PROJECT/REPO form is not supported, use ORG: syntax (expected "[ORG:]PROJECT/REPO"), got "ORG/PROJECT/REPO"`),
+		},
+		{
 			name:    "too few elements",
 			input:   "OWNER",
-			wantErr: errors.New(`not a valid repository name, expected the "[ORGANIZATION/]PROJECT/REPO" format, got "OWNER"`),
+			wantErr: errors.New(`not a valid repository name, expected the "[ORG:]PROJECT/REPO" format, got "OWNER"`),
 		},
 		{
 			name:    "too many elements",
 			input:   "a/b/c/d",
-			wantErr: errors.New(`not a valid repository name, expected the "[ORGANIZATION/]PROJECT/REPO" format, got "a/b/c/d"`),
+			wantErr: errors.New(`not a valid repository name, expected the "[ORG:]PROJECT/REPO" format, got "a/b/c/d"`),
+		},
+		{
+			name:    "too many elements with organization prefix",
+			input:   "ORG:a/b/c",
+			wantErr: errors.New(`not a valid repository name, expected the "[ORG:]PROJECT/REPO" format, got "ORG:a/b/c"`),
 		},
 		{
 			name:    "blank value",
 			input:   "a/",
-			wantErr: errors.New(`not a valid repository name, expected the "[ORGANIZATION/]PROJECT/REPO" format, got "a/"`),
+			wantErr: errors.New(`invalid name "a/": contains empty segment`),
+		},
+		{
+			name:    "multiple colons",
+			input:   "ORG:PROJECT:REPO",
+			wantErr: errors.New(`invalid name "ORG:PROJECT:REPO": contains multiple colons`),
+		},
+		{
+			name:    "empty organization prefix",
+			input:   ":PROJECT/REPO",
+			wantErr: errors.New(`invalid name ":PROJECT/REPO": organization must not be empty`),
+		},
+		{
+			name:    "organization with space",
+			input:   "bad org:PROJECT/REPO",
+			wantErr: errors.New(`invalid name "bad org:PROJECT/REPO": invalid organization name "bad org"`),
+		},
+		{
+			name:    "organization with underscore",
+			input:   "bad_org:PROJECT/REPO",
+			wantErr: errors.New(`invalid name "bad_org:PROJECT/REPO": invalid organization name "bad_org"`),
+		},
+		{
+			name:    "organization with trailing hyphen",
+			input:   "bad-:PROJECT/REPO",
+			wantErr: errors.New(`invalid name "bad-:PROJECT/REPO": invalid organization name "bad-"`),
+		},
+		{
+			name:    "colon not directly after organization",
+			input:   "ORG/PROJECT:REPO",
+			wantErr: errors.New(`invalid name "ORG/PROJECT:REPO": colon must directly follow the organization`),
+		},
+		{
+			name:    "repository name cannot start with underscore",
+			input:   "PROJECT/_repo",
+			wantErr: errors.New(`repository name "_repo" cannot start with '_' or '.'`),
+		},
+		{
+			name:    "repository name with invalid characters",
+			input:   "PROJECT/repo.",
+			wantErr: errors.New(`not a valid repository name, expected the "[ORG:]PROJECT/REPO" format, got "PROJECT/repo."`),
 		},
 		{
 			name:    "Invalid Git URL",
@@ -351,6 +411,142 @@ func TestFromFullName(t *testing.T) {
 			url, _ := r.RemoteUrl(proto)
 			if url != wantUrl {
 				t.Errorf("generated url %q does not match input %q", url, wantUrl)
+			}
+		})
+	}
+}
+
+func TestProjectFromName(t *testing.T) {
+	tests := []struct {
+		name             string
+		input            string
+		wantOrganization string
+		wantProject      string
+		wantErr          error
+	}{
+		{
+			name:             "PROJECT with default organization",
+			input:            "PROJECT",
+			wantOrganization: "defaultorg",
+			wantProject:      "PROJECT",
+		},
+		{
+			name:             "ORG:PROJECT",
+			input:            "ORG:PROJECT",
+			wantOrganization: "ORG",
+			wantProject:      "PROJECT",
+		},
+		{
+			name:    "legacy ORGANIZATION/PROJECT",
+			input:   "ORG/PROJECT",
+			wantErr: errors.New(`not a valid project name, legacy ORGANIZATION/PROJECT form is not supported, use ORG: syntax (expected "[ORG:]PROJECT"), got "ORG/PROJECT"`),
+		},
+		{
+			name:    "empty input",
+			input:   "",
+			wantErr: errors.New(`not a valid project name, expected the "[ORG:]PROJECT" format, got ""`),
+		},
+		{
+			name:    "too many segments",
+			input:   "ORG:PROJECT/EXTRA",
+			wantErr: errors.New(`not a valid project name, expected the "[ORG:]PROJECT" format, got "ORG:PROJECT/EXTRA"`),
+		},
+		{
+			name:    "empty segment",
+			input:   "PROJECT/",
+			wantErr: errors.New(`invalid name "PROJECT/": contains empty segment`),
+		},
+		{
+			name:    "organization with leading hyphen",
+			input:   "-org:PROJECT/REPO",
+			wantErr: errors.New(`invalid name "-org:PROJECT/REPO": invalid organization name "-org"`),
+		},
+		{
+			name:    "organization with single char",
+			input:   "o:PROJECT/REPO",
+			wantErr: errors.New(`invalid name "o:PROJECT/REPO": invalid organization name "o"`),
+		},
+		{
+			name:    "invalid characters",
+			input:   "PROJ$ETC",
+			wantErr: errors.New(`not a valid project name, expected the "[ORG:]PROJECT" format, got "PROJ$ETC"`),
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Setenv("AZDO_CONFIG_DIR", "./testdata/config")
+			p, err := ProjectFromName(tt.input)
+			if tt.wantErr != nil {
+				if err == nil || err.Error() != tt.wantErr.Error() {
+					t.Fatalf("expected error %q, got %q", tt.wantErr, err)
+				}
+				return
+			}
+			if err != nil {
+				t.Fatalf("unexpected error %q", err)
+			}
+			if p.Organization() != tt.wantOrganization || p.Project() != tt.wantProject {
+				t.Fatalf("expected %q/%q, got %q/%q", tt.wantOrganization, tt.wantProject, p.Organization(), p.Project())
+			}
+		})
+	}
+}
+
+func TestProjectFromURL(t *testing.T) {
+	t.Setenv("AZDO_CONFIG_DIR", "./testdata/config")
+
+	tests := []struct {
+		name             string
+		input            string
+		wantOrganization string
+		wantProject      string
+		wantErr          error
+	}{
+		{
+			name:             "dev.azure.com URL",
+			input:            "https://dev.azure.com/defaultorg/monalisa",
+			wantOrganization: "defaultorg",
+			wantProject:      "monalisa",
+		},
+		{
+			name:             "visualstudio.com URL",
+			input:            "https://vsorg.visualstudio.com/monalisa",
+			wantOrganization: "vsorg",
+			wantProject:      "monalisa",
+		},
+		{
+			name:    "non-AzDO URL",
+			input:   "https://github.com/owner/repo",
+			wantErr: errors.New("url https://github.com/owner/repo is not a valid AzDO remote URL"),
+		},
+		{
+			name:    "URL with hostname that does not match org",
+			input:   "https://dev.azure.com/exampleorg/monalisa",
+			wantErr: errors.New(`hostname "dev.azure.com" of URL does not match configured hostname "example.com" of organization "exampleorg"`),
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			u, err := url.Parse(tt.input)
+			if err != nil {
+				t.Fatalf("got parse error %q", err)
+			}
+
+			p, err := ProjectFromURL(u)
+			if tt.wantErr != nil {
+				if err == nil {
+					t.Fatalf("expected error %q, got nil", tt.wantErr)
+				}
+				if err.Error() != tt.wantErr.Error() {
+					t.Fatalf("expected error %q, got %q", tt.wantErr, err)
+				}
+				return
+			}
+			if err != nil {
+				t.Fatalf("unexpected error %q", err)
+			}
+			if p.Organization() != tt.wantOrganization || p.Project() != tt.wantProject {
+				t.Fatalf("expected %q/%q, got %q/%q", tt.wantOrganization, tt.wantProject, p.Organization(), p.Project())
 			}
 		})
 	}

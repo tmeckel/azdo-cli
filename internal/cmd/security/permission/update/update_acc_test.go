@@ -59,7 +59,7 @@ func TestAccUpdatePermission(t *testing.T) {
 				},
 				Run: func(ctx inttest.TestContext) error {
 					o := &opts{
-						rawTarget:   fmt.Sprintf("%s/%s", ctx.Org(), groupDescriptor),
+						rawTarget:   fmt.Sprintf("%s:/%s", ctx.Org(), groupDescriptor),
 						namespaceID: namespaceID,
 						token:       token,
 						allowBits:   []string{"0x2"},

@@ -1,7 +1,7 @@
 ## Command `azdo team list`
 
 ```
-azdo team list [ORGANIZATION/]PROJECT [flags]
+azdo team list [ORG:]PROJECT [flags]
 ```
 
 List all teams in the specified project. Supports server-side paging via
@@ -56,7 +56,7 @@ List all teams in the specified project. Supports server-side paging via
 azdo team list Fabrikam
 
 # List the first 10 teams in a specific organization
-azdo team list MyOrg/Fabrikam --top 10
+azdo team list MyOrg:Fabrikam --top 10
 
 # List teams you are a member of
 azdo team list Fabrikam --mine

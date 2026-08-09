@@ -23,7 +23,7 @@ azdo pipelines pool show 42
 azdo pipelines pool show 'Default'
 
 # Show a pool in a specific organization
-azdo pipelines pool show 'myorg/Default'
+azdo pipelines pool show 'myorg:/Default'
 
 # List pools in the default organization
 azdo pipelines pool list

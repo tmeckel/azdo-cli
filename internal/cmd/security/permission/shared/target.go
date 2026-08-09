@@ -1,9 +1,6 @@
 package shared
 
 import (
-	"fmt"
-	"strings"
-
 	"github.com/tmeckel/azdo-cli/internal/cmd/util"
 )
 
@@ -12,76 +9,36 @@ type SubjectTarget struct {
 	Subject string
 }
 
-// ParseSubjectTarget parses the target input for permission commands.
-// Accepted formats:
-//   - (empty)                        → defaults organization from configuration
-//   - ORGANIZATION                   → organization scope only
-//   - ORGANIZATION/SUBJECT           → organization with explicit subject
-//   - ORGANIZATION/PROJECT/SUBJECT   → project-scoped subject
+// ParseSubjectTarget parses the target input for permission commands using the
+// shared structural scope parser.
+//
+// Accepted forms:
+//   - (empty)               → default organization, no subject
+//   - ORG:/                 → organization scope only, no subject
+//   - /SUBJECT              → organization-level subject in the default organization
+//   - ORG:/SUBJECT          → organization-level subject in an explicit organization
+//   - PROJECT/SUBJECT       → project-scoped subject in the default organization
+//   - ORG:PROJECT/SUBJECT   → project-scoped subject in an explicit organization
+//
+// A legacy two-segment input such as ORG/SUBJECT is indistinguishable from the
+// canonical PROJECT/SUBJECT form, so it is never rejected and never treated as
+// an explicit organization: it parses as a project-scoped subject in the
+// default organization. Organization-level subjects must use the ORG:/SUBJECT
+// or /SUBJECT forms. Bare ORG is likewise parsed as a project, so the
+// organization-only form requires the colon prefix (ORG:/).
 func ParseSubjectTarget(ctx util.CmdContext, input string) (*SubjectTarget, error) {
-	trimmed := strings.TrimSpace(input)
-	if trimmed == "" {
-		scope, err := util.ParseScope(ctx, "")
-		if err != nil {
-			return nil, err
-		}
-		return &SubjectTarget{
-			Path: *scope,
-		}, nil
+	path, err := util.Parse(ctx, input, util.ParseOptions{
+		AllowImplicitOrg: true,
+		MinTargets:       0,
+		MaxTargets:       1,
+	})
+	if err != nil {
+		return nil, err
 	}
 
-	segments := strings.Split(trimmed, "/")
-	if len(segments) == 0 || len(segments) > 3 {
-		return nil, util.FlagErrorf("invalid target %q", input)
+	target := &SubjectTarget{Path: *path}
+	if len(path.Targets) > 0 {
+		target.Subject = path.Targets[0]
 	}
-
-	orgPart := strings.TrimSpace(segments[0])
-	if orgPart == "" {
-		return nil, util.FlagErrorf("organization must not be empty")
-	}
-
-	switch len(segments) {
-	case 1:
-		scope, err := util.ParseScope(ctx, orgPart)
-		if err != nil {
-			return nil, err
-		}
-		return &SubjectTarget{
-			Path:    *scope,
-			Subject: "",
-		}, nil
-	case 2:
-		subject := strings.TrimSpace(segments[1])
-		if subject == "" {
-			return nil, util.FlagErrorf("subject must not be empty")
-		}
-		scope, err := util.ParseScope(ctx, orgPart)
-		if err != nil {
-			return nil, err
-		}
-		return &SubjectTarget{
-			Path:    *scope,
-			Subject: subject,
-		}, nil
-	case 3:
-		project := strings.TrimSpace(segments[1])
-		subject := strings.TrimSpace(segments[2])
-		if project == "" {
-			return nil, util.FlagErrorf("project must not be empty")
-		}
-		if subject == "" {
-			return nil, util.FlagErrorf("subject must not be empty")
-		}
-		scopeInput := fmt.Sprintf("%s/%s", orgPart, project)
-		scope, err := util.ParseScope(ctx, scopeInput)
-		if err != nil {
-			return nil, err
-		}
-		return &SubjectTarget{
-			Path:    *scope,
-			Subject: subject,
-		}, nil
-	default:
-		return nil, util.FlagErrorf("invalid target %q", input)
-	}
+	return target, nil
 }

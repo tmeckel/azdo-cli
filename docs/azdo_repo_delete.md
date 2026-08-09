@@ -3,7 +3,7 @@
 Delete a Git repository in a team project
 
 ```
-azdo repo delete [organization/]project/repository [flags]
+azdo repo delete [ORG:]PROJECT/REPOSITORY [flags]
 ```
 
 ### Options
@@ -25,7 +25,7 @@ azdo repo delete [organization/]project/repository [flags]
 azdo repo delete myproject/myrepo
 
 # delete a repository using specified organization
-azdo repo delete myorg/myproject/myrepo
+azdo repo delete myorg:myproject/myrepo
 ```
 
 ### See also

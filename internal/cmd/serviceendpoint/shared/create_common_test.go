@@ -50,7 +50,7 @@ func TestAddCreateCommonFlags(t *testing.T) {
 		// Verify context
 		ctx := updatedCmd.Context()
 		require.NotNil(t, ctx, "context should not be nil")
-		opts := ctx.Value("createCommonOptions")
+		opts := ctx.Value(createCommonOptionsKey{})
 		require.NotNil(t, opts, "createCommonOptions should be in context")
 		_, ok := opts.(*createCommonOptions)
 		require.True(t, ok, "context value should be of type *createCommonOptions")
@@ -78,7 +78,7 @@ func TestAddCreateCommonFlags(t *testing.T) {
 
 		// Retrieve options from context
 		ctx := cmd.Context()
-		opts := ctx.Value("createCommonOptions").(*createCommonOptions)
+		opts := ctx.Value(createCommonOptionsKey{}).(*createCommonOptions)
 
 		require.Equal(t, "my-endpoint", opts.Name)
 		require.Equal(t, "desc", opts.Description)
@@ -131,7 +131,7 @@ func TestAddCreateCommonFlags(t *testing.T) {
 
 		updatedCtx := cmd.Context()
 		require.Equal(t, "value", updatedCtx.Value(key("existing")))
-		require.NotNil(t, updatedCtx.Value("createCommonOptions"))
+		require.NotNil(t, updatedCtx.Value(createCommonOptionsKey{}))
 	})
 
 	t.Run("Required flag enforcement", func(t *testing.T) {

@@ -39,29 +39,34 @@ func NewCmd(ctx util.CmdContext) *cobra.Command {
 	o := &opts{}
 
 	cmd := &cobra.Command{
-		Use:   "list [TARGET]",
+		Use:   "list [ORG:][/]SUBJECT | [ORG:]PROJECT/SUBJECT",
 		Short: "List security ACEs for a namespace, optionally filtered by subject.",
 		Long: heredoc.Doc(`
 			List security access control entries (ACEs) for an Azure DevOps security namespace.
 
 			Accepted TARGET formats:
 			  - (empty)                        → use the default organization
-			  - ORGANIZATION                   → list all ACEs for the namespace in the organization
-			  - ORGANIZATION/SUBJECT           → list ACEs for the specified subject
-			  - ORGANIZATION/PROJECT/SUBJECT   → list ACEs for the subject scoped to the project
+			  - ORG:/                          → organization scope only
+			  - /SUBJECT                       → list ACEs for the subject in the default organization
+			  - ORG:/SUBJECT                   → list ACEs for the subject in an explicit organization
+			  - PROJECT/SUBJECT                → list ACEs for the subject scoped to the project
+			  - ORG:PROJECT/SUBJECT            → list ACEs for the subject scoped to the project in an explicit organization
+
+			A legacy two-segment input such as ORG/SUBJECT is interpreted as PROJECT/SUBJECT
+			in the default organization. Use ORG:/SUBJECT for organization-level subjects.
 		`),
 		Example: heredoc.Doc(`
 			# List all ACEs for a namespace using the default organization
 			azdo security permission list --namespace-id 5a27515b-ccd7-42c9-84f1-54c998f03866
 
 			# List all ACEs for a namespace in an explicit organization
-			azdo security permission list fabrikam --namespace-id 5a27515b-ccd7-42c9-84f1-54c998f03866
+			azdo security permission list org:/ --namespace-id 5a27515b-ccd7-42c9-84f1-54c998f03866
 
 			# List all tokens for a specific user
-			azdo security permission list fabrikam/contoso@example.com --namespace-id 5a27515b-ccd7-42c9-84f1-54c998f03866
+			azdo security permission list org:/contoso@example.com --namespace-id 5a27515b-ccd7-42c9-84f1-54c998f03866
 
 			# List ACEs for a project-scoped group
-			azdo security permission list fabrikam/ProjectAlpha/vssgp.Uy0xLTktMTIzNDU2 --namespace-id 5a27515b-ccd7-42c9-84f1-54c998f03866 --recurse
+			azdo security permission list org:ProjectAlpha/vssgp.Uy0xLTktMTIzNDU2 --namespace-id 5a27515b-ccd7-42c9-84f1-54c998f03866 --recurse
 		`),
 		Aliases: []string{
 			"ls",

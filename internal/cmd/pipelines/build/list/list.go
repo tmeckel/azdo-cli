@@ -35,7 +35,7 @@ func NewCmd(ctx util.CmdContext) *cobra.Command {
 	opts := &listOptions{}
 
 	cmd := &cobra.Command{
-		Use:   "list [ORGANIZATION/]PROJECT",
+		Use:   "list [ORG:]PROJECT",
 		Short: "List classic build results in a project.",
 		Long: heredoc.Doc(`
 			List classic build (Build v1) records in a project. Supports filter,
@@ -48,6 +48,9 @@ func NewCmd(ctx util.CmdContext) *cobra.Command {
 
 			# Filter by branch, status, and tag
 			azdo pipelines build list Fabrikam --branch main --status completed --tag release
+
+			# List builds in a specific organization
+			azdo pipelines build list MyOrg:Fabrikam --top 20
 
 			# Export as JSON
 			azdo pipelines build list Fabrikam --json id,buildNumber,status,result

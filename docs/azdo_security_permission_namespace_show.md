@@ -1,13 +1,20 @@
 ## Command `azdo security permission namespace show`
 
 ```
-azdo security permission namespace show [ORGANIZATION/]NAMESPACE [flags]
+azdo security permission namespace show [ORG:]/NAMESPACE [flags]
 ```
 
 Show the full details of a security permission namespace, including the actions it defines.
 
 The namespace can be specified by its GUID or by its name. When using a name, the command performs
 a case-insensitive match against both the namespace's name and display name.
+
+Accepted NAMESPACE formats:
+  - /NAMESPACE              → namespace in the default organization
+  - ORG:/NAMESPACE          → namespace in an explicit organization
+
+The leading / no-project marker is required; a bare NAMESPACE or a legacy
+ORGANIZATION/NAMESPACE input is rejected.
 
 
 ### Options
@@ -38,13 +45,13 @@ a case-insensitive match against both the namespace's name and display name.
 
 ```bash
 # Show a namespace by ID using the default organization
-azdo security permission namespace show 52d39943-cb85-4d7f-8fa8-c6baac873819
+azdo security permission namespace show /52d39943-cb85-4d7f-8fa8-c6baac873819
 
 # Show a namespace by name using an explicit organization
-azdo security permission namespace show myorg/Project Collection
+azdo security permission namespace show myorg:/Project Collection
 
 # Display selected fields from the namespace as JSON
-azdo security permission namespace show myorg/Build --json namespaceId,name,actions
+azdo security permission namespace show myorg:/Build --json namespaceId,name,actions
 ```
 
 ### See also

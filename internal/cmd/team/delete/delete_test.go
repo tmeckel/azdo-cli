@@ -69,7 +69,7 @@ func TestDelete_RequiresConfirmationByDefault(t *testing.T) {
 	deps.prompter.EXPECT().Confirm(gomock.Any(), false).Return(false, nil)
 
 	cmd := NewCmd(deps.cmd)
-	cmd.SetArgs([]string{"myOrg/myProject/MyTeam"})
+	cmd.SetArgs([]string{"myOrg:myProject/MyTeam"})
 	err := cmd.Execute()
 	assert.ErrorIs(t, err, util.ErrCancel)
 }
@@ -80,7 +80,7 @@ func TestDelete_YesFlagSkipsConfirmation(t *testing.T) {
 	deps.core.EXPECT().DeleteTeam(gomock.Any(), gomock.Any()).Return(nil)
 
 	cmd := NewCmd(deps.cmd)
-	cmd.SetArgs([]string{"myOrg/myProject/MyTeam", "--yes"})
+	cmd.SetArgs([]string{"myOrg:myProject/MyTeam", "--yes"})
 	err := cmd.Execute()
 	require.NoError(t, err)
 	assert.Empty(t, deps.stdout.String())
@@ -100,7 +100,7 @@ func TestDelete_ConfirmationAccept_InvokesDeleteTeam(t *testing.T) {
 		})
 
 	cmd := NewCmd(deps.cmd)
-	cmd.SetArgs([]string{"myOrg/myProject/My Team"})
+	cmd.SetArgs([]string{"myOrg:myProject/My Team"})
 	err := cmd.Execute()
 	require.NoError(t, err)
 }
@@ -119,7 +119,7 @@ func TestDelete_TargetArg_ParsesOrgSlashProjectSlashTeam(t *testing.T) {
 		})
 
 	cmd := NewCmd(deps.cmd)
-	cmd.SetArgs([]string{"myOrg/myProject/My Team"})
+	cmd.SetArgs([]string{"myOrg:myProject/My Team"})
 	err := cmd.Execute()
 	require.NoError(t, err)
 }
@@ -181,7 +181,7 @@ func TestDelete_TTYOutput(t *testing.T) {
 	mockPrompter.EXPECT().Confirm(gomock.Any(), false).Return(true, nil)
 
 	cmd := NewCmd(mockCmdCtx)
-	cmd.SetArgs([]string{"myOrg/myProject/MyTeam"})
+	cmd.SetArgs([]string{"myOrg:myProject/MyTeam"})
 	err := cmd.Execute()
 	require.NoError(t, err)
 
@@ -197,10 +197,20 @@ func TestDelete_NonTTYOutput(t *testing.T) {
 	deps.core.EXPECT().DeleteTeam(gomock.Any(), gomock.Any()).Return(nil)
 
 	cmd := NewCmd(deps.cmd)
-	cmd.SetArgs([]string{"myOrg/myProject/MyTeam"})
+	cmd.SetArgs([]string{"myOrg:myProject/MyTeam"})
 	err := cmd.Execute()
 	require.NoError(t, err)
 	assert.Empty(t, deps.stdout.String())
+}
+
+func TestDelete_LegacyOrgSlashFormRejected(t *testing.T) {
+	deps := setupFakeDeleteDeps(t, "myOrg")
+
+	cmd := NewCmd(deps.cmd)
+	cmd.SetArgs([]string{"myOrg/myProject/MyTeam", "--yes"})
+	err := cmd.Execute()
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "legacy ORGANIZATION/... form is not supported, use ORG: syntax")
 }
 
 func TestDelete_PropagatesSDKError(t *testing.T) {
@@ -210,7 +220,7 @@ func TestDelete_PropagatesSDKError(t *testing.T) {
 	deps.core.EXPECT().DeleteTeam(gomock.Any(), gomock.Any()).Return(errors.New("API error"))
 
 	cmd := NewCmd(deps.cmd)
-	cmd.SetArgs([]string{"myOrg/myProject/MyTeam"})
+	cmd.SetArgs([]string{"myOrg:myProject/MyTeam"})
 	err := cmd.Execute()
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "failed to delete team: API error")

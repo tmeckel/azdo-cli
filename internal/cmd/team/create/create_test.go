@@ -107,7 +107,7 @@ func TestCreate_ProjectScope_ParsesOrgSlashProject(t *testing.T) {
 		})
 
 	cmd := NewCmd(deps.cmd)
-	cmd.SetArgs([]string{"myOrg/myProject", "--name", "MyTeam", "--description", "desc"})
+	cmd.SetArgs([]string{"myOrg:myProject", "--name", "MyTeam", "--description", "desc"})
 	err := cmd.Execute()
 	require.NoError(t, err)
 }
@@ -178,9 +178,19 @@ func TestCreate_PayloadContainsNameAndDescription(t *testing.T) {
 		})
 
 	cmd := NewCmd(deps.cmd)
-	cmd.SetArgs([]string{"myOrg/myProject", "--name", "MyTeam", "--description", "my desc"})
+	cmd.SetArgs([]string{"myOrg:myProject", "--name", "MyTeam", "--description", "my desc"})
 	err := cmd.Execute()
 	require.NoError(t, err)
+}
+
+func TestCreate_LegacyOrgSlashFormRejected(t *testing.T) {
+	deps := setupFakeCreateDeps(t, "myOrg")
+
+	cmd := NewCmd(deps.cmd)
+	cmd.SetArgs([]string{"myOrg/myProject", "--name", "MyTeam"})
+	err := cmd.Execute()
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "legacy ORGANIZATION/... form is not supported, use ORG: syntax")
 }
 
 func TestCreate_JSONOutput(t *testing.T) {
@@ -198,7 +208,7 @@ func TestCreate_JSONOutput(t *testing.T) {
 		}, nil)
 
 	cmd := NewCmd(deps.cmd)
-	cmd.SetArgs([]string{"myOrg/myProject", "--name", "MyTeam", "--json=id,name,description"})
+	cmd.SetArgs([]string{"myOrg:myProject", "--name", "MyTeam", "--json=id,name,description"})
 	err := cmd.Execute()
 	require.NoError(t, err)
 
@@ -229,7 +239,7 @@ func TestCreate_TableOutput_ContainsAllColumns(t *testing.T) {
 		}, nil)
 
 	cmd := NewCmd(deps.cmd)
-	cmd.SetArgs([]string{"myOrg/myProject", "--name", "MyTeam", "--description", "my team desc"})
+	cmd.SetArgs([]string{"myOrg:myProject", "--name", "MyTeam", "--description", "my team desc"})
 	err := cmd.Execute()
 	require.NoError(t, err)
 
@@ -252,7 +262,7 @@ func TestCreate_PropagatesSDKError(t *testing.T) {
 		Return(nil, errors.New("API error"))
 
 	cmd := NewCmd(deps.cmd)
-	cmd.SetArgs([]string{"myOrg/myProject", "--name", "MyTeam"})
+	cmd.SetArgs([]string{"myOrg:myProject", "--name", "MyTeam"})
 	err := cmd.Execute()
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "failed to create team: API error")

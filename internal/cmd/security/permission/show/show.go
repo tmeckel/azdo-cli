@@ -40,21 +40,26 @@ func NewCmd(ctx util.CmdContext) *cobra.Command {
 	o := &opts{}
 
 	cmd := &cobra.Command{
-		Use:   "show <TARGET>",
+		Use:   "show [ORG:][/]SUBJECT | [ORG:]PROJECT/SUBJECT",
 		Short: "Show permissions for a user or group.",
 		Long: heredoc.Doc(`
 			Show the explicit and effective permissions for a user or group on a specific securable resource (identified by a token).
 
 			Accepted TARGET formats:
-			  - ORGANIZATION/SUBJECT           → show permissions for the specified subject
-			  - ORGANIZATION/PROJECT/SUBJECT   → show permissions for the subject scoped to the project
+			  - /SUBJECT                       → show permissions for the subject in the default organization
+			  - ORG:/SUBJECT                   → show permissions for the subject in an explicit organization
+			  - PROJECT/SUBJECT                → show permissions for the subject scoped to the project
+			  - ORG:PROJECT/SUBJECT            → show permissions for the subject scoped to the project in an explicit organization
+
+			A legacy two-segment input such as ORG/SUBJECT is interpreted as PROJECT/SUBJECT
+			in the default organization. Use ORG:/SUBJECT for organization-level subjects.
 		`),
 		Example: heredoc.Doc(`
 			# Show permissions for a user
-			azdo security permission show fabrikam/contoso@example.com --namespace-id 5a27515b-ccd7-42c9-84f1-54c998f03866 --token /projects/a6880f5a-60e1-4103-89f2-69533e4d139f
+			azdo security permission show org:/contoso@example.com --namespace-id 5a27515b-ccd7-42c9-84f1-54c998f03866 --token /projects/a6880f5a-60e1-4103-89f2-69533e4d139f
 
 			# Show permissions for a project-scoped group
-			azdo security permission show fabrikam/ProjectAlpha/vssgp.Uy0xLTktMTIzNDU2 --namespace-id 33344d9c-fc72-4d6f-aba5-fa317101a7e9 --token /
+			azdo security permission show org:ProjectAlpha/vssgp.Uy0xLTktMTIzNDU2 --namespace-id 33344d9c-fc72-4d6f-aba5-fa317101a7e9 --token /
 		`),
 		Aliases: []string{
 			"s",

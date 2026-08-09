@@ -25,13 +25,13 @@ func NewCmd(ctx util.CmdContext) *cobra.Command {
 
 	cmd := &cobra.Command{
 		Short: "Delete a project",
-		Use:   "delete [ORGANIZATION/]PROJECT",
+		Use:   "delete [ORG:]PROJECT",
 		Example: heredoc.Doc(
 			`# delete a project in the default organization
 			azdo project delete myproject
 
 			# delete a project in a specific organization
-			azdo project delete myorg/myproject`,
+			azdo project delete myorg:myproject`,
 		),
 		Args: util.ExactArgs(1, "project name required"),
 		Aliases: []string{

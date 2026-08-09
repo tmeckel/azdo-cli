@@ -1,7 +1,7 @@
 ## Command `azdo pipelines variable-group variable create`
 
 ```
-azdo pipelines variable-group variable create [ORGANIZATION/]PROJECT/VARIABLE_GROUP_ID_OR_NAME --name VARIABLE_NAME [flags]
+azdo pipelines variable-group variable create [ORG:]PROJECT/VARIABLE_GROUP_ID_OR_NAME --name VARIABLE_NAME [flags]
 ```
 
 Add a variable to an existing variable group. Secret values are write-only and will be redacted in

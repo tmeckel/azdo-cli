@@ -38,20 +38,21 @@ func NewCmd(ctx util.CmdContext) *cobra.Command {
 	o := &opts{}
 
 	cmd := &cobra.Command{
-		Use:   "add [ORGANIZATION/]GROUP | [ORGANIZATION/]PROJECT/GROUP",
+		Use:   "add [ORG:][PROJECT/]GROUP",
 		Short: "Add a member to an Azure DevOps security group.",
 		Long: heredoc.Doc(`
 			Add a user or group as a member to an Azure DevOps security group.
 
-			The positional argument accepts either ORGANIZATION/GROUP or ORGANIZATION/PROJECT/GROUP.
+			The positional argument accepts [ORG:][PROJECT/]GROUP.
+			When the ORG: prefix is omitted the default organization from configuration is used.
 			Use --member to provide the member's email, descriptor, or principal name.
 		`),
 		Example: heredoc.Doc(`
 			# Add a user by email to an organization-level group
-			azdo security group membership add MyOrg/Project Administrators --member user@example.com
+			azdo security group membership add /Project Administrators --member user@example.com
 
 			# Add a group by descriptor to a project-level group
-			azdo security group membership add MyOrg/MyProject/Readers --member vssgp.Uy0xLTItMw==
+			azdo security group membership add MyOrg:MyProject/Readers --member vssgp.Uy0xLTItMw==
 		`),
 		Args: cobra.ExactArgs(1),
 		Aliases: []string{

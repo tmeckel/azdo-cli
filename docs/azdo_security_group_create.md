@@ -1,10 +1,13 @@
 ## Command `azdo security group create`
 
 ```
-azdo security group create [ORGANIZATION|ORGANIZATION/PROJECT] [flags]
+azdo security group create [ORG:][PROJECT] [flags]
 ```
 
 Create a security group in an Azure DevOps organization or project.
+
+The scope accepts [ORG:][PROJECT]. When omitted the default organization
+from configuration is used.
 
 Security groups can be created by name, email, or origin ID. Exactly one of these must be specified.
 

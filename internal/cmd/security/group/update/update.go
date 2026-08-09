@@ -36,19 +36,19 @@ func NewCmd(ctx util.CmdContext) *cobra.Command {
 	commandOpts := &opts{}
 
 	cmd := &cobra.Command{
-		Use:   "update ORGANIZATION/GROUP | ORGANIZATION/PROJECT/GROUP",
+		Use:   "update ORG:[PROJECT/]GROUP",
 		Short: "Update an Azure DevOps security group",
 		Long: heredoc.Doc(`
 			Update the display name and/or description of an Azure DevOps security group.
 
-			Provide the organization segment and optional project segment to scope the lookup. At least one of --name or --description must be specified.
+			Provide the ORG: prefix and an optional project segment to scope the lookup. At least one of --name or --description must be specified.
 		`),
 		Example: heredoc.Doc(`
 			# Update only the description of a project-level group
-			azdo security group update MyOrg/MyProject/Developers --description "Updated description"
+			azdo security group update MyOrg:MyProject/Developers --description "Updated description"
 
 			# Update the name of an organization-level group
-			azdo security group update MyOrg/Old Group Name --name "New Group Name"
+			azdo security group update MyOrg:/Old Group Name --name "New Group Name"
 		`),
 		Args: cobra.ExactArgs(1),
 		Aliases: []string{

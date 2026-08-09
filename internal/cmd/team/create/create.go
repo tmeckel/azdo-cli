@@ -22,7 +22,7 @@ func NewCmd(ctx util.CmdContext) *cobra.Command {
 	opts := &createOptions{}
 
 	cmd := &cobra.Command{
-		Use:   "create [ORGANIZATION/]PROJECT",
+		Use:   "create [ORG:]PROJECT",
 		Short: "Create a new team in a project.",
 		Long: heredoc.Doc(`
 			Create a new team in the specified project. The --name flag is required.
@@ -34,7 +34,7 @@ func NewCmd(ctx util.CmdContext) *cobra.Command {
 			azdo team create Fabrikam --name "Fabrikam Engineering"
 
 			# Create a team with a description
-			azdo team create MyOrg/Fabrikam --name "My Team" --description "Owns the web app"
+			azdo team create MyOrg:Fabrikam --name "My Team" --description "Owns the web app"
 		`),
 		Aliases: []string{
 			"c",

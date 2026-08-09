@@ -1,12 +1,12 @@
 ## Command `azdo repo show`
 
 ```
-azdo repo show [ORGANIZATION/]PROJECT/REPO_ID_OR_NAME [flags]
+azdo repo show [ORG:]PROJECT/REPO_ID_OR_NAME [flags]
 ```
 
 Display the details of a single Azure DevOps Git repository.
 
-The repository is identified by name or ID. The organization segment is optional when a
+The repository is identified by name or ID. The organization prefix is optional when a
 default organization is configured.
 
 
@@ -42,7 +42,7 @@ default organization is configured.
 azdo repo show Fabrikam/my-repo
 
 # Show a repository by ID
-azdo repo show myorg/Fabrikam/00000000-0000-0000-0000-000000000000
+azdo repo show myorg:Fabrikam/00000000-0000-0000-0000-000000000000
 ```
 
 ### See also

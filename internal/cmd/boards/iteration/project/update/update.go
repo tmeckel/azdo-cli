@@ -28,11 +28,11 @@ func NewCmd(ctx util.CmdContext) *cobra.Command {
 	opts := &updateOptions{}
 
 	cmd := &cobra.Command{
-		Use:   "update [ORGANIZATION/]PROJECT[/PATH]/NAME",
+		Use:   "update [ORG:]PROJECT[/PATH]/NAME",
 		Short: "Update an iteration in a project.",
 		Long: heredoc.Doc(`
 			Update an iteration (sprint) in a project. The positional argument identifies
-			the iteration as [ORGANIZATION/]PROJECT[/PATH]/NAME.
+			the iteration as [ORG:]PROJECT[/PATH]/NAME.
 
 			Supports changing start/finish dates and setting arbitrary attributes.
 		`),
@@ -46,7 +46,7 @@ func NewCmd(ctx util.CmdContext) *cobra.Command {
 				--attributes goal="Ship login"
 
 			# Combine: reschedule + set a custom attribute
-			azdo boards iteration project update myorg/Fabrikam/Release\ 2025/Sprint\ 1 \
+			azdo boards iteration project update myorg:Fabrikam/Release\ 2025/Sprint\ 1 \
 				--start-date 2025-01-06 --finish-date 2025-01-19 \
 				--attributes goal="Ship login"
 

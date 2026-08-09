@@ -1,12 +1,12 @@
 ## Command `azdo pipelines variable-group show`
 
 ```
-azdo pipelines variable-group show [ORGANIZATION/]PROJECT/VARIABLE_GROUP_ID_OR_NAME [flags]
+azdo pipelines variable-group show [ORG:]PROJECT/VARIABLE_GROUP_ID_OR_NAME [flags]
 ```
 
 Display metadata for a variable group, including its authorization state and variables.
 
-The positional argument accepts the form [ORGANIZATION/]PROJECT/VARIABLE_GROUP_ID_OR_NAME.
+The positional argument accepts the form [ORG:]PROJECT/VARIABLE_GROUP_ID_OR_NAME.
 When the organization segment is omitted the default organization from configuration is used.
 
 

@@ -76,7 +76,7 @@ func TestNewCmd_RegistersAsListLeaf(t *testing.T) {
 	t.Parallel()
 
 	cmd := NewCmd(nil)
-	assert.Equal(t, "list [ORGANIZATION/]PROJECT", cmd.Use)
+	assert.Equal(t, "list [ORG:]PROJECT", cmd.Use)
 	assert.ElementsMatch(t, []string{"ls", "l"}, cmd.Aliases)
 	assert.NotNil(t, cmd.RunE)
 }
@@ -125,7 +125,7 @@ func TestRunList_BasicCall(t *testing.T) {
 	require.NoError(t, err)
 	deps.cmd.EXPECT().Printer("table").Return(tp, nil).AnyTimes()
 
-	err = runList(deps.cmd, &opts{scope: "myorg/myproject"})
+	err = runList(deps.cmd, &opts{scope: "myorg:myproject"})
 	require.NoError(t, err)
 
 	output := deps.stdout.String()
@@ -153,7 +153,7 @@ func TestRunList_OrgFromArg(t *testing.T) {
 	require.NoError(t, err)
 	deps.cmd.EXPECT().Printer("table").Return(tp, nil).AnyTimes()
 
-	err = runList(deps.cmd, &opts{scope: "explicit-org/myproject"})
+	err = runList(deps.cmd, &opts{scope: "explicit-org:myproject"})
 	require.NoError(t, err)
 	assert.Contains(t, deps.stdout.String(), "pipe-1")
 }
@@ -189,8 +189,8 @@ func TestRunList_InvalidFlags(t *testing.T) {
 		opts    opts
 		wantMsg string
 	}{
-		{"negative top", opts{scope: "org/proj", top: -1}, "invalid --top"},
-		{"negative max-items", opts{scope: "org/proj", maxItems: -5}, "invalid --max-items"},
+		{"negative top", opts{scope: "org:proj", top: -1}, "invalid --top"},
+		{"negative max-items", opts{scope: "org:proj", maxItems: -5}, "invalid --max-items"},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -234,7 +234,7 @@ func TestRunList_SDKError(t *testing.T) {
 	deps := setupFakeDeps(t, "org")
 	deps.buildClient.EXPECT().GetDefinitions(gomock.Any(), gomock.Any()).Return(nil, fmt.Errorf("API error"))
 
-	err := runList(deps.cmd, &opts{scope: "org/proj"})
+	err := runList(deps.cmd, &opts{scope: "org:proj"})
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "API error")
 }
@@ -251,7 +251,7 @@ func TestRunList_EmptyResult(t *testing.T) {
 	require.NoError(t, err)
 	deps.cmd.EXPECT().Printer("table").Return(tp, nil).AnyTimes()
 
-	err = runList(deps.cmd, &opts{scope: "org/proj"})
+	err = runList(deps.cmd, &opts{scope: "org:proj"})
 	require.NoError(t, err)
 }
 
@@ -274,7 +274,7 @@ func TestRunList_FilterByName(t *testing.T) {
 	require.NoError(t, err)
 	deps.cmd.EXPECT().Printer("table").Return(tp, nil).AnyTimes()
 
-	err = runList(deps.cmd, &opts{scope: "org/proj", name: "my-pipeline"})
+	err = runList(deps.cmd, &opts{scope: "org:proj", name: "my-pipeline"})
 	require.NoError(t, err)
 }
 
@@ -297,7 +297,7 @@ func TestRunList_FolderPathFilter(t *testing.T) {
 	require.NoError(t, err)
 	deps.cmd.EXPECT().Printer("table").Return(tp, nil).AnyTimes()
 
-	err = runList(deps.cmd, &opts{scope: "org/proj", folderPath: "user1/production"})
+	err = runList(deps.cmd, &opts{scope: "org:proj", folderPath: "user1/production"})
 	require.NoError(t, err)
 }
 
@@ -309,8 +309,8 @@ func TestRunList_RepositoryFilter(t *testing.T) {
 		opts     opts
 		wantType string
 	}{
-		{"default type tfsgit", opts{scope: "org/proj", repository: "my-repo"}, "tfsgit"},
-		{"explicit type github", opts{scope: "org/proj", repository: "my-repo", repositoryType: "github"}, "github"},
+		{"default type tfsgit", opts{scope: "org:proj", repository: "my-repo"}, "tfsgit"},
+		{"explicit type github", opts{scope: "org:proj", repository: "my-repo", repositoryType: "github"}, "github"},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -377,7 +377,7 @@ func TestRunList_MaxItemsFilter(t *testing.T) {
 			tp, err := printer.NewTablePrinter(deps.stdout, false, 200)
 			require.NoError(t, err)
 			deps.cmd.EXPECT().Printer("table").Return(tp, nil).AnyTimes()
-			err = runList(deps.cmd, &opts{scope: "org/proj", maxItems: tt.maxItems})
+			err = runList(deps.cmd, &opts{scope: "org:proj", maxItems: tt.maxItems})
 			require.NoError(t, err)
 			output := deps.stdout.String()
 			for _, w := range tt.want {
@@ -406,7 +406,7 @@ func TestRunList_DraftColumnPresent(t *testing.T) {
 	require.NoError(t, err)
 	deps.cmd.EXPECT().Printer("table").Return(tp, nil).AnyTimes()
 
-	err = runList(deps.cmd, &opts{scope: "org/proj"})
+	err = runList(deps.cmd, &opts{scope: "org:proj"})
 	require.NoError(t, err)
 
 	assert.Contains(t, deps.stdout.String(), "*")
@@ -427,7 +427,7 @@ func TestRunList_DraftColumnAbsent(t *testing.T) {
 	require.NoError(t, err)
 	deps.cmd.EXPECT().Printer("table").Return(tp, nil).AnyTimes()
 
-	err = runList(deps.cmd, &opts{scope: "org/proj"})
+	err = runList(deps.cmd, &opts{scope: "org:proj"})
 	require.NoError(t, err)
 
 	assert.NotContains(t, deps.stdout.String(), "*")
@@ -508,7 +508,7 @@ func TestRunList_JSONOutput(t *testing.T) {
 				&build.GetDefinitionsResponseValue{Value: tt.defs}, nil,
 			)
 			exporter := util.NewJSONExporter()
-			err := runList(deps.cmd, &opts{scope: "org/proj", exporter: exporter})
+			err := runList(deps.cmd, &opts{scope: "org:proj", exporter: exporter})
 			require.NoError(t, err)
 			tt.check(t, deps.stdout.Bytes())
 		})
@@ -534,7 +534,7 @@ func TestRunList_QueryOrderFlag(t *testing.T) {
 	require.NoError(t, err)
 	deps.cmd.EXPECT().Printer("table").Return(tp, nil).AnyTimes()
 
-	err = runList(deps.cmd, &opts{scope: "org/proj", queryOrder: "definitionNameAscending"})
+	err = runList(deps.cmd, &opts{scope: "org:proj", queryOrder: "definitionNameAscending"})
 	require.NoError(t, err)
 }
 
@@ -555,7 +555,7 @@ func TestRunList_SortsByIDAscending(t *testing.T) {
 	require.NoError(t, err)
 	deps.cmd.EXPECT().Printer("table").Return(tp, nil).AnyTimes()
 
-	err = runList(deps.cmd, &opts{scope: "org/proj"})
+	err = runList(deps.cmd, &opts{scope: "org:proj"})
 	require.NoError(t, err)
 
 	output := deps.stdout.String()
@@ -592,7 +592,7 @@ func TestRunList_Pagination(t *testing.T) {
 	require.NoError(t, err)
 	deps.cmd.EXPECT().Printer("table").Return(tp, nil).AnyTimes()
 
-	err = runList(deps.cmd, &opts{scope: "org/proj"})
+	err = runList(deps.cmd, &opts{scope: "org:proj"})
 	require.NoError(t, err)
 
 	output := deps.stdout.String()

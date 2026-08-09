@@ -29,7 +29,7 @@ func NewCmd(ctx util.CmdContext) *cobra.Command {
 	o := &opts{}
 
 	cmd := &cobra.Command{
-		Use:   "create [ORGANIZATION/]PROJECT/VARIABLE_GROUP_ID_OR_NAME --name VARIABLE_NAME",
+		Use:   "create [ORG:]PROJECT/VARIABLE_GROUP_ID_OR_NAME --name VARIABLE_NAME",
 		Short: "Create a variable in a variable group",
 		Long: heredoc.Doc(`
 				Add a variable to an existing variable group. Secret values are write-only and will be redacted in

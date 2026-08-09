@@ -53,7 +53,7 @@ func TestUpdate_SetsACE_Success(t *testing.T) {
 
 	// Build options matching command invocation
 	o := &opts{
-		rawTarget:   "org/user@example.com",
+		rawTarget:   "org:/user@example.com",
 		namespaceID: "00000000-0000-0000-0000-000000000000",
 		token:       "token123",
 		allowBits:   []string{"0x1"},
@@ -136,7 +136,7 @@ func TestUpdate_ErrorWhenNoBits(t *testing.T) {
 	mSecurityClient.EXPECT().QuerySecurityNamespaces(gomock.Any(), gomock.Any()).Return(nsSlice, nil).AnyTimes()
 
 	o := &opts{
-		rawTarget:   "org/user@example.com",
+		rawTarget:   "org:/user@example.com",
 		namespaceID: "00000000-0000-0000-0000-000000000000",
 		token:       "token123",
 		allowBits:   []string{},
@@ -204,7 +204,7 @@ func TestUpdate_SetsDenyBit(t *testing.T) {
 	)
 
 	o := &opts{
-		rawTarget:   "org/user@example.com",
+		rawTarget:   "org:/user@example.com",
 		namespaceID: "00000000-0000-0000-0000-000000000000",
 		token:       "token123",
 		allowBits:   []string{},
@@ -268,7 +268,7 @@ func TestUpdate_NoMergeFlag(t *testing.T) {
 	)
 
 	o := &opts{
-		rawTarget:   "org/user@example.com",
+		rawTarget:   "org:/user@example.com",
 		namespaceID: "00000000-0000-0000-0000-000000000000",
 		token:       "token123",
 		allowBits:   []string{"0x1"},
@@ -336,7 +336,7 @@ func TestUpdate_MergeFlagTrue(t *testing.T) {
 	)
 
 	o := &opts{
-		rawTarget:   "org/user@example.com",
+		rawTarget:   "org:/user@example.com",
 		namespaceID: "00000000-0000-0000-0000-000000000000",
 		token:       "token123",
 		allowBits:   []string{"0x1"},

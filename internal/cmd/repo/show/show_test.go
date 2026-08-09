@@ -120,7 +120,7 @@ func TestNewCmd_RegistersAsShowLeaf(t *testing.T) {
 	assert.Equal(t, "show", cmd.Name())
 	assert.Contains(t, cmd.Aliases, "view")
 	assert.Contains(t, cmd.Aliases, "status")
-	assert.True(t, strings.HasPrefix(cmd.Use, "show [ORGANIZATION/]PROJECT/REPO_ID_OR_NAME"))
+	assert.True(t, strings.HasPrefix(cmd.Use, "show [ORG:]PROJECT/REPO_ID_OR_NAME"))
 	assert.NotNil(t, cmd.RunE)
 	assert.NotNil(t, cmd.Flag("json"))
 }
@@ -150,7 +150,7 @@ func TestRunShow_TemplateOutput_BasicFields(t *testing.T) {
 			return sampleRepo(), nil
 		})
 
-	opts := &showOptions{targetArg: "myorg/Fabrikam/demo-repo"}
+	opts := &showOptions{targetArg: "myorg:Fabrikam/demo-repo"}
 	err := runShow(deps.cmd, opts)
 	require.NoError(t, err)
 
@@ -184,7 +184,7 @@ func TestRunShow_TemplateOutput_OptionalFieldsOmitted(t *testing.T) {
 	repo.Size = nil
 	deps.gitClient.EXPECT().GetRepository(gomock.Any(), gomock.Any()).Return(repo, nil)
 
-	opts := &showOptions{targetArg: "myorg/Fabrikam/demo-repo"}
+	opts := &showOptions{targetArg: "myorg:Fabrikam/demo-repo"}
 	err := runShow(deps.cmd, opts)
 	require.NoError(t, err)
 
@@ -208,7 +208,7 @@ func TestRunShow_ProjectScopeParsing(t *testing.T) {
 	}{
 		{
 			name:      "explicit org",
-			targetArg: "myorg/Fabrikam/demo-repo",
+			targetArg: "myorg:Fabrikam/demo-repo",
 			wantOrg:   "myorg",
 		},
 		{
@@ -216,6 +216,11 @@ func TestRunShow_ProjectScopeParsing(t *testing.T) {
 			targetArg:  "Fabrikam/demo-repo",
 			defaultOrg: "default-org",
 			wantOrg:    "default-org",
+		},
+		{
+			name:      "legacy org slash rejected",
+			targetArg: "myorg/Fabrikam/demo-repo",
+			wantErr:   "legacy ORGANIZATION/... form is not supported, use ORG: syntax",
 		},
 		{
 			name:      "missing project segment",
@@ -270,7 +275,7 @@ func TestRunShow_ErrorPaths(t *testing.T) {
 	}{
 		{
 			name:      "client factory error",
-			targetArg: "myorg/Fabrikam/demo-repo",
+			targetArg: "myorg:Fabrikam/demo-repo",
 			setup: func(deps *dependencies) error {
 				expectedErr := errors.New("connection failed")
 				deps.clientFact.EXPECT().Git(gomock.Any(), "myorg").Return(nil, expectedErr)
@@ -280,7 +285,7 @@ func TestRunShow_ErrorPaths(t *testing.T) {
 		},
 		{
 			name:      "sdk error",
-			targetArg: "myorg/Fabrikam/demo-repo",
+			targetArg: "myorg:Fabrikam/demo-repo",
 			setup: func(deps *dependencies) error {
 				expectedErr := errors.New("API error")
 				deps.clientFact.EXPECT().Git(gomock.Any(), "myorg").Return(deps.gitClient, nil)
@@ -291,7 +296,7 @@ func TestRunShow_ErrorPaths(t *testing.T) {
 		},
 		{
 			name:      "nil repo",
-			targetArg: "myorg/Fabrikam/demo-repo",
+			targetArg: "myorg:Fabrikam/demo-repo",
 			setup: func(deps *dependencies) error {
 				deps.clientFact.EXPECT().Git(gomock.Any(), "myorg").Return(deps.gitClient, nil)
 				deps.gitClient.EXPECT().GetRepository(gomock.Any(), gomock.Any()).Return(nil, nil)
@@ -329,7 +334,7 @@ func TestRunShow_JSONOutput(t *testing.T) {
 	deps.gitClient.EXPECT().GetRepository(gomock.Any(), gomock.Any()).Return(sampleRepo(), nil)
 
 	opts := &showOptions{
-		targetArg: "myorg/Fabrikam/demo-repo",
+		targetArg: "myorg:Fabrikam/demo-repo",
 		exporter:  util.NewJSONExporter(),
 	}
 	err := runShow(deps.cmd, opts)

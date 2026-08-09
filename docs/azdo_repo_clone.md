@@ -1,7 +1,7 @@
 ## Command `azdo repo clone`
 
 ```
-azdo repo clone [organization/]project/repository [<directory>] [-- <gitflags>...]
+azdo repo clone [ORG:]PROJECT/REPOSITORY [<directory>] [-- <gitflags>...]
 ```
 
 Clone a GitHub repository locally. Pass additional `git clone` flags by listing

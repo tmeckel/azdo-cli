@@ -28,12 +28,12 @@ func NewCmd(ctx util.CmdContext) *cobra.Command {
 	opts := &showOptions{}
 
 	cmd := &cobra.Command{
-		Use:   "show [ORGANIZATION/]PROJECT/QUEUE",
+		Use:   "show [ORG:]PROJECT/QUEUE",
 		Short: "Show details of an agent queue",
 		Long: heredoc.Doc(`
 			Display the details of a single Azure DevOps agent queue.
 			The queue is identified by integer ID or name, with an
-			optional organization prefix.
+			optional ORG: prefix.
 		`),
 		Example: heredoc.Doc(`
 			# Show a queue by ID
@@ -43,7 +43,7 @@ func NewCmd(ctx util.CmdContext) *cobra.Command {
 			azdo pipelines queue show 'Fabrikam/Default'
 
 			# Show a queue in a specific organization
-			azdo pipelines queue show 'myorg/Fabrikam/Default'
+			azdo pipelines queue show 'myorg:Fabrikam/Default'
 		`),
 		Aliases: []string{"view", "status"},
 		Args:    util.ExactArgs(1, "queue target is required"),
@@ -73,9 +73,6 @@ func runShow(cmdCtx util.CmdContext, opts *showOptions) error {
 		return util.FlagErrorWrap(err)
 	}
 
-	if len(scope.Targets) == 0 {
-		return util.FlagErrorf("queue target is required")
-	}
 	taskClient, err := cmdCtx.ClientFactory().TaskAgent(cmdCtx.Context(), scope.Organization)
 	if err != nil {
 		return fmt.Errorf("failed to create task agent client: %w", err)

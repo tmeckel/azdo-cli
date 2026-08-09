@@ -31,7 +31,7 @@ func WriteTestFile(t *testing.T, contents io.Reader) (string, error) {
 	name := hex.EncodeToString(b)
 	path := filepath.Join(dir, name)
 
-	f, err := os.OpenFile(path, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0o600)
+	f, err := os.OpenFile(path, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0o600) //nolint:gosec // path derived from t.TempDir(), not attacker-controlled
 	if err != nil {
 		return "", fmt.Errorf("failed to create file %s: %w", path, err)
 	}
@@ -61,7 +61,7 @@ func WriteTestFileWithName(t *testing.T, filename string, contents io.Reader) (s
 	dir := t.TempDir()
 	path := filepath.Join(dir, filename)
 
-	f, err := os.OpenFile(path, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0o600)
+	f, err := os.OpenFile(path, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0o600) //nolint:gosec // path derived from t.TempDir(), not attacker-controlled
 	if err != nil {
 		return "", fmt.Errorf("failed to create file %s: %w", path, err)
 	}

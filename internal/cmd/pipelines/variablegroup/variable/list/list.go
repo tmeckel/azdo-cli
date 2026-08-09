@@ -22,7 +22,7 @@ func NewCmd(ctx util.CmdContext) *cobra.Command {
 	opts := &opts{}
 
 	cmd := &cobra.Command{
-		Use:   "list [ORGANIZATION/]PROJECT/VARIABLEGROUP",
+		Use:   "list [ORG:]PROJECT/VARIABLEGROUP",
 		Short: "List variables in a variable group",
 		Long: heredoc.Doc(`
 			List the variables in a variable group.
@@ -37,7 +37,7 @@ func NewCmd(ctx util.CmdContext) *cobra.Command {
 			azdo pipelines variable-groups variable list MyProject/123
 
 			# List variables in a group by name within a project and organization
-			azdo pipelines variable-groups variable list 'MyOrg/MyProject/My Variable Group'
+			azdo pipelines variable-groups variable list 'MyOrg:MyProject/My Variable Group'
 
 			# Export variables to JSON
 			azdo pipelines variable-groups variable list MyProject/123 --json

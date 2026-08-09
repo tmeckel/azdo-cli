@@ -9,6 +9,10 @@ import (
 	"github.com/tmeckel/azdo-cli/internal/cmd/util"
 )
 
+// updateCommonOptionsKey is a typed context key used to pass updateCommonOptions
+// through the command context without the string-key collision risk flagged by SA1029.
+type updateCommonOptionsKey struct{}
+
 // updateCommonOptions contains flags/args that apply to all typed update commands.
 type updateCommonOptions struct {
 	Name        string
@@ -39,7 +43,7 @@ func AddUpdateCommonFlags(cmd *cobra.Command) *cobra.Command {
 	if ctx == nil {
 		ctx = context.Background()
 	}
-	cmd.SetContext(context.WithValue(ctx, "updateCommonOptions", &common))
+	cmd.SetContext(context.WithValue(ctx, updateCommonOptionsKey{}, &common))
 
 	return cmd
 }

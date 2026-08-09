@@ -3,7 +3,7 @@
 Delete an Azure DevOps security group
 
 ```
-azdo security group delete [ORGANIZATION/GROUP | ORGANIZATION/PROJECT/GROUP] [flags]
+azdo security group delete ORG:[PROJECT/]GROUP [flags]
 ```
 
 ### Options

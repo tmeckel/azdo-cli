@@ -30,21 +30,20 @@ const (
 )
 
 type createOptions struct {
-	authenticationScheme          string
-	servicePrincipalID            string
-	servicePrincipalKey           string
-	servicePrincipalCertificate   string
-	certificatePath               string
-	tenantID                      string
-	subscriptionID                string
-	subscriptionName              string
-	managementGroupID             string
-	managementGroupName           string
-	environment                   string
-	resourceGroup                 string
-	serverURL                     string
-	serviceEndpointCreationMode   string
-	grantPermissionToAllPipelines bool
+	authenticationScheme        string
+	servicePrincipalID          string
+	servicePrincipalKey         string
+	servicePrincipalCertificate string
+	certificatePath             string
+	tenantID                    string
+	subscriptionID              string
+	subscriptionName            string
+	managementGroupID           string
+	managementGroupName         string
+	environment                 string
+	resourceGroup               string
+	serverURL                   string
+	serviceEndpointCreationMode string
 }
 
 type azurermConfigurer struct {
@@ -237,7 +236,7 @@ func NewCmd(ctx util.CmdContext) *cobra.Command {
 	}
 
 	cmd := &cobra.Command{
-		Use:   "azurerm [ORGANIZATION/]PROJECT --name <name> --authentication-scheme <scheme> [flags]",
+		Use:   "azurerm [ORG:]PROJECT --name <name> --authentication-scheme <scheme> [flags]",
 		Short: "Create an Azure Resource Manager service connection",
 		Long: heredoc.Doc(`
 			Create an Azure Resource Manager service connection.
@@ -245,7 +244,7 @@ func NewCmd(ctx util.CmdContext) *cobra.Command {
 		`),
 		Example: heredoc.Doc(`
 			# Service Principal with a secret
-			azdo service-endpoint create azurerm my-org/my-project \
+			azdo service-endpoint create azurerm myorg:my-project \
 					--name "My AzureRM SPN Secret Connection" \
 					--authentication-scheme ServicePrincipal \
 					--tenant-id "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" \
@@ -257,7 +256,7 @@ func NewCmd(ctx util.CmdContext) *cobra.Command {
 					--description "Service Connection for my AzureRM resources"
 
 			# Service Principal with a certificate
-			azdo service-endpoint create azurerm my-org/my-project \
+			azdo service-endpoint create azurerm myorg:my-project \
 					--name "My AzureRM SPN Cert Connection" \
 					--authentication-scheme ServicePrincipal \
 					--tenant-id "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" \
@@ -268,7 +267,7 @@ func NewCmd(ctx util.CmdContext) *cobra.Command {
 					--description "Certificate-based Service Connection"
 
 			# Managed Service Identity
-			azdo service-endpoint create azurerm my-org/my-project \
+			azdo service-endpoint create azurerm myorg:my-project \
 					--name "My AzureRM MSI Connection" \
 					--authentication-scheme ManagedServiceIdentity \
 					--tenant-id "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" \
@@ -277,7 +276,7 @@ func NewCmd(ctx util.CmdContext) *cobra.Command {
 					--description "MSI Service Connection"
 
 			# Workload Identity Federation (Manual mode, with existing Service Principal)
-			azdo service-endpoint create azurerm my-org/my-project \
+			azdo service-endpoint create azurerm myorg:my-project \
 					--name "My AzureRM WIF Manual Connection" \
 					--authentication-scheme WorkloadIdentityFederation \
 					--tenant-id "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" \
@@ -287,7 +286,7 @@ func NewCmd(ctx util.CmdContext) *cobra.Command {
 					--description "WIF Manual Service Connection"
 
 			# Workload Identity Federation (Automatic mode, Azure DevOps creates Service Principal)
-			azdo service-endpoint create azurerm my-org/my-project \
+			azdo service-endpoint create azurerm myorg:my-project \
 					--name "My AzureRM WIF Automatic Connection" \
 					--authentication-scheme WorkloadIdentityFederation \
 					--tenant-id "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" \
@@ -296,7 +295,7 @@ func NewCmd(ctx util.CmdContext) *cobra.Command {
 					--description "WIF Automatic Service Connection"
 
 			# Service Principal with Management Group Scope
-			azdo service-endpoint create azurerm my-org/my-project \
+			azdo service-endpoint create azurerm myorg:my-project \
 					--name "My AzureRM MGMT Group Connection" \
 					--authentication-scheme ServicePrincipal \
 					--tenant-id "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" \
@@ -307,7 +306,7 @@ func NewCmd(ctx util.CmdContext) *cobra.Command {
 					--description "Service Connection scoped to a Management Group"
 
 			# Azure Stack Environment
-			azdo service-endpoint create azurerm my-org/my-project \
+			azdo service-endpoint create azurerm myorg:my-project \
 					--name "My AzureStack Connection" \
 					--authentication-scheme ServicePrincipal \
 					--tenant-id "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" \

@@ -22,7 +22,7 @@ func NewCmd(ctx util.CmdContext) *cobra.Command {
 	opts := &deleteOptions{}
 
 	cmd := &cobra.Command{
-		Use:   "delete [ORGANIZATION/]PROJECT/PIPELINE",
+		Use:   "delete [ORG:]PROJECT/PIPELINE",
 		Short: "Delete a pipeline definition",
 		Long: heredoc.Doc(`
 			Delete a pipeline definition by ID or name.
@@ -34,7 +34,7 @@ func NewCmd(ctx util.CmdContext) *cobra.Command {
 			azdo pipelines delete Fabrikam/42 --yes
 
 			# Delete a pipeline by name
-			azdo pipelines delete 'myorg/Fabrikam/My Pipeline'
+			azdo pipelines delete 'myorg:Fabrikam/My Pipeline'
 
 			# Delete with confirmation
 			azdo pipelines delete Fabrikam/MyPipeline

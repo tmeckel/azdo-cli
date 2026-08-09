@@ -33,7 +33,7 @@ func NewCmd(ctx util.CmdContext) *cobra.Command {
 	opts := &listOptions{}
 
 	cmd := &cobra.Command{
-		Use:   "list [[organization/]project/repository]",
+		Use:   "list [[ORG:]PROJECT/REPOSITORY]",
 		Short: "List pull requests in a repository or a project",
 		Long: heredoc.Doc(`
 			List pull requests in a Azure DevOps repository or project.

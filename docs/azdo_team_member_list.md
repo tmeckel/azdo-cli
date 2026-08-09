@@ -1,7 +1,7 @@
 ## Command `azdo team member list`
 
 ```
-azdo team member list [ORGANIZATION/]PROJECT/TEAM [flags]
+azdo team member list [ORG:]PROJECT/TEAM [flags]
 ```
 
 List members of a team. The TEAM argument accepts the ID (GUID)
@@ -54,7 +54,7 @@ or name of the team. Supports server-side paging via --top and
 azdo team member list Fabrikam/"Fabrikam Engineering"
 
 # List the first 10 members in a specific organization
-azdo team member list MyOrg/Fabrikam/MyTeam --top 10
+azdo team member list MyOrg:Fabrikam/MyTeam --top 10
 ```
 
 ### See also

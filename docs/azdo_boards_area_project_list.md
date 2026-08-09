@@ -1,12 +1,12 @@
 ## Command `azdo boards area project list`
 
 ```
-azdo boards area project list [ORGANIZATION/]PROJECT [flags]
+azdo boards area project list [ORG:]PROJECT [flags]
 ```
 
 List Azure Boards area paths for a project. The project argument accepts the form
-[ORGANIZATION/]PROJECT. When the organization segment is omitted, the default
-organization from configuration is used.
+[ORG:]PROJECT. When the ORG: prefix is omitted, the default organization from
+configuration is used.
 
 
 ### Options
@@ -49,10 +49,10 @@ organization from configuration is used.
 azdo boards area project list Fabrikam
 
 # List the full area tree for a project in a specific organization
-azdo boards area project list myorg/Fabrikam --depth 5
+azdo boards area project list myorg:Fabrikam --depth 5
 
 # List the sub-tree under a specific area path (relative paths are resolved under <project>/Area)
-azdo boards area project list myorg/Fabrikam --path Payments --depth 3
+azdo boards area project list myorg:Fabrikam --path Payments --depth 3
 ```
 
 ### See also

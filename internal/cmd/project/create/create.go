@@ -40,34 +40,34 @@ func NewCmd(ctx util.CmdContext) *cobra.Command {
 	o := &opts{}
 
 	cmd := &cobra.Command{
-		Use:   "create [ORGANIZATION/]PROJECT",
+		Use:   "create [ORG:]PROJECT",
 		Short: "Create a new Azure DevOps Project",
 		Long: heredoc.Doc(`
-				Create a new Azure DevOps project in the specified organization.
+			Create a new Azure DevOps project in the specified organization.
 
-				This command queues a project creation operation and polls for its completion.
-				By default, it waits for the project to be created and then displays the project details.
+			This command queues a project creation operation and polls for its completion.
+			By default, it waits for the project to be created and then displays the project details.
 
-				You can use the --no-wait flag to have the command return immediately after queuing the operation.
-				In this case, it will output the operation ID, status, and URL, which you can use to monitor the creation process.
+			You can use the --no-wait flag to have the command return immediately after queuing the operation.
+			In this case, it will output the operation ID, status, and URL, which you can use to monitor the creation process.
 
-				The --max-wait flag allows you to specify a custom timeout for the polling operation.
+			The --max-wait flag allows you to specify a custom timeout for the polling operation.
 
-				If the organization name is omitted from the project argument, the default configured organization is used.
-			`),
+			If the organization prefix is omitted from the project argument, the default configured organization is used.
+		`),
 		Example: heredoc.Doc(`
-				# Create a project in the default organization and wait for completion
-				azdo project create MyProject --description "A new project" --process "Scrum" --visibility private
+			# Create a project in the default organization and wait for completion
+			azdo project create MyProject --description "A new project" --process "Scrum" --visibility private
 
-				# Create a public project with TFVC source control in a specific organization
-				azdo project create MyOrg/MyPublicProject --description "Public project" --source-control tfvc --visibility public
+			# Create a public project with TFVC source control in a specific organization
+			azdo project create MyOrg:MyPublicProject --description "Public project" --source-control tfvc --visibility public
 
-				# Create a project and return immediately without waiting for completion
-				azdo project create MyOrg/MyAsyncProject --no-wait
+			# Create a project and return immediately without waiting for completion
+			azdo project create MyOrg:MyAsyncProject --no-wait
 
-				# Create a project and wait for a maximum of 5 minutes for completion
-				azdo project create MyOrg/MyTimedProject --max-wait 300
-			`),
+			# Create a project and wait for a maximum of 5 minutes for completion
+			azdo project create MyOrg:MyTimedProject --max-wait 300
+		`),
 		Args: cobra.ExactArgs(1),
 		Aliases: []string{
 			"cr",

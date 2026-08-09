@@ -39,14 +39,14 @@ func NewCmd(ctx util.CmdContext) *cobra.Command {
 	}
 
 	cmd := &cobra.Command{
-		Use:   "list [ORGANIZATION/]PROJECT[/PATH]",
+		Use:   "list [ORG:]PROJECT[/PATH]",
 		Short: "List iteration hierarchy for a project.",
 		Long: heredoc.Doc(`
 			List the iteration (sprint) hierarchy for a project within an Azure DevOps organization.
 		`),
 		Example: heredoc.Doc(`
 			# List the top-level iterations (depth 3)
-			azdo boards iteration project list myorg/myproject
+			azdo boards iteration project list myorg:myproject
 
 			# List from a specific path
 			azdo boards iteration project list myproject/Release\ 2025/Sprint\ 1

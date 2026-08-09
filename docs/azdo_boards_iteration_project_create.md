@@ -3,7 +3,7 @@
 Create an iteration (sprint) in a project.
 
 ```
-azdo boards iteration project create [ORGANIZATION/]PROJECT[/PATH]/NAME [flags]
+azdo boards iteration project create [ORG:]PROJECT[/PATH]/NAME [flags]
 ```
 
 ### Options
@@ -54,7 +54,7 @@ azdo boards iteration project create Fabrikam/Sprint\ 2 \
 	--start-date 2025-01-06 --finish-date 2025-01-19
 
 # Create a nested iteration under an existing release
-azdo boards iteration project create myorg/Fabrikam/Release\ 2025/Sprint\ 2
+azdo boards iteration project create myorg:Fabrikam/Release\ 2025/Sprint\ 2
 
 # Set a custom attribute alongside the dates
 azdo boards iteration project create Fabrikam/Sprint\ 1 \

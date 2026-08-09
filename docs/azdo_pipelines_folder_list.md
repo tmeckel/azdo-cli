@@ -1,7 +1,7 @@
 ## Command `azdo pipelines folder list`
 
 ```
-azdo pipelines folder list [ORGANIZATION/]PROJECT [flags]
+azdo pipelines folder list [ORG:]PROJECT [flags]
 ```
 
 List build definition folders in PROJECT.
@@ -45,7 +45,7 @@ a sub-folder. Use --query-order to sort by path ascending or descending.
 
 ### JSON Fields
 
-`description`, `path`
+`createdBy`, `createdOn`, `description`, `lastChangedBy`, `lastChangedDate`, `path`, `project`
 
 ### Examples
 
@@ -57,7 +57,7 @@ azdo pipelines folder list Fabrikam
 azdo pipelines folder list Fabrikam --path /Shared
 
 # List folders sorted descending by path
-azdo pipelines folder list myorg/Fabrikam --query-order desc
+azdo pipelines folder list myorg:Fabrikam --query-order desc
 
 # Output as JSON
 azdo pipelines folder list Fabrikam --json

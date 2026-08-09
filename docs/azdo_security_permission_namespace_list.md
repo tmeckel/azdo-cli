@@ -1,7 +1,7 @@
 ## Command `azdo security permission namespace list`
 
 ```
-azdo security permission namespace list [ORGANIZATION] [flags]
+azdo security permission namespace list [ORG] [flags]
 ```
 
 List all security permission namespaces available in an Azure DevOps organization.

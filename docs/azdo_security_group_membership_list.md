@@ -3,7 +3,7 @@
 List the members of an Azure DevOps security group.
 
 ```
-azdo security group membership list [ORGANIZATION/]GROUP | [ORGANIZATION/]PROJECT/GROUP [flags]
+azdo security group membership list [ORG:][PROJECT/]GROUP [flags]
 ```
 
 ### Options

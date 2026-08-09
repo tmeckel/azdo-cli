@@ -65,7 +65,7 @@ func TestUpdateVariable_ValueAndFlags_JSON(t *testing.T) {
 	)
 
 	cmd := updatecmd.NewCmd(cmdCtx)
-	cmd.SetArgs([]string{"org/project/123", "--name", "foo", "--value", "new", "--read-only", "--json"})
+	cmd.SetArgs([]string{"org:project/123", "--name", "foo", "--value", "new", "--read-only", "--json"})
 
 	_, err := cmd.ExecuteC()
 	require.NoError(t, err)
@@ -117,7 +117,7 @@ func TestUpdateVariable_SecretPrompt_RedactsJSON(t *testing.T) {
 	)
 
 	cmd := updatecmd.NewCmd(cmdCtx)
-	cmd.SetArgs([]string{"org/project/123", "--name", "secret", "--prompt-value", "--json"})
+	cmd.SetArgs([]string{"org:project/123", "--name", "secret", "--prompt-value", "--json"})
 
 	_, err := cmd.ExecuteC()
 	require.NoError(t, err)
@@ -172,7 +172,7 @@ func TestUpdateVariable_ClearValue_YesSkipsPrompt(t *testing.T) {
 	)
 
 	cmd := updatecmd.NewCmd(cmdCtx)
-	cmd.SetArgs([]string{"org/project/123", "--name", "foo", "--clear-value", "--yes"})
+	cmd.SetArgs([]string{"org:project/123", "--name", "foo", "--clear-value", "--yes"})
 
 	_, err := cmd.ExecuteC()
 	require.NoError(t, err)
@@ -197,7 +197,7 @@ func TestUpdateVariable_FromJSON_MutualExclusivity(t *testing.T) {
 	)
 
 	cmd := updatecmd.NewCmd(cmdCtx)
-	cmd.SetArgs([]string{"org/project/123", "--name", "foo", "--from-json", `{"value":"v"}`, "--value", "x"})
+	cmd.SetArgs([]string{"org:project/123", "--name", "foo", "--from-json", `{"value":"v"}`, "--value", "x"})
 
 	_, err := cmd.ExecuteC()
 	require.Error(t, err)
@@ -222,7 +222,7 @@ func TestUpdateVariable_NoChangesProvided(t *testing.T) {
 	)
 
 	cmd := updatecmd.NewCmd(cmdCtx)
-	cmd.SetArgs([]string{"org/project/123", "--name", "foo"})
+	cmd.SetArgs([]string{"org:project/123", "--name", "foo"})
 
 	_, err := cmd.ExecuteC()
 	require.Error(t, err)
@@ -258,7 +258,7 @@ func TestUpdateVariable_RenameCollision(t *testing.T) {
 	taskClient.EXPECT().UpdateVariableGroup(gomock.Any(), gomock.Any()).Times(0)
 
 	cmd := updatecmd.NewCmd(cmdCtx)
-	cmd.SetArgs([]string{"org/project/123", "--name", "foo", "--new-name", "bar"})
+	cmd.SetArgs([]string{"org:project/123", "--name", "foo", "--new-name", "bar"})
 
 	_, err := cmd.ExecuteC()
 	require.Error(t, err)
@@ -295,7 +295,7 @@ func TestUpdateVariable_ClearSecretValueFails(t *testing.T) {
 	)
 
 	cmd := updatecmd.NewCmd(cmdCtx)
-	cmd.SetArgs([]string{"org/project/123", "--name", "secret", "--clear-value"})
+	cmd.SetArgs([]string{"org:project/123", "--name", "secret", "--clear-value"})
 
 	_, err := cmd.ExecuteC()
 	require.Error(t, err)
@@ -327,7 +327,7 @@ func TestUpdateVariable_KeyVaultRejectsValueChange(t *testing.T) {
 	taskClient.EXPECT().UpdateVariableGroup(gomock.Any(), gomock.Any()).Times(0)
 
 	cmd := updatecmd.NewCmd(cmdCtx)
-	cmd.SetArgs([]string{"org/project/123", "--name", "foo", "--value", "new"})
+	cmd.SetArgs([]string{"org:project/123", "--name", "foo", "--value", "new"})
 
 	_, err := cmd.ExecuteC()
 	require.Error(t, err)
@@ -360,7 +360,7 @@ func TestUpdateVariable_FromJSON_SecretTrueWithoutValue(t *testing.T) {
 	taskClient.EXPECT().UpdateVariableGroup(gomock.Any(), gomock.Any()).Times(0)
 
 	cmd := updatecmd.NewCmd(cmdCtx)
-	cmd.SetArgs([]string{"org/project/123", "--name", "foo", "--from-json", `{"secret":true}`})
+	cmd.SetArgs([]string{"org:project/123", "--name", "foo", "--from-json", `{"secret":true}`})
 
 	_, err := cmd.ExecuteC()
 	require.Error(t, err)
@@ -393,7 +393,7 @@ func TestUpdateVariable_PromptValue_DisabledPrompt(t *testing.T) {
 	taskClient.EXPECT().UpdateVariableGroup(gomock.Any(), gomock.Any()).Times(0)
 
 	cmd := updatecmd.NewCmd(cmdCtx)
-	cmd.SetArgs([]string{"org/project/123", "--name", "secret", "--prompt-value"})
+	cmd.SetArgs([]string{"org:project/123", "--name", "secret", "--prompt-value"})
 
 	_, err := cmd.ExecuteC()
 	require.Error(t, err)
@@ -424,7 +424,7 @@ func TestUpdateVariable_FromJSON_InvalidPayload(t *testing.T) {
 	)
 
 	cmd := updatecmd.NewCmd(cmdCtx)
-	cmd.SetArgs([]string{"org/project/123", "--name", "foo", "--from-json", `not-json`})
+	cmd.SetArgs([]string{"org:project/123", "--name", "foo", "--from-json", `not-json`})
 
 	_, err := cmd.ExecuteC()
 	require.Error(t, err)
@@ -466,7 +466,7 @@ func TestUpdateVariable_SecretValueFlag_RedactsJSON(t *testing.T) {
 	)
 
 	cmd := updatecmd.NewCmd(cmdCtx)
-	cmd.SetArgs([]string{"org/project/123", "--name", "secret", "--value", "rotated", "--secret", "--json"})
+	cmd.SetArgs([]string{"org:project/123", "--name", "secret", "--value", "rotated", "--secret", "--json"})
 
 	_, err := cmd.ExecuteC()
 	require.NoError(t, err)
@@ -503,7 +503,7 @@ func TestUpdateVariable_ClearValue_PromptCancel(t *testing.T) {
 	taskClient.EXPECT().UpdateVariableGroup(gomock.Any(), gomock.Any()).Times(0)
 
 	cmd := updatecmd.NewCmd(cmdCtx)
-	cmd.SetArgs([]string{"org/project/123", "--name", "foo", "--clear-value"})
+	cmd.SetArgs([]string{"org:project/123", "--name", "foo", "--clear-value"})
 
 	_, err := cmd.ExecuteC()
 	require.ErrorIs(t, err, util.ErrCancel)
@@ -534,7 +534,7 @@ func TestUpdateVariable_VariableNotFound(t *testing.T) {
 	taskClient.EXPECT().UpdateVariableGroup(gomock.Any(), gomock.Any()).Times(0)
 
 	cmd := updatecmd.NewCmd(cmdCtx)
-	cmd.SetArgs([]string{"org/project/123", "--name", "foo", "--value", "v"})
+	cmd.SetArgs([]string{"org:project/123", "--name", "foo", "--value", "v"})
 
 	_, err := cmd.ExecuteC()
 	require.Error(t, err)
@@ -565,7 +565,7 @@ func TestUpdateVariable_FromJSON_DisallowedNameKey(t *testing.T) {
 	taskClient.EXPECT().UpdateVariableGroup(gomock.Any(), gomock.Any()).Times(0)
 
 	cmd := updatecmd.NewCmd(cmdCtx)
-	cmd.SetArgs([]string{"org/project/123", "--name", "foo", "--from-json", `{"name":"bar","value":"v"}`})
+	cmd.SetArgs([]string{"org:project/123", "--name", "foo", "--from-json", `{"name":"bar","value":"v"}`})
 
 	_, err := cmd.ExecuteC()
 	require.Error(t, err)

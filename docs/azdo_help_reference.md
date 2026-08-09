@@ -63,7 +63,7 @@ Aliases
 prj, p
 ```
 
-##### `azdo boards area project list [ORGANIZATION/]PROJECT [flags]`
+##### `azdo boards area project list [ORG:]PROJECT [flags]`
 
 List area paths defined for a project.
 
@@ -91,7 +91,7 @@ Aliases
 t
 ```
 
-##### `azdo boards area team list [ORGANIZATION/]PROJECT/TEAM [flags]`
+##### `azdo boards area team list [ORG:]PROJECT/TEAM [flags]`
 
 List area paths assigned to a team.
 
@@ -127,7 +127,7 @@ Aliases
 prj, p
 ```
 
-##### `azdo boards iteration project create [ORGANIZATION/]PROJECT[/PATH]/NAME [flags]`
+##### `azdo boards iteration project create [ORG:]PROJECT[/PATH]/NAME [flags]`
 
 Create an iteration (sprint) in a project.
 
@@ -146,7 +146,7 @@ Aliases
 c, cr
 ```
 
-##### `azdo boards iteration project delete [ORGANIZATION/]PROJECT[/PATH]/NAME [flags]`
+##### `azdo boards iteration project delete [ORG:]PROJECT[/PATH]/NAME [flags]`
 
 Delete an iteration from a project.
 
@@ -164,7 +164,7 @@ Aliases
 d, del, rm
 ```
 
-##### `azdo boards iteration project list [ORGANIZATION/]PROJECT[/PATH] [flags]`
+##### `azdo boards iteration project list [ORG:]PROJECT[/PATH] [flags]`
 
 List iteration hierarchy for a project.
 
@@ -184,7 +184,7 @@ Aliases
 ls, l
 ```
 
-##### `azdo boards iteration project show [ORGANIZATION/]PROJECT[/PATH]/NAME [flags]`
+##### `azdo boards iteration project show [ORG:]PROJECT[/PATH]/NAME [flags]`
 
 Show an iteration in a project.
 
@@ -203,7 +203,7 @@ Aliases
 view, status
 ```
 
-##### `azdo boards iteration project update [ORGANIZATION/]PROJECT[/PATH]/NAME [flags]`
+##### `azdo boards iteration project update [ORG:]PROJECT[/PATH]/NAME [flags]`
 
 Update an iteration in a project.
 
@@ -226,7 +226,7 @@ u, up
 
 Work with Azure Boards work items.
 
-#### `azdo boards work-item list [ORGANIZATION/]PROJECT [flags]`
+#### `azdo boards work-item list [ORG:]PROJECT [flags]`
 
 List work items belonging to a project.
 
@@ -305,7 +305,7 @@ Manage Azure DevOps Graph resources (users, groups)
 
 Manage users in Azure DevOps
 
-#### `azdo graph user list [project] [flags]`
+#### `azdo graph user list [PROJECT] [flags]`
 
 List users and groups in Azure DevOps
 
@@ -345,7 +345,7 @@ Aliases
 agents, a
 ```
 
-#### `azdo pipelines agent show [ORGANIZATION/]POOL/AGENT [flags]`
+#### `azdo pipelines agent show [ORG:]/POOL/AGENT [flags]`
 
 Show details of a pipeline agent
 
@@ -367,7 +367,7 @@ view, status
 
 Manage classic builds
 
-#### `azdo pipelines build list [ORGANIZATION/]PROJECT [flags]`
+#### `azdo pipelines build list [ORG:]PROJECT [flags]`
 
 List classic build results in a project.
 
@@ -393,7 +393,7 @@ Aliases
 ls, l
 ```
 
-### `azdo pipelines delete [ORGANIZATION/]PROJECT/PIPELINE [flags]`
+### `azdo pipelines delete [ORG:]PROJECT/PIPELINE [flags]`
 
 Delete a pipeline definition
 
@@ -417,7 +417,7 @@ Aliases
 folders
 ```
 
-#### `azdo pipelines folder list [ORGANIZATION/]PROJECT [flags]`
+#### `azdo pipelines folder list [ORG:]PROJECT [flags]`
 
 List folders.
 
@@ -436,7 +436,7 @@ Aliases
 ls, l
 ```
 
-### `azdo pipelines list [ORGANIZATION/]PROJECT [flags]`
+### `azdo pipelines list [ORG:]PROJECT [flags]`
 
 List pipeline definitions
 
@@ -469,7 +469,7 @@ Aliases
 pools
 ```
 
-#### `azdo pipelines pool list [ORGANIZATION] [flags]`
+#### `azdo pipelines pool list [ORG] [flags]`
 
 List agent pools
 
@@ -488,7 +488,7 @@ Aliases
 ls, l
 ```
 
-#### `azdo pipelines pool show [ORGANIZATION/]POOL [flags]`
+#### `azdo pipelines pool show [ORG:]/POOL [flags]`
 
 Show details of an agent pool
 
@@ -509,7 +509,7 @@ view, status
 
 Manage Azure DevOps agent queues
 
-#### `azdo pipelines queue list [ORGANIZATION/]PROJECT [flags]`
+#### `azdo pipelines queue list [ORG:]PROJECT [flags]`
 
 List agent queues
 
@@ -528,7 +528,7 @@ Aliases
 ls, l
 ```
 
-#### `azdo pipelines queue show [ORGANIZATION/]PROJECT/QUEUE [flags]`
+#### `azdo pipelines queue show [ORG:]PROJECT/QUEUE [flags]`
 
 Show details of an agent queue
 
@@ -544,7 +544,7 @@ Aliases
 view, status
 ```
 
-### `azdo pipelines run [ORGANIZATION/]PROJECT/PIPELINE [flags]`
+### `azdo pipelines run [ORG:]PROJECT/PIPELINE [flags]`
 
 Queue a pipeline run
 
@@ -562,7 +562,7 @@ Queue a pipeline run
 
 Manage pipeline runs
 
-#### `azdo pipelines runs list [ORGANIZATION/]PROJECT [flags]`
+#### `azdo pipelines runs list [ORG:]PROJECT [flags]`
 
 List runs of pipelines in a project.
 
@@ -588,7 +588,7 @@ Aliases
 l, ls
 ```
 
-#### `azdo pipelines runs show [ORGANIZATION/]PROJECT RUN_ID [flags]`
+#### `azdo pipelines runs show [ORG:]PROJECT RUN_ID [flags]`
 
 Show details of a pipeline run
 
@@ -604,7 +604,7 @@ Aliases
 view, status
 ```
 
-### `azdo pipelines show [ORGANIZATION/]PROJECT/PIPELINE [flags]`
+### `azdo pipelines show [ORG:]PROJECT/PIPELINE [flags]`
 
 Show details of a pipeline definition
 
@@ -630,7 +630,7 @@ Aliases
 variablegroup, variable-groups, variablegroups, vg
 ```
 
-#### `azdo pipelines variable-group create [ORGANIZATION/]PROJECT/NAME [flags]`
+#### `azdo pipelines variable-group create [ORG:]PROJECT/NAME [flags]`
 
 Create a variable group
 
@@ -650,7 +650,7 @@ Create a variable group
 -v, --variable strings                   Seed non-secret variables using key=value[;readOnly=true|false]
 ```
 
-#### `azdo pipelines variable-group delete [ORGANIZATION/]PROJECT/GROUP [flags]`
+#### `azdo pipelines variable-group delete [ORG:]PROJECT/GROUP [flags]`
 
 Delete a variable group from a project
 
@@ -669,7 +669,7 @@ Aliases
 rm, del, d
 ```
 
-#### `azdo pipelines variable-group list [ORGANIZATION/]PROJECT [flags]`
+#### `azdo pipelines variable-group list [ORG:]PROJECT [flags]`
 
 List variable groups
 
@@ -689,7 +689,7 @@ Aliases
 ls, l
 ```
 
-#### `azdo pipelines variable-group show [ORGANIZATION/]PROJECT/VARIABLE_GROUP_ID_OR_NAME [flags]`
+#### `azdo pipelines variable-group show [ORG:]PROJECT/VARIABLE_GROUP_ID_OR_NAME [flags]`
 
 Show variable group details
 
@@ -702,7 +702,7 @@ Show variable group details
 -t, --template string              Format JSON output using a Go template; see "azdo help formatting"
 ```
 
-#### `azdo pipelines variable-group update [ORGANIZATION/]PROJECT/VARIABLE_GROUP_ID_OR_NAME [flags]`
+#### `azdo pipelines variable-group update [ORG:]PROJECT/VARIABLE_GROUP_ID_OR_NAME [flags]`
 
 Update variable group metadata and permissions
 
@@ -730,7 +730,7 @@ Aliases
 var
 ```
 
-##### `azdo pipelines variable-group variable create [ORGANIZATION/]PROJECT/VARIABLE_GROUP_ID_OR_NAME --name VARIABLE_NAME [flags]`
+##### `azdo pipelines variable-group variable create [ORG:]PROJECT/VARIABLE_GROUP_ID_OR_NAME --name VARIABLE_NAME [flags]`
 
 Create a variable in a variable group
 
@@ -745,7 +745,7 @@ Create a variable in a variable group
     --value string      Literal value for the variable
 ```
 
-##### `azdo pipelines variable-group variable delete [ORGANIZATION/]PROJECT/VARIABLE_GROUP_ID_OR_NAME --name VARIABLE_NAME [flags]`
+##### `azdo pipelines variable-group variable delete [ORG:]PROJECT/VARIABLE_GROUP_ID_OR_NAME --name VARIABLE_NAME [flags]`
 
 Delete a variable from a variable group
 
@@ -754,7 +754,7 @@ Delete a variable from a variable group
 --yes           Skip the confirmation prompt
 ```
 
-##### `azdo pipelines variable-group variable list [ORGANIZATION/]PROJECT/VARIABLEGROUP [flags]`
+##### `azdo pipelines variable-group variable list [ORG:]PROJECT/VARIABLEGROUP [flags]`
 
 List variables in a variable group
 
@@ -764,7 +764,7 @@ List variables in a variable group
 -t, --template string   Format JSON output using a Go template; see "azdo help formatting"
 ```
 
-##### `azdo pipelines variable-group variable update [ORGANIZATION/]PROJECT/VARIABLE_GROUP_ID_OR_NAME --name VARIABLE_NAME [flags]`
+##### `azdo pipelines variable-group variable update [ORG:]PROJECT/VARIABLE_GROUP_ID_OR_NAME --name VARIABLE_NAME [flags]`
 
 Update a variable in a variable group
 
@@ -872,7 +872,7 @@ Edit a pull request
 -t, --title string                    Set the new title.
 ```
 
-### `azdo pr list [[organization/]project/repository] [flags]`
+### `azdo pr list [[ORG:]PROJECT/REPOSITORY] [flags]`
 
 List pull requests in a repository or a project
 
@@ -955,7 +955,7 @@ Aliases
 p
 ```
 
-### `azdo project create [ORGANIZATION/]PROJECT [flags]`
+### `azdo project create [ORG:]PROJECT [flags]`
 
 Create a new Azure DevOps Project
 
@@ -977,7 +977,7 @@ Aliases
 cr, c, new, n, add, a
 ```
 
-### `azdo project delete [ORGANIZATION/]PROJECT [flags]`
+### `azdo project delete [ORG:]PROJECT [flags]`
 
 Delete a project
 
@@ -996,7 +996,7 @@ Aliases
 d
 ```
 
-### `azdo project list [organization] [flags]`
+### `azdo project list [ORG] [flags]`
 
 List the projects for an organization
 
@@ -1012,7 +1012,7 @@ Aliases
 ls, l
 ```
 
-### `azdo project show [ORGANIZATION/]PROJECT [flags]`
+### `azdo project show [ORG:]PROJECT [flags]`
 
 Show details of an Azure DevOps Project
 
@@ -1038,7 +1038,7 @@ Aliases
 r
 ```
 
-### `azdo repo clone [organization/]project/repository [<directory>] [-- <gitflags>...]`
+### `azdo repo clone [ORG:]PROJECT/REPOSITORY [<directory>] [-- <gitflags>...]`
 
 Clone a repository locally
 
@@ -1054,14 +1054,14 @@ Aliases
 c
 ```
 
-### `azdo repo create [ORGANIZATION/]<PROJECT>/<NAME> [flags]`
+### `azdo repo create [ORG:]<PROJECT>/<NAME> [flags]`
 
 Create a new repository in a project
 
 ```
 -q, --jq expression          Filter JSON output using a jq expression
     --json fields[=*]        Output JSON with the specified fields. Prefix a field with '-' to exclude it.
-    --parent string          [PROJECT/]REPO to fork from (same organization)
+    --parent string          [ORG:]PROJECT/REPO to fork from (same organization)
     --source-branch string   Only fork the specified branch (defaults to all branches)
 -t, --template string        Format JSON output using a Go template; see "azdo help formatting"
 ```
@@ -1072,7 +1072,7 @@ Aliases
 cr
 ```
 
-### `azdo repo delete [organization/]project/repository [flags]`
+### `azdo repo delete [ORG:]PROJECT/REPOSITORY [flags]`
 
 Delete a Git repository in a team project
 
@@ -1086,7 +1086,7 @@ Aliases
 d
 ```
 
-### `azdo repo edit [organization/]project/repository [flags]`
+### `azdo repo edit [ORG:]PROJECT/REPOSITORY [flags]`
 
 Edit or update an existing Git repository in a team project
 
@@ -1106,7 +1106,7 @@ Aliases
 e, update
 ```
 
-### `azdo repo list [organization/]<project> [flags]`
+### `azdo repo list [ORG:]PROJECT [flags]`
 
 List repositories of a project inside an organization
 
@@ -1123,7 +1123,7 @@ Aliases
 ls, l
 ```
 
-### `azdo repo restore [organization/]project/repository`
+### `azdo repo restore [ORG:]PROJECT/REPOSITORY`
 
 Restore a deleted repository
 
@@ -1142,7 +1142,7 @@ Configure default repository for this directory
 -v, --view    view the current default repository
 ```
 
-### `azdo repo show [ORGANIZATION/]PROJECT/REPO_ID_OR_NAME [flags]`
+### `azdo repo show [ORG:]PROJECT/REPO_ID_OR_NAME [flags]`
 
 Show repository details
 
@@ -1178,7 +1178,7 @@ Aliases
 g, grp
 ```
 
-#### `azdo security group create [ORGANIZATION|ORGANIZATION/PROJECT] [flags]`
+#### `azdo security group create [ORG:][PROJECT] [flags]`
 
 Create a security group
 
@@ -1199,7 +1199,7 @@ Aliases
 add, new, c
 ```
 
-#### `azdo security group delete [ORGANIZATION/GROUP | ORGANIZATION/PROJECT/GROUP] [flags]`
+#### `azdo security group delete ORG:[PROJECT/]GROUP [flags]`
 
 Delete an Azure DevOps security group
 
@@ -1214,7 +1214,7 @@ Aliases
 d, del, rm
 ```
 
-#### `azdo security group list [ORGANIZATION[/PROJECT]] [flags]`
+#### `azdo security group list [ORG:][PROJECT] [flags]`
 
 List security groups
 
@@ -1242,7 +1242,7 @@ Aliases
 m
 ```
 
-##### `azdo security group membership add [ORGANIZATION/]GROUP | [ORGANIZATION/]PROJECT/GROUP [flags]`
+##### `azdo security group membership add [ORG:][PROJECT/]GROUP [flags]`
 
 Add a member to an Azure DevOps security group.
 
@@ -1259,7 +1259,7 @@ Aliases
 a, create, cr
 ```
 
-##### `azdo security group membership list [ORGANIZATION/]GROUP | [ORGANIZATION/]PROJECT/GROUP [flags]`
+##### `azdo security group membership list [ORG:][PROJECT/]GROUP [flags]`
 
 List the members of an Azure DevOps security group.
 
@@ -1276,7 +1276,7 @@ Aliases
 ls, l
 ```
 
-##### `azdo security group membership remove [ORGANIZATION/]GROUP | [ORGANIZATION/]PROJECT/GROUP [flags]`
+##### `azdo security group membership remove [ORG:][PROJECT/]GROUP [flags]`
 
 Remove a member from an Azure DevOps security group.
 
@@ -1294,7 +1294,7 @@ Aliases
 d, r, rm, delete, del
 ```
 
-#### `azdo security group show ORGANIZATION/GROUP | ORGANIZATION/PROJECT/GROUP [flags]`
+#### `azdo security group show ORG:[PROJECT/]GROUP [flags]`
 
 Show details of an Azure DevOps security group
 
@@ -1310,7 +1310,7 @@ Aliases
 s
 ```
 
-#### `azdo security group update ORGANIZATION/GROUP | ORGANIZATION/PROJECT/GROUP [flags]`
+#### `azdo security group update ORG:[PROJECT/]GROUP [flags]`
 
 Update an Azure DevOps security group
 
@@ -1339,7 +1339,7 @@ Aliases
 p, perm, permissions
 ```
 
-#### `azdo security permission delete <TARGET> [flags]`
+#### `azdo security permission delete [ORG:][/]SUBJECT | [ORG:]PROJECT/SUBJECT [flags]`
 
 Delete permissions for a user or group.
 
@@ -1355,7 +1355,7 @@ Aliases
 d, del, rm
 ```
 
-#### `azdo security permission list [TARGET] [flags]`
+#### `azdo security permission list [ORG:][/]SUBJECT | [ORG:]PROJECT/SUBJECT [flags]`
 
 List security ACEs for a namespace, optionally filtered by subject.
 
@@ -1384,7 +1384,7 @@ Aliases
 n, ns
 ```
 
-##### `azdo security permission namespace list [ORGANIZATION] [flags]`
+##### `azdo security permission namespace list [ORG] [flags]`
 
 List security permission namespaces.
 
@@ -1401,7 +1401,7 @@ Aliases
 ls, l
 ```
 
-##### `azdo security permission namespace show [ORGANIZATION/]NAMESPACE [flags]`
+##### `azdo security permission namespace show [ORG:]/NAMESPACE [flags]`
 
 Show details for a security permission namespace.
 
@@ -1417,7 +1417,7 @@ Aliases
 s
 ```
 
-#### `azdo security permission reset <TARGET> [flags]`
+#### `azdo security permission reset [ORG:][/]SUBJECT | [ORG:]PROJECT/SUBJECT [flags]`
 
 Reset explicit permission bits for a user or group.
 
@@ -1437,7 +1437,7 @@ Aliases
 r
 ```
 
-#### `azdo security permission show <TARGET> [flags]`
+#### `azdo security permission show [ORG:][/]SUBJECT | [ORG:]PROJECT/SUBJECT [flags]`
 
 Show permissions for a user or group.
 
@@ -1455,7 +1455,7 @@ Aliases
 s
 ```
 
-#### `azdo security permission update <TARGET> [flags]`
+#### `azdo security permission update [ORG:][/]SUBJECT | [ORG:]PROJECT/SUBJECT [flags]`
 
 Update or create permissions for a user or group.
 
@@ -1484,7 +1484,7 @@ Aliases
 service-endpoints, serviceendpoints, se
 ```
 
-### `azdo service-endpoint create [ORGANIZATION/]PROJECT --from-file <path> [flags]`
+### `azdo service-endpoint create [ORG:]PROJECT --from-file <path> [flags]`
 
 Create service connections
 
@@ -1502,7 +1502,7 @@ Aliases
 import
 ```
 
-#### `azdo service-endpoint create azurerm [ORGANIZATION/]PROJECT --name <name> --authentication-scheme <scheme> [flags]`
+#### `azdo service-endpoint create azurerm [ORG:]PROJECT --name <name> --authentication-scheme <scheme> [flags]`
 
 Create an Azure Resource Manager service connection
 
@@ -1537,7 +1537,7 @@ Aliases
 cr, c, new, n, add, a
 ```
 
-#### `azdo service-endpoint create github [ORGANIZATION/]PROJECT --name NAME [--url URL] [--token TOKEN] [flags]`
+#### `azdo service-endpoint create github [ORG:]PROJECT --name NAME [--url URL] [--token TOKEN] [flags]`
 
 Create a GitHub service endpoint
 
@@ -1557,12 +1557,12 @@ Create a GitHub service endpoint
     --wait                                Wait until the endpoint reports ready/failed
 ```
 
-### `azdo service-endpoint delete [ORGANIZATION/]PROJECT/ID_OR_NAME [flags]`
+### `azdo service-endpoint delete [ORG:]PROJECT/ID_OR_NAME [flags]`
 
 Delete a service endpoint from a project.
 
 ```
-    --additional-project stringArray   Additional project scope [ORGANIZATION/]PROJECT when the endpoint is shared. (Repeatable, comma-separated)
+    --additional-project stringArray   Additional project scope [ORG:]PROJECT when the endpoint is shared. (Repeatable, comma-separated)
     --deep                             Also delete the backing Azure AD application for supported endpoints.
 -y, --yes                              Skip the confirmation prompt.
 ```
@@ -1573,7 +1573,7 @@ Aliases
 rm, del, d
 ```
 
-### `azdo service-endpoint export [ORGANIZATION/]PROJECT/ID_OR_NAME [flags]`
+### `azdo service-endpoint export [ORG:]PROJECT/ID_OR_NAME [flags]`
 
 Export a service endpoint definition as JSON.
 
@@ -1588,7 +1588,7 @@ Aliases
 e, ex
 ```
 
-### `azdo service-endpoint list [ORGANIZATION/]PROJECT [flags]`
+### `azdo service-endpoint list [ORG:]PROJECT [flags]`
 
 List service endpoints in a project.
 
@@ -1613,7 +1613,7 @@ Aliases
 ls, l
 ```
 
-### `azdo service-endpoint show [ORGANIZATION/]PROJECT/ID_OR_NAME [flags]`
+### `azdo service-endpoint show [ORG:]PROJECT/ID_OR_NAME [flags]`
 
 Show details of a service endpoint.
 
@@ -1623,7 +1623,7 @@ Show details of a service endpoint.
 -t, --template string   Format JSON output using a Go template; see "azdo help formatting"
 ```
 
-### `azdo service-endpoint update [ORGANIZATION/]PROJECT/ID_OR_NAME [flags]`
+### `azdo service-endpoint update [ORG:]PROJECT/ID_OR_NAME [flags]`
 
 Update a service endpoint.
 
@@ -1649,7 +1649,7 @@ Aliases
 t
 ```
 
-### `azdo team create [ORGANIZATION/]PROJECT [flags]`
+### `azdo team create [ORG:]PROJECT [flags]`
 
 Create a new team in a project.
 
@@ -1667,7 +1667,7 @@ Aliases
 c, cr, new, n, add, a
 ```
 
-### `azdo team delete [ORGANIZATION/]PROJECT/TEAM [flags]`
+### `azdo team delete [ORG:]PROJECT/TEAM [flags]`
 
 Delete a team.
 
@@ -1684,7 +1684,7 @@ Aliases
 d, del, rm
 ```
 
-### `azdo team list [ORGANIZATION/]PROJECT [flags]`
+### `azdo team list [ORG:]PROJECT [flags]`
 
 List teams in a project.
 
@@ -1708,7 +1708,7 @@ ls, l
 
 Manage members of a team.
 
-#### `azdo team member add [ORGANIZATION/]PROJECT/TEAM [flags]`
+#### `azdo team member add [ORG:]PROJECT/TEAM [flags]`
 
 Add one or more members to a team.
 
@@ -1725,7 +1725,7 @@ Aliases
 a
 ```
 
-#### `azdo team member list [ORGANIZATION/]PROJECT/TEAM [flags]`
+#### `azdo team member list [ORG:]PROJECT/TEAM [flags]`
 
 List members of a team.
 
@@ -1744,7 +1744,7 @@ Aliases
 members, ls, l
 ```
 
-#### `azdo team member remove [ORGANIZATION/]PROJECT/TEAM [flags]`
+#### `azdo team member remove [ORG:]PROJECT/TEAM [flags]`
 
 Remove one or more members from a team.
 
@@ -1762,7 +1762,7 @@ Aliases
 r, rm, del, d
 ```
 
-### `azdo team show [ORGANIZATION/]PROJECT/TEAM [flags]`
+### `azdo team show [ORG:]PROJECT/TEAM [flags]`
 
 Show details of a team.
 
@@ -1778,7 +1778,7 @@ Aliases
 s
 ```
 
-### `azdo team update [ORGANIZATION/]PROJECT/TEAM [flags]`
+### `azdo team update [ORG:]PROJECT/TEAM [flags]`
 
 Update a team's name and/or description.
 

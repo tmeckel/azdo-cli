@@ -118,7 +118,7 @@ func sampleBuild(t *testing.T) *build.Build {
 func TestNewCmd_RegistersAsRunLeaf(t *testing.T) {
 	t.Parallel()
 	cmd := NewCmd(nil)
-	assert.Equal(t, "run [ORGANIZATION/]PROJECT/PIPELINE", cmd.Use)
+	assert.Equal(t, "run [ORG:]PROJECT/PIPELINE", cmd.Use)
 	require.NotNil(t, cmd.RunE)
 	assert.NotNil(t, cmd.Flags().Lookup("json"))
 	assert.NotNil(t, cmd.Flags().Lookup("branch"))
@@ -146,7 +146,7 @@ func TestRunRun_ByPositiveID(t *testing.T) {
 	expectQueueBuild(d, "Fabrikam", want, sampleBuild(t), nil)
 
 	cmd := NewCmd(d.cmd)
-	cmd.SetArgs([]string{"MyOrg/Fabrikam/42"})
+	cmd.SetArgs([]string{"MyOrg:Fabrikam/42"})
 	err := cmd.Execute()
 
 	require.NoError(t, err)
@@ -171,7 +171,7 @@ func TestRunRun_ByName(t *testing.T) {
 	expectQueueBuild(d, "Fabrikam", want, sampleBuild(t), nil)
 
 	cmd := NewCmd(d.cmd)
-	cmd.SetArgs([]string{"MyOrg/Fabrikam/MyPipeline"})
+	cmd.SetArgs([]string{"MyOrg:Fabrikam/MyPipeline"})
 	err := cmd.Execute()
 
 	require.NoError(t, err)
@@ -189,7 +189,7 @@ func TestRunRun_RespectsBranchNormalization(t *testing.T) {
 	expectQueueBuild(d, "Fabrikam", want, sampleBuild(t), nil)
 
 	cmd := NewCmd(d.cmd)
-	cmd.SetArgs([]string{"MyOrg/Fabrikam/42", "--branch", "feature"})
+	cmd.SetArgs([]string{"MyOrg:Fabrikam/42", "--branch", "feature"})
 	err := cmd.Execute()
 
 	require.NoError(t, err)
@@ -207,7 +207,7 @@ func TestRunRun_SetsCommitID(t *testing.T) {
 	expectQueueBuild(d, "Fabrikam", want, sampleBuild(t), nil)
 
 	cmd := NewCmd(d.cmd)
-	cmd.SetArgs([]string{"MyOrg/Fabrikam/42", "--commit-id", "abc123"})
+	cmd.SetArgs([]string{"MyOrg:Fabrikam/42", "--commit-id", "abc123"})
 	err := cmd.Execute()
 
 	require.NoError(t, err)
@@ -226,7 +226,7 @@ func TestRunRun_SetsVariables(t *testing.T) {
 	expectQueueBuild(d, "Fabrikam", want, sampleBuild(t), nil)
 
 	cmd := NewCmd(d.cmd)
-	cmd.SetArgs([]string{"MyOrg/Fabrikam/42", "--variable", "env=prod", "--variable", "ver=2"})
+	cmd.SetArgs([]string{"MyOrg:Fabrikam/42", "--variable", "env=prod", "--variable", "ver=2"})
 	err := cmd.Execute()
 
 	require.NoError(t, err)
@@ -253,7 +253,7 @@ func TestRunRun_RejectsNonPositiveNumericID(t *testing.T) {
 	setupBuildClient(d)
 
 	cmd := NewCmd(d.cmd)
-	cmd.SetArgs([]string{"MyOrg/Fabrikam/0"})
+	cmd.SetArgs([]string{"MyOrg:Fabrikam/0"})
 	err := cmd.Execute()
 
 	require.Error(t, err)
@@ -269,7 +269,7 @@ func TestRunRun_NameNotFound(t *testing.T) {
 	expectGetDefinitions(d, "Fabrikam", "Ghost", &build.GetDefinitionsResponseValue{}, nil)
 
 	cmd := NewCmd(d.cmd)
-	cmd.SetArgs([]string{"MyOrg/Fabrikam/Ghost"})
+	cmd.SetArgs([]string{"MyOrg:Fabrikam/Ghost"})
 	err := cmd.Execute()
 
 	require.Error(t, err)
@@ -282,7 +282,7 @@ func TestRunRun_RejectsInvalidVariable(t *testing.T) {
 	setupBuildClient(d)
 
 	cmd := NewCmd(d.cmd)
-	cmd.SetArgs([]string{"MyOrg/Fabrikam/42", "--variable", "bad"})
+	cmd.SetArgs([]string{"MyOrg:Fabrikam/42", "--variable", "bad"})
 	err := cmd.Execute()
 
 	require.Error(t, err)
@@ -298,7 +298,7 @@ func TestRunRun_PropagatesQueueError(t *testing.T) {
 	expectQueueBuild(d, "Fabrikam", want, nil, errors.New("queue error"))
 
 	cmd := NewCmd(d.cmd)
-	cmd.SetArgs([]string{"MyOrg/Fabrikam/42"})
+	cmd.SetArgs([]string{"MyOrg:Fabrikam/42"})
 	err := cmd.Execute()
 
 	require.Error(t, err)
@@ -315,7 +315,7 @@ func TestRunRun_JSONOutput(t *testing.T) {
 	expectQueueBuild(d, "Fabrikam", want, blob, nil)
 
 	cmd := NewCmd(d.cmd)
-	cmd.SetArgs([]string{"MyOrg/Fabrikam/42", "--json=id", "--json=buildNumber"})
+	cmd.SetArgs([]string{"MyOrg:Fabrikam/42", "--json=id", "--json=buildNumber"})
 	err := cmd.Execute()
 
 	require.NoError(t, err)
@@ -353,7 +353,7 @@ func TestRunRun_FolderPathByName(t *testing.T) {
 	expectQueueBuild(d, "Fabrikam", want, sampleBuild(t), nil)
 
 	cmd := NewCmd(d.cmd)
-	cmd.SetArgs([]string{"MyOrg/Fabrikam/MyPipeline", "--folder-path", `\Shared`})
+	cmd.SetArgs([]string{"MyOrg:Fabrikam/MyPipeline", "--folder-path", `\Shared`})
 	err := cmd.Execute()
 
 	require.NoError(t, err)

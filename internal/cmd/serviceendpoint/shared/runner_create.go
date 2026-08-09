@@ -28,7 +28,7 @@ func RunTypedCreate(cmd *cobra.Command, args []string, cfg EndpointTypeConfigure
 		return err
 	}
 
-	common := cmd.Context().Value("createCommonOptions").(*createCommonOptions)
+	common := cmd.Context().Value(createCommonOptionsKey{}).(*createCommonOptions)
 	ios.StartProgressIndicator()
 	defer ios.StopProgressIndicator()
 

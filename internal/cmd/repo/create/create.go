@@ -24,13 +24,13 @@ func NewCmd(ctx util.CmdContext) *cobra.Command {
 
 	cmd := &cobra.Command{
 		Short: "Create a new repository in a project",
-		Use:   "create [ORGANIZATION/]<PROJECT>/<NAME>",
+		Use:   "create [ORG:]<PROJECT>/<NAME>",
 		Example: heredoc.Doc(`
 				# create a repository in specified project (org from default config)
 				azdo repo create myproject/myrepo
 
-				# create a repository in specified org/project
-				azdo repo create myorg/myproject/myrepo
+				# create a repository in specified org:project
+				azdo repo create myorg:myproject/myrepo
 
 				# create a fork of an existing repo in another project
 				azdo repo create myproject/myfork --parent otherproject/otherrepo
@@ -40,13 +40,13 @@ func NewCmd(ctx util.CmdContext) *cobra.Command {
 			"cr",
 		},
 		RunE: func(c *cobra.Command, args []string) error {
-			// parse positional [ORG/]PROJECT/NAME
+			// parse positional [ORG:]PROJECT/NAME
 			opts.repo = args[0]
 			return runCreate(ctx, opts)
 		},
 	}
 
-	cmd.Flags().StringVar(&opts.parentRepo, "parent", "", "[PROJECT/]REPO to fork from (same organization)")
+	cmd.Flags().StringVar(&opts.parentRepo, "parent", "", "[ORG:]PROJECT/REPO to fork from (same organization)")
 	cmd.Flags().StringVar(&opts.sourceBranch, "source-branch", "", "Only fork the specified branch (defaults to all branches)")
 
 	util.AddJSONFlags(cmd, &opts.exporter, []string{"ID", "Name", "WebUrl", "SSHUrl"})

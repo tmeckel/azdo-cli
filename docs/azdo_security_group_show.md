@@ -1,12 +1,12 @@
 ## Command `azdo security group show`
 
 ```
-azdo security group show ORGANIZATION/GROUP | ORGANIZATION/PROJECT/GROUP [flags]
+azdo security group show ORG:[PROJECT/]GROUP [flags]
 ```
 
 Display the details of an Azure DevOps security group within an organization or project scope.
 
-The organization segment is required. Provide an optional project segment to narrow the search scope.
+The ORG: prefix is required. Provide an optional project segment to narrow the search scope.
 
 
 ### Options
@@ -37,13 +37,13 @@ The organization segment is required. Provide an optional project segment to nar
 
 ```bash
 # Show an organization-level security group
-azdo security group show MyOrg/Project Collection Administrators
+azdo security group show MyOrg:/Project Collection Administrators
 
 # Show a project-level security group
-azdo security group show MyOrg/MyProject/Contributors
+azdo security group show MyOrg:MyProject/Contributors
 
 # Show details as JSON
-azdo security group show MyOrg/Contributors --json
+azdo security group show MyOrg:/Contributors --json
 ```
 
 ### See also

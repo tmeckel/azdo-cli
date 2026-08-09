@@ -15,14 +15,14 @@ func NewCmdProject(ctx util.CmdContext) *cobra.Command {
 		Use:   "project <command> [flags]",
 		Short: "Work with Azure DevOps Projects.",
 		Example: heredoc.Doc(`
-			# Creatign a new project in the default organization
+			# Creating a new project in the default organization
 			$ azdo project create <project>
 
 			# Listing existing project in the default organization
 			$ azdo project list
 
 			# Delete a project in an organization
-			$ azdo project delete myorg/myproject
+			$ azdo project delete myorg:myproject
 		`),
 		Aliases: []string{
 			"p",

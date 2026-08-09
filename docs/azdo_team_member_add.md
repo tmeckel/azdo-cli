@@ -1,13 +1,13 @@
 ## Command `azdo team member add`
 
 ```
-azdo team member add [ORGANIZATION/]PROJECT/TEAM [flags]
+azdo team member add [ORG:]PROJECT/TEAM [flags]
 ```
 
 Add one or more users or groups as members of a team.
 
 The positional argument accepts the team's project and team name in the
-form [ORGANIZATION/]PROJECT/TEAM.
+form [ORG:]PROJECT/TEAM.
 
 
 ### Options
@@ -48,7 +48,7 @@ azdo team member add Fabrikam/FabrikamEngineering/MyTeam --user user@example.com
 azdo team member add Fabrikam/MyProject/MyTeam -u alice@contoso.com -u bob@contoso.com
 
 # Add a user by subject descriptor
-azdo team member add MyOrg/Fabrikam/MyTeam --user vssgp.Uy0xLTItMw==
+azdo team member add MyOrg:Fabrikam/MyTeam --user vssgp.Uy0xLTItMw==
 ```
 
 ### See also

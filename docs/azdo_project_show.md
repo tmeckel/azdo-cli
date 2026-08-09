@@ -1,12 +1,12 @@
 ## Command `azdo project show`
 
 ```
-azdo project show [ORGANIZATION/]PROJECT [flags]
+azdo project show [ORG:]PROJECT [flags]
 ```
 
 Shows details of an Azure DevOps project in the specified organization.
 
-If the organization name is omitted from the project argument, the default configured organization is used.
+If the organization prefix is omitted from the project argument, the default configured organization is used.
 
 
 ### Options
@@ -40,7 +40,7 @@ If the organization name is omitted from the project argument, the default confi
 azdo project show MyProject
 
 # Show project details in a specific organization
-azdo project show MyOrg/MyProject
+azdo project show MyOrg:MyProject
 ```
 
 ### See also

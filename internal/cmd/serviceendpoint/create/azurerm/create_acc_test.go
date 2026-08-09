@@ -109,7 +109,7 @@ func testAccCreateAzureRMServiceEndpoint(t *testing.T, sharedProj *test.SharedPr
 					if err != nil {
 						return err
 					}
-					projectArg := fmt.Sprintf("%s/%s", ctx.Org(), projectName)
+					projectArg := fmt.Sprintf("%s:%s", ctx.Org(), projectName)
 
 					var certPath string
 					if strings.TrimSpace(testOpts.certificateFileName) != "" {

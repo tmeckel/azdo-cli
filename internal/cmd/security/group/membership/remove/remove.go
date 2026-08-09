@@ -37,17 +37,18 @@ func NewCmd(ctx util.CmdContext) *cobra.Command {
 	o := &opts{}
 
 	cmd := &cobra.Command{
-		Use:   "remove [ORGANIZATION/]GROUP | [ORGANIZATION/]PROJECT/GROUP",
+		Use:   "remove [ORG:][PROJECT/]GROUP",
 		Short: "Remove a member from an Azure DevOps security group.",
 		Long: heredoc.Doc(`
 			Remove a user or group from an Azure DevOps security group.
 
-			The positional argument accepts either ORGANIZATION/GROUP or ORGANIZATION/PROJECT/GROUP.
+			The positional argument accepts [ORG:][PROJECT/]GROUP.
+			When the ORG: prefix is omitted the default organization from configuration is used.
 			Use --member to provide the member's email, descriptor, or principal name.
 		`),
 		Example: heredoc.Doc(`
 			# Remove a user by email from an organization-level group
-			azdo security group membership remove MyOrg/Project Administrators --member user@example.com
+			azdo security group membership remove /Project Administrators --member user@example.com
 		`),
 		Args: cobra.ExactArgs(1),
 		Aliases: []string{

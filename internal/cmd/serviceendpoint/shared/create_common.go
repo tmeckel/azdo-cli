@@ -9,6 +9,10 @@ import (
 	"github.com/tmeckel/azdo-cli/internal/cmd/util"
 )
 
+// createCommonOptionsKey is a typed context key used to pass createCommonOptions
+// through the command context without the string-key collision risk flagged by SA1029.
+type createCommonOptionsKey struct{}
+
 // CreateCommonOptions contains flags/args that apply to all typed create commands.
 type createCommonOptions struct {
 	Name        string
@@ -41,7 +45,7 @@ func AddCreateCommonFlags(cmd *cobra.Command) *cobra.Command {
 	if ctx == nil {
 		ctx = context.Background()
 	}
-	cmd.SetContext(context.WithValue(ctx, "createCommonOptions", &common))
+	cmd.SetContext(context.WithValue(ctx, createCommonOptionsKey{}, &common))
 
 	return cmd
 }

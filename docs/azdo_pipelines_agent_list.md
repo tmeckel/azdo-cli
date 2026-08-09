@@ -1,7 +1,7 @@
 ## Command `azdo pipelines agent list`
 
 ```
-azdo pipelines agent list [ORGANIZATION/]POOL [flags]
+azdo pipelines agent list [ORG:]/POOL [flags]
 ```
 
 List every agent in an Azure DevOps agent pool.
@@ -49,28 +49,28 @@ The pool is identified by a positional target that can be a numeric ID or a name
 
 ```bash
 # List all agents in pool 1
-$ azdo pipelines agent list 1
+$ azdo pipelines agent list /1
 
 # List agents in a named pool
-$ azdo pipelines agent list Default
+$ azdo pipelines agent list /Default
 
 # List agents in pool 1 in a specific organization
-$ azdo pipelines agent list "myorg/1"
+$ azdo pipelines agent list "myorg:/1"
 
 # List agents in a named pool in a specific organization
-$ azdo pipelines agent list "myorg/Default"
+$ azdo pipelines agent list "myorg:/Default"
 
 # List agents filtered by name
-$ azdo pipelines agent list 1 --filter "my-agent"
+$ azdo pipelines agent list /1 --filter "my-agent"
 
 # List agents filtered by name in a specific organization
-$ azdo pipelines agent list "myorg/1" --filter "my-agent"
+$ azdo pipelines agent list "myorg:/1" --filter "my-agent"
 
 # List agents with capabilities included
-$ azdo pipelines agent list 1 --include-capabilities
+$ azdo pipelines agent list /1 --include-capabilities
 
 # Output as JSON
-$ azdo pipelines agent list 1 --json
+$ azdo pipelines agent list /1 --json
 ```
 
 ### See also

@@ -1,7 +1,7 @@
 ## Command `azdo boards iteration project delete`
 
 ```
-azdo boards iteration project delete [ORGANIZATION/]PROJECT[/PATH]/NAME [flags]
+azdo boards iteration project delete [ORG:]PROJECT[/PATH]/NAME [flags]
 ```
 
 Delete an iteration (sprint) from a project. The command prompts for

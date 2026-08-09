@@ -68,7 +68,7 @@ func TestProjectShow(t *testing.T) {
 	}{
 		{
 			name: "Success case (Table Output)",
-			args: []string{orgName + "/" + projectName},
+			args: []string{orgName + ":" + projectName},
 			setupMocks: func(mCmdCtx *mocks.MockCmdContext, mClientFactory *mocks.MockClientFactory, mCoreClient *mocks.MockCoreClient, mPrinter *mocks.MockPrinter) {
 				mClientFactory.EXPECT().Core(gomock.Any(), orgName).Return(mCoreClient, nil)
 				mCoreClient.EXPECT().GetProject(gomock.Any(), gomock.Any()).Return(defaultProject, nil)
@@ -81,7 +81,7 @@ func TestProjectShow(t *testing.T) {
 		},
 		{
 			name:    "Success case (JSON Output)",
-			args:    []string{orgName + "/" + projectName},
+			args:    []string{orgName + ":" + projectName},
 			useJSON: true,
 			setupMocks: func(mCmdCtx *mocks.MockCmdContext, mClientFactory *mocks.MockClientFactory, mCoreClient *mocks.MockCoreClient, mPrinter *mocks.MockPrinter) {
 				mClientFactory.EXPECT().Core(gomock.Any(), orgName).Return(mCoreClient, nil)
@@ -98,7 +98,7 @@ func TestProjectShow(t *testing.T) {
 		},
 		{
 			name: "Edge Case (nil optional fields)",
-			args: []string{orgName + "/" + projectName},
+			args: []string{orgName + ":" + projectName},
 			setupMocks: func(mCmdCtx *mocks.MockCmdContext, mClientFactory *mocks.MockClientFactory, mCoreClient *mocks.MockCoreClient, mPrinter *mocks.MockPrinter) {
 				mClientFactory.EXPECT().Core(gomock.Any(), orgName).Return(mCoreClient, nil)
 				mCoreClient.EXPECT().GetProject(gomock.Any(), gomock.Any()).Return(projectWithNilFields, nil)
@@ -110,8 +110,16 @@ func TestProjectShow(t *testing.T) {
 			},
 		},
 		{
+			name: "Legacy org slash form rejected",
+			args: []string{orgName + "/" + projectName},
+			setupMocks: func(mCmdCtx *mocks.MockCmdContext, mClientFactory *mocks.MockClientFactory, mCoreClient *mocks.MockCoreClient, mPrinter *mocks.MockPrinter) {
+				// no client calls expected: parsing fails before any API access
+			},
+			expectError: "legacy ORGANIZATION/... form is not supported, use ORG: syntax",
+		},
+		{
 			name: "Error case (Project Not Found)",
-			args: []string{orgName + "/" + "NonExistentProject"},
+			args: []string{orgName + ":" + "NonExistentProject"},
 			setupMocks: func(mCmdCtx *mocks.MockCmdContext, mClientFactory *mocks.MockClientFactory, mCoreClient *mocks.MockCoreClient, mPrinter *mocks.MockPrinter) {
 				mClientFactory.EXPECT().Core(gomock.Any(), orgName).Return(mCoreClient, nil)
 				mCoreClient.EXPECT().GetProject(gomock.Any(), gomock.Any()).Return(nil, errors.New("project not found"))

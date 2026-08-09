@@ -25,7 +25,7 @@ func NewCmd(ctx util.CmdContext) *cobra.Command {
 	opts := &opts{}
 
 	cmd := &cobra.Command{
-		Use:   "list [ORGANIZATION/]POOL",
+		Use:   "list [ORG:]/POOL",
 		Short: "List agents in an agent pool",
 		Long: heredoc.Doc(`
 			List every agent in an Azure DevOps agent pool.
@@ -33,28 +33,28 @@ func NewCmd(ctx util.CmdContext) *cobra.Command {
 		`),
 		Example: heredoc.Doc(`
 			# List all agents in pool 1
-			$ azdo pipelines agent list 1
+			$ azdo pipelines agent list /1
 
 			# List agents in a named pool
-			$ azdo pipelines agent list Default
+			$ azdo pipelines agent list /Default
 
 			# List agents in pool 1 in a specific organization
-			$ azdo pipelines agent list "myorg/1"
+			$ azdo pipelines agent list "myorg:/1"
 
 			# List agents in a named pool in a specific organization
-			$ azdo pipelines agent list "myorg/Default"
+			$ azdo pipelines agent list "myorg:/Default"
 
 			# List agents filtered by name
-			$ azdo pipelines agent list 1 --filter "my-agent"
+			$ azdo pipelines agent list /1 --filter "my-agent"
 
 			# List agents filtered by name in a specific organization
-			$ azdo pipelines agent list "myorg/1" --filter "my-agent"
+			$ azdo pipelines agent list "myorg:/1" --filter "my-agent"
 
 			# List agents with capabilities included
-			$ azdo pipelines agent list 1 --include-capabilities
+			$ azdo pipelines agent list /1 --include-capabilities
 
 			# Output as JSON
-			$ azdo pipelines agent list 1 --json
+			$ azdo pipelines agent list /1 --json
 		`),
 		Aliases: []string{
 			"ls",
@@ -108,12 +108,14 @@ func run(cmdCtx util.CmdContext, opts *opts) error {
 		return util.FlagErrorf("invalid --max-items value %d; must be greater than 0", opts.maxItems)
 	}
 
-	scope, err := util.ParseTargetWithDefaultOrganization(cmdCtx, opts.targetArg)
+	scope, err := util.Parse(cmdCtx, opts.targetArg, util.ParseOptions{
+		AllowImplicitOrg: true,
+		DisallowProject:  true,
+		MinTargets:       1,
+		MaxTargets:       1,
+	})
 	if err != nil {
 		return util.FlagErrorf("invalid agent list target: %w", err)
-	}
-	if scope.Project != "" {
-		return util.FlagErrorf("agent list does not accept a project scope; got %q", opts.targetArg)
 	}
 
 	org := scope.Organization

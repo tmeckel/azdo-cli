@@ -14,11 +14,15 @@ import (
 	"go.uber.org/zap"
 )
 
-var (
-	orgNameRE  = regexp.MustCompile(`^(?P<Org>[a-zA-Z0-9][a-zA-Z0-9-]*[a-zA-Z0-9])`)
-	projNameRE = regexp.MustCompile(`^((?P<Org>[a-zA-Z0-9][a-zA-Z0-9-]*[a-zA-Z0-9])\/)?(?P<Prj>[a-zA-Z0-9_ -]+)`)
-	repoNameRE = regexp.MustCompile(`^((?P<Org>[a-zA-Z0-9][a-zA-Z0-9-]*[a-zA-Z0-9])\/)?(?P<Prj>[a-zA-Z0-9_ -]+)\/((?P<Repo>[a-zA-Z0-9_ -]+))$`)
-)
+// namePartRE constrains project and repository name segments. It preserves
+// the character set the legacy slash-based grammar accepted.
+var namePartRE = regexp.MustCompile(`^[a-zA-Z0-9_ -]+$`)
+
+// orgNameRE constrains an explicit organization prefix (ORG:). It restores the
+// validation the legacy slash-based repository name regex applied to the Org
+// group: alphanumeric edges, with an interior of alphanumerics and hyphens.
+// Spaces, underscores, empty, and leading/trailing hyphens are rejected.
+var orgNameRE = regexp.MustCompile(`^[a-zA-Z0-9][a-zA-Z0-9-]*[a-zA-Z0-9]$`)
 
 type OrganizationName interface {
 	Organization() string
@@ -31,28 +35,63 @@ type orgName struct {
 
 var _ OrganizationName = &orgName{}
 
-func ParseOrgnizationName(n string) (OrganizationName, error) {
-	m := orgNameRE.FindStringSubmatch(n)
-	if m == nil {
-		return nil, fmt.Errorf("not a valid repository name, got %q", n)
-	}
-
-	org := m[orgNameRE.SubexpIndex("Org")]
-	if len(org) > 50 {
-		return nil, fmt.Errorf("organization name %q exceeds maximum length of 50 characters", org)
-	}
-
-	return &orgName{
-		org: org,
-	}, nil
-}
-
 func (n *orgName) Organization() string {
 	return n.org
 }
 
 func (n *orgName) FullName() string {
 	return n.Organization()
+}
+
+// splitName splits a raw name argument into an optional explicit organization
+// (ORG: prefix) and the remaining slash-separated segments. The ORG: grammar
+// mirrors the scope parsers in internal/cmd/util: a bare leading segment is
+// never treated as an organization.
+func splitName(raw string) (org string, hasOrg bool, segments []string, err error) {
+	trimmed := strings.TrimSpace(raw)
+
+	if idx := strings.Index(trimmed, ":"); idx >= 0 {
+		if strings.Contains(trimmed[idx+1:], ":") {
+			return "", false, nil, fmt.Errorf("invalid name %q: contains multiple colons", raw)
+		}
+		if strings.Contains(trimmed[:idx], "/") {
+			return "", false, nil, fmt.Errorf("invalid name %q: colon must directly follow the organization", raw)
+		}
+		org = strings.TrimSpace(trimmed[:idx])
+		if org == "" {
+			return "", false, nil, fmt.Errorf("invalid name %q: organization must not be empty", raw)
+		}
+		if !orgNameRE.MatchString(org) {
+			return "", false, nil, fmt.Errorf("invalid name %q: invalid organization name %q", raw, org)
+		}
+		hasOrg = true
+		trimmed = trimmed[idx+1:]
+	}
+
+	if trimmed != "" {
+		for _, part := range strings.Split(trimmed, "/") {
+			part = strings.TrimSpace(part)
+			if part == "" {
+				return "", false, nil, fmt.Errorf("invalid name %q: contains empty segment", raw)
+			}
+			segments = append(segments, part)
+		}
+	}
+
+	return org, hasOrg, segments, nil
+}
+
+// defaultOrganization resolves the configured default organization.
+func defaultOrganization() (string, error) {
+	cfg, err := config.NewConfig()
+	if err != nil {
+		return "", fmt.Errorf("failed to create config instance: %w", err)
+	}
+	o, err := cfg.Authentication().GetDefaultOrganization()
+	if err != nil {
+		return "", fmt.Errorf("failed to get default organization: %w", err)
+	}
+	return o, nil
 }
 
 type ProjectName interface {
@@ -72,26 +111,21 @@ func ProjectFromName(n string) (ProjectName, error) {
 }
 
 func parseProjectName(n string) (ProjectName, error) {
-	m := projNameRE.FindStringSubmatch(n)
-	if m == nil {
-		return nil, fmt.Errorf("not a valid repository name, expected the \"[ORGANIZATION/]PROJECT\" format, got %q", n)
+	org, hasOrg, segments, err := splitName(n)
+	if err != nil {
+		return nil, err
+	}
+	if len(segments) != 1 {
+		if !hasOrg && len(segments) == 2 {
+			return nil, fmt.Errorf("not a valid project name, legacy ORGANIZATION/PROJECT form is not supported, use ORG: syntax (expected \"[ORG:]PROJECT\"), got %q", n)
+		}
+		return nil, fmt.Errorf("not a valid project name, expected the \"[ORG:]PROJECT\" format, got %q", n)
 	}
 
-	var org, proj string
-
-	for _, g := range []string{"Org", "Prj"} {
-		gi := projNameRE.SubexpIndex(g)
-		if gi < 0 || gi > len(m) {
-			continue
-		}
-		switch g {
-		case "Org":
-			org = m[gi]
-		case "Prj":
-			proj = m[gi]
-		}
+	proj := segments[0]
+	if !namePartRE.MatchString(proj) {
+		return nil, fmt.Errorf("not a valid project name, expected the \"[ORG:]PROJECT\" format, got %q", n)
 	}
-
 	if strings.HasPrefix(proj, "_") || strings.HasPrefix(proj, ".") {
 		return nil, fmt.Errorf("project name %q cannot start with '_' or '.'", proj)
 	}
@@ -103,13 +137,9 @@ func parseProjectName(n string) (ProjectName, error) {
 	}
 
 	if org == "" {
-		cfg, err := config.NewConfig()
+		o, err := defaultOrganization()
 		if err != nil {
-			return nil, fmt.Errorf("failed to create config instance: %w", err)
-		}
-		o, err := cfg.Authentication().GetDefaultOrganization()
-		if err != nil {
-			return nil, fmt.Errorf("failed to get default organization: %w", err)
+			return nil, err
 		}
 		org = o
 	}
@@ -185,7 +215,7 @@ func ProjectFromURL(u *url.URL) (ProjectName, error) {
 		return nil, fmt.Errorf("hostname %q of URL does not match configured hostname %q of organization %q", u.Hostname(), hostname, organization)
 	}
 
-	return ProjectFromName(organization + "/" + project)
+	return ProjectFromName(organization + ":" + project)
 }
 
 // OrganizationFromURL extracts the Azure DevOps organization from a validated URL.
@@ -237,28 +267,21 @@ type repositoryName struct {
 var _ RepositoryName = &repositoryName{}
 
 func parseRepositoryName(n string) (RepositoryName, error) {
-	m := repoNameRE.FindStringSubmatch(n)
-	if m == nil {
-		return nil, fmt.Errorf("not a valid repository name, expected the \"[ORGANIZATION/]PROJECT/REPO\" format, got %q", n)
+	org, hasOrg, segments, err := splitName(n)
+	if err != nil {
+		return nil, err
+	}
+	if len(segments) != 2 {
+		if !hasOrg && len(segments) == 3 {
+			return nil, fmt.Errorf("not a valid repository name, legacy ORGANIZATION/PROJECT/REPO form is not supported, use ORG: syntax (expected \"[ORG:]PROJECT/REPO\"), got %q", n)
+		}
+		return nil, fmt.Errorf("not a valid repository name, expected the \"[ORG:]PROJECT/REPO\" format, got %q", n)
 	}
 
-	var org, proj, repo string
-
-	for _, g := range []string{"Org", "Prj", "Repo"} {
-		gi := repoNameRE.SubexpIndex(g)
-		if gi < 0 || gi > len(m) {
-			continue
-		}
-		switch g {
-		case "Org":
-			org = m[gi]
-		case "Prj":
-			proj = m[gi]
-		case "Repo":
-			repo = m[gi]
-		}
+	proj, repo := segments[0], segments[1]
+	if !namePartRE.MatchString(proj) || !namePartRE.MatchString(repo) {
+		return nil, fmt.Errorf("not a valid repository name, expected the \"[ORG:]PROJECT/REPO\" format, got %q", n)
 	}
-
 	if strings.HasPrefix(repo, "_") || strings.HasPrefix(repo, ".") {
 		return nil, fmt.Errorf("repository name %q cannot start with '_' or '.'", repo)
 	}
@@ -293,9 +316,9 @@ func (n *repositoryName) Name() string {
 }
 
 func (n *repositoryName) FullName() string {
-	pn := n.projectName.FullName()
-	if pn != "" {
-		return pn + "/" + n.name
+	on := n.projectName.FullName()
+	if on != "" {
+		return on + "/" + n.name
 	}
 	return n.name
 }
@@ -420,13 +443,9 @@ func NewRepository(project, name string) (Repository, error) {
 // NewWithOrganization creates a new repository with the specified organization.
 func NewRepositoryWithOrganization(organization, project, name string) (Repository, error) {
 	if organization == "" {
-		cfg, err := config.NewConfig()
+		o, err := defaultOrganization()
 		if err != nil {
-			return nil, fmt.Errorf("failed to create config instance: %w", err)
-		}
-		o, err := cfg.Authentication().GetDefaultOrganization()
-		if err != nil {
-			return nil, fmt.Errorf("failed to get default organization: %w", err)
+			return nil, err
 		}
 		organization = o
 	}
@@ -554,7 +573,10 @@ func RepositoryFromURL(u *url.URL) (Repository, error) {
 
 // Helper functions.
 func parseWithOrganization(s string) (Repository, error) {
-	if git.IsURL(s) {
+	// Treat the input as a URL only when it carries an explicit scheme or the
+	// git@ scp-like prefix. This keeps ORG:PROJECT/REPO names routable even
+	// when the organization name collides with a protocol prefix such as "git".
+	if git.IsURL(s) && (strings.Contains(s, "://") || strings.HasPrefix(s, "git@")) {
 		u, err := git.ParseURL(s)
 		if err != nil {
 			return nil, err
@@ -568,13 +590,9 @@ func parseWithOrganization(s string) (Repository, error) {
 	}
 	org := n.Organization()
 	if org == "" {
-		cfg, err := config.NewConfig()
+		o, err := defaultOrganization()
 		if err != nil {
-			return nil, fmt.Errorf("failed to create config instance: %w", err)
-		}
-		o, err := cfg.Authentication().GetDefaultOrganization()
-		if err != nil {
-			return nil, fmt.Errorf("failed to get default organization: %w", err)
+			return nil, err
 		}
 		org = o
 	}

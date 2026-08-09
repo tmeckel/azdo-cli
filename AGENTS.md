@@ -69,9 +69,16 @@ For a complete guide, refer to [TESTING.md](./TESTING.md).
 
 ## Commit & Pull Request Guidelines
 
-- **Commits:** Adhere to Conventional Commits specification (e.g., `feat: ...`, `fix: ...`, `chore: ...`, `refactor: ...`).
+- **Use Conventional Commits:** `fix(scope): subject`, `feat(scope): subject`, `docs: ...`, `test: ...`.
 - **Pull Requests:** Clearly describe changes, rationale, and how to reproduce/verify; reference linked issues.
 - **CI Checks:** Run `make lint` and `go test ./...` before submission; update `docs/` if CLI changes.
+- **One logical change per commit:** Commit batches are sorted topologically by technical dependencies (the code a commit introduces must exist before code that depends on it).
+- **Style/formatting** last, only if the changed file contains pure style changes; otherwise formatting folds into the feature commit.
+- Tests go with the file that is under test after the file under test has been committed.
+- Every commit must leave the tree in a working state
+- **Never commit secrets**, local config (`.mise.local.toml`), or generated artifacts.
+- Agents and subagents may never run `git add`, `git commit`, `git commit --amend`, `git reset`, `git checkout`, `git restore`, `git clean`, `git push`.
+- Agents and subagents may inspect Git read-only (e.g. `git status`, `git diff`, `git log`) to understand the tree, but must never modify it.
 
 ## Security & Configuration Tips
 

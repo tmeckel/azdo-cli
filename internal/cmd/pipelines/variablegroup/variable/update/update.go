@@ -36,7 +36,7 @@ func NewCmd(ctx util.CmdContext) *cobra.Command {
 	o := &opts{}
 
 	cmd := &cobra.Command{
-		Use:   "update [ORGANIZATION/]PROJECT/VARIABLE_GROUP_ID_OR_NAME --name VARIABLE_NAME",
+		Use:   "update [ORG:]PROJECT/VARIABLE_GROUP_ID_OR_NAME --name VARIABLE_NAME",
 		Short: "Update a variable in a variable group",
 		Long: heredoc.Doc(`
 				Update an existing variable in a variable group. Supports renaming, value changes,

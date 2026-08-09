@@ -50,23 +50,23 @@ func NewCmd(ctx util.CmdContext) *cobra.Command {
 	}
 
 	cmd := &cobra.Command{
-		Use:   "list [ORGANIZATION/]PROJECT",
+		Use:   "list [ORG:]PROJECT",
 		Short: "List service endpoints in a project.",
 		Long: heredoc.Doc(`
 			List Azure DevOps service endpoints (service connections) defined within a project.
 
-			The project scope accepts the form [ORGANIZATION/]PROJECT. When the organization
-			segment is omitted the default organization from configuration is used.
+			The project scope accepts the form [ORG:]PROJECT. When the ORG: prefix
+			is omitted the default organization from configuration is used.
 		`),
 		Example: heredoc.Doc(`
 			# List service endpoints for a project using the default organization
 			azdo service-endpoint list MyProject
 
 			# List service endpoints for a project in a specific organization
-			azdo service-endpoint list myorg/MyProject
+			azdo service-endpoint list myorg:MyProject
 
 			# List AzureRM endpoints that are ready for use
-			azdo service-endpoint list myorg/MyProject --type AzureRM --action-filter manage
+			azdo service-endpoint list myorg:MyProject --type AzureRM --action-filter manage
 		`),
 		Aliases: []string{"ls", "l"},
 		Args:    util.ExactArgs(1, "project argument required"),

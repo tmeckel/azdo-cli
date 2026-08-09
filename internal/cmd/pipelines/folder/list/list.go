@@ -24,7 +24,7 @@ func NewCmd(ctx util.CmdContext) *cobra.Command {
 	opts := &opts{}
 
 	cmd := &cobra.Command{
-		Use:   "list [ORGANIZATION/]PROJECT",
+		Use:   "list [ORG:]PROJECT",
 		Short: "List folders.",
 		Long: heredoc.Doc(`
 			List build definition folders in PROJECT.
@@ -40,7 +40,7 @@ func NewCmd(ctx util.CmdContext) *cobra.Command {
 			azdo pipelines folder list Fabrikam --path /Shared
 
 			# List folders sorted descending by path
-			azdo pipelines folder list myorg/Fabrikam --query-order desc
+			azdo pipelines folder list myorg:Fabrikam --query-order desc
 
 			# Output as JSON
 			azdo pipelines folder list Fabrikam --json

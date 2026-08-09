@@ -73,7 +73,7 @@ func TestNewCmd_WithTokenFlag(t *testing.T) {
 	mCmdCtx.EXPECT().Prompter().Return(nil, nil).AnyTimes()
 
 	cmd := NewCmd(mCmdCtx)
-	cmd.SetArgs([]string{"org1/proj1", "--name", "ep-name", "--token", "tok-flag"})
+	cmd.SetArgs([]string{"org1:proj1", "--name", "ep-name", "--token", "tok-flag"})
 	err := cmd.Execute()
 	assert.NoError(t, err)
 }
@@ -119,7 +119,7 @@ func TestNewCmd_PromptForToken(t *testing.T) {
 	mCmdCtx.EXPECT().Prompter().Return(prom, nil).AnyTimes()
 
 	cmd := NewCmd(mCmdCtx)
-	cmd.SetArgs([]string{"org1/proj1", "--name", "ep-name"})
+	cmd.SetArgs([]string{"org1:proj1", "--name", "ep-name"})
 	err := cmd.Execute()
 	assert.NoError(t, err)
 }
@@ -176,7 +176,7 @@ func TestNewCmd_WithConfigurationID(t *testing.T) {
 	mCmdCtx.EXPECT().Prompter().Return(nil, nil).AnyTimes()
 
 	cmd := NewCmd(mCmdCtx)
-	cmd.SetArgs([]string{"org1/proj1", "--name", "ep-name", "--configuration-id", "cfg-123"})
+	cmd.SetArgs([]string{"org1:proj1", "--name", "ep-name", "--configuration-id", "cfg-123"})
 	err := cmd.Execute()
 	assert.NoError(t, err)
 }

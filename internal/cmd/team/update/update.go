@@ -22,7 +22,7 @@ func NewCmd(ctx util.CmdContext) *cobra.Command {
 	opts := &updateOptions{}
 
 	cmd := &cobra.Command{
-		Use:   "update [ORGANIZATION/]PROJECT/TEAM",
+		Use:   "update [ORG:]PROJECT/TEAM",
 		Short: "Update a team's name and/or description.",
 		Long: heredoc.Doc(`
 			Update a team's name and/or description. At least one of --name or
@@ -34,7 +34,7 @@ func NewCmd(ctx util.CmdContext) *cobra.Command {
 			azdo team update Fabrikam/"Old Name" --name "New Name"
 
 			# Update a team's description only
-			azdo team update MyOrg/Fabrikam/MyTeam --description "New description"
+			azdo team update MyOrg:Fabrikam/MyTeam --description "New description"
 		`),
 		Aliases: []string{
 			"u",

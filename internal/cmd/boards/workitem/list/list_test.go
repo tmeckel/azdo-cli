@@ -81,7 +81,7 @@ func TestRunList_SortDefaultUnchanged(t *testing.T) {
 		},
 	)
 
-	err := runList(deps.cmd, &listOptions{scopeArg: "org/Fabrikam"})
+	err := runList(deps.cmd, &listOptions{scopeArg: "org:Fabrikam"})
 	require.NoError(t, err)
 	assert.Contains(t, captured, "ORDER BY [System.ChangedDate] DESC")
 }
@@ -102,7 +102,7 @@ func TestRunList_SortTitleAsc(t *testing.T) {
 	)
 
 	err := runList(deps.cmd, &listOptions{
-		scopeArg: "org/Fabrikam",
+		scopeArg: "org:Fabrikam",
 		sort:     []string{"title:asc"},
 	})
 	require.NoError(t, err)
@@ -118,7 +118,7 @@ func TestRunList_SortInvalidField(t *testing.T) {
 	deps.cmd.EXPECT().IOStreams().Return(ios, nil).AnyTimes()
 
 	err := runList(deps.cmd, &listOptions{
-		scopeArg: "org/Fabrikam",
+		scopeArg: "org:Fabrikam",
 		sort:     []string{"banana"},
 	})
 	require.Error(t, err)
@@ -173,7 +173,7 @@ func TestRunList_ChangedAfterRFC3339(t *testing.T) {
 	)
 
 	err := runList(deps.cmd, &listOptions{
-		scopeArg:     "org/Fabrikam",
+		scopeArg:     "org:Fabrikam",
 		changedAfter: "2025-01-18T00:00:00Z",
 	})
 	require.NoError(t, err)
@@ -191,7 +191,7 @@ func TestRunList_InvalidDateFlag(t *testing.T) {
 	deps.cmd.EXPECT().IOStreams().Return(ios, nil).AnyTimes()
 
 	err := runList(deps.cmd, &listOptions{
-		scopeArg:     "org/Fabrikam",
+		scopeArg:     "org:Fabrikam",
 		changedAfter: "not-a-date",
 	})
 	require.Error(t, err)
@@ -244,7 +244,7 @@ func TestRunList_TagFilter(t *testing.T) {
 	)
 
 	err := runList(deps.cmd, &listOptions{
-		scopeArg: "org/Fabrikam",
+		scopeArg: "org:Fabrikam",
 		tags:     []string{"web", "security"},
 	})
 	require.NoError(t, err)
@@ -277,7 +277,7 @@ func TestRunList_CreatedByMe(t *testing.T) {
 	)
 
 	err := runList(deps.cmd, &listOptions{
-		scopeArg:  "org/Fabrikam",
+		scopeArg:  "org:Fabrikam",
 		createdBy: []string{"@me"},
 	})
 	require.NoError(t, err)
@@ -300,7 +300,7 @@ func TestRunList_AuthoredByAlias(t *testing.T) {
 	)
 
 	err := runList(deps.cmd, &listOptions{
-		scopeArg:  "org/Fabrikam",
+		scopeArg:  "org:Fabrikam",
 		createdBy: []string{"bob@x.com"},
 	})
 	require.NoError(t, err)
@@ -362,7 +362,7 @@ func TestRunList_StateExactOnly(t *testing.T) {
 	)
 
 	err := runList(deps.cmd, &listOptions{
-		scopeArg: "org/Fabrikam",
+		scopeArg: "org:Fabrikam",
 		status:   []string{"all"},
 		state:    []string{"Active"},
 	})
@@ -388,7 +388,7 @@ func TestRunList_StatusAndStateIntersect(t *testing.T) {
 	)
 
 	err := runList(deps.cmd, &listOptions{
-		scopeArg: "org/Fabrikam",
+		scopeArg: "org:Fabrikam",
 		state:    []string{"Active"},
 	})
 	require.NoError(t, err)
@@ -746,13 +746,14 @@ func TestNewCmd_FlagShortcuts(t *testing.T) {
 		assert.Equal(t, want.shorthand, f.Shorthand, "flag --%s shorthand mismatch", want.name)
 	}
 
-	assert.Equal(t, "list [ORGANIZATION/]PROJECT", cmd.Use)
+	assert.Equal(t, "list [ORG:]PROJECT", cmd.Use)
 	assert.ElementsMatch(t, []string{"ls", "l"}, cmd.Aliases)
 }
 
 // ----- runList integration tests via gomock -----
 
 type fakeListDeps struct {
+	ctrl       *gomock.Controller
 	cmd        *mocks.MockCmdContext
 	clientFact *mocks.MockClientFactory
 	wit        *mocks.MockWorkItemTrackingClient
@@ -772,6 +773,7 @@ func setupFakeDeps(t *testing.T, organization string) *fakeListDeps {
 	io.SetStderrTTY(false)
 
 	deps := &fakeListDeps{
+		ctrl:       ctrl,
 		cmd:        mocks.NewMockCmdContext(ctrl),
 		clientFact: mocks.NewMockClientFactory(ctrl),
 		wit:        mocks.NewMockWorkItemTrackingClient(ctrl),
@@ -859,6 +861,69 @@ func stubBatch(t *testing.T, deps *fakeListDeps, expandAll bool) {
 	).AnyTimes()
 }
 
+func TestRunList_OrgRouting(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name       string
+		depsOrg    string
+		scopeArg   string
+		defaultOrg string // when set, the default organization is stubbed in config
+	}{
+		{name: "explicit ORG: prefix routes to that organization", depsOrg: "myorg", scopeArg: "myorg:Fabrikam"},
+		{name: "bare project routes to configured default organization", depsOrg: "default-org", scopeArg: "Fabrikam", defaultOrg: "default-org"},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			deps := setupFakeDeps(t, tc.depsOrg)
+			stubDefaultOpenTypes(deps)
+			stubBatch(t, deps, false)
+
+			if tc.defaultOrg != "" {
+				cfg := mocks.NewMockConfig(deps.ctrl)
+				auth := mocks.NewMockAuthConfig(deps.ctrl)
+				deps.cmd.EXPECT().Config().Return(cfg, nil).AnyTimes()
+				cfg.EXPECT().Authentication().Return(auth).AnyTimes()
+				auth.EXPECT().GetDefaultOrganization().Return(tc.defaultOrg, nil).AnyTimes()
+			}
+
+			var captured string
+			deps.wit.EXPECT().QueryByWiql(gomock.Any(), gomock.Any()).DoAndReturn(
+				func(_ context.Context, args workitemtracking.QueryByWiqlArgs) (*workitemtracking.WorkItemQueryResult, error) {
+					captured = *args.Wiql.Query
+					refs := []workitemtracking.WorkItemReference{{Id: types.ToPtr(1)}}
+					return &workitemtracking.WorkItemQueryResult{WorkItems: &refs}, nil
+				},
+			)
+
+			// The WorkItemTracking client expectation is bound to tc.depsOrg, so
+			// the run only succeeds when the organization routed to it matches.
+			err := runList(deps.cmd, &listOptions{scopeArg: tc.scopeArg})
+			require.NoError(t, err)
+			assert.Contains(t, captured, "[System.TeamProject] = 'Fabrikam'")
+		})
+	}
+}
+
+func TestRunList_LegacyOrgSlashIsRejected(t *testing.T) {
+	t.Parallel()
+
+	// A legacy ORGANIZATION/PROJECT input carries no ORG: prefix and is
+	// structurally detectable in this no-target mode, so it must be rejected
+	// with ORG: guidance instead of being reinterpreted.
+	deps := setupFakeDeps(t, "org")
+
+	err := runList(deps.cmd, &listOptions{scopeArg: "org/Fabrikam"})
+
+	require.Error(t, err)
+	var flagErr *util.FlagError
+	require.ErrorAs(t, err, &flagErr)
+	assert.Contains(t, err.Error(), "legacy ORGANIZATION/... form is not supported, use ORG: syntax")
+}
+
 func TestRunList_DefaultOpenStatus(t *testing.T) {
 	t.Parallel()
 
@@ -875,7 +940,7 @@ func TestRunList_DefaultOpenStatus(t *testing.T) {
 		},
 	)
 
-	err := runList(deps.cmd, &listOptions{scopeArg: "org/Fabrikam"})
+	err := runList(deps.cmd, &listOptions{scopeArg: "org:Fabrikam"})
 	require.NoError(t, err)
 
 	assert.Contains(t, captured, "[System.TeamProject] = 'Fabrikam'")
@@ -898,7 +963,7 @@ func TestRunList_StatusAllOmitsStatePredicate(t *testing.T) {
 	)
 	stubBatch(t, deps, false)
 
-	err := runList(deps.cmd, &listOptions{scopeArg: "org/Fabrikam", status: []string{"all"}})
+	err := runList(deps.cmd, &listOptions{scopeArg: "org:Fabrikam", status: []string{"all"}})
 	require.NoError(t, err)
 
 	assert.NotContains(t, captured, "[System.State]")
@@ -919,7 +984,7 @@ func TestRunList_LimitWiresTop(t *testing.T) {
 	)
 	stubBatch(t, deps, false)
 
-	err := runList(deps.cmd, &listOptions{scopeArg: "org/Fabrikam", status: []string{"all"}, limit: 25})
+	err := runList(deps.cmd, &listOptions{scopeArg: "org:Fabrikam", status: []string{"all"}, limit: 25})
 	require.NoError(t, err)
 	require.NotNil(t, top)
 	assert.Equal(t, 25, *top)
@@ -958,7 +1023,7 @@ func TestRunList_BatchChunkingAt200(t *testing.T) {
 		},
 	).Times(2)
 
-	err := runList(deps.cmd, &listOptions{scopeArg: "org/Fabrikam", status: []string{"all"}})
+	err := runList(deps.cmd, &listOptions{scopeArg: "org:Fabrikam", status: []string{"all"}})
 	require.NoError(t, err)
 	assert.Equal(t, []int{200, 50}, batchSizes)
 }
@@ -989,7 +1054,7 @@ func TestRunList_AssignedToMeResolvesIdentity(t *testing.T) {
 	)
 	stubBatch(t, deps, false)
 
-	err := runList(deps.cmd, &listOptions{scopeArg: "org/Fabrikam", status: []string{"all"}, assignedTo: []string{"@me"}})
+	err := runList(deps.cmd, &listOptions{scopeArg: "org:Fabrikam", status: []string{"all"}, assignedTo: []string{"@me"}})
 	require.NoError(t, err)
 	assert.Contains(t, captured, "[System.AssignedTo] IN ('Account.From.Properties')")
 }
@@ -1009,7 +1074,7 @@ func TestRunList_AssignedToEmailSkipsLookup(t *testing.T) {
 	)
 	stubBatch(t, deps, false)
 
-	err := runList(deps.cmd, &listOptions{scopeArg: "org/Fabrikam", status: []string{"all"}, assignedTo: []string{"alice@x.com"}})
+	err := runList(deps.cmd, &listOptions{scopeArg: "org:Fabrikam", status: []string{"all"}, assignedTo: []string{"alice@x.com"}})
 	require.NoError(t, err)
 	assert.Contains(t, captured, "[System.AssignedTo] IN ('alice@x.com')")
 }
@@ -1030,7 +1095,7 @@ func TestRunList_AreaUnderPrefix(t *testing.T) {
 	stubBatch(t, deps, false)
 
 	err := runList(deps.cmd, &listOptions{
-		scopeArg: "org/Fabrikam",
+		scopeArg: "org:Fabrikam",
 		status:   []string{"all"},
 		area:     []string{"Under:Web/Payments"},
 	})
@@ -1046,7 +1111,7 @@ func TestRunList_NoResultsReturnsNoResultsError(t *testing.T) {
 		WorkItems: &[]workitemtracking.WorkItemReference{},
 	}, nil)
 
-	err := runList(deps.cmd, &listOptions{scopeArg: "org/Fabrikam", status: []string{"all"}})
+	err := runList(deps.cmd, &listOptions{scopeArg: "org:Fabrikam", status: []string{"all"}})
 	require.Error(t, err)
 	var noResults util.NoResultsError
 	require.True(t, errors.As(err, &noResults), "expected NoResultsError, got %v", err)
@@ -1058,7 +1123,7 @@ func TestRunList_WiqlErrorPropagates(t *testing.T) {
 	deps := setupFakeDeps(t, "org")
 	deps.wit.EXPECT().QueryByWiql(gomock.Any(), gomock.Any()).Return(nil, errors.New("boom"))
 
-	err := runList(deps.cmd, &listOptions{scopeArg: "org/Fabrikam", status: []string{"all"}})
+	err := runList(deps.cmd, &listOptions{scopeArg: "org:Fabrikam", status: []string{"all"}})
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "WIQL")
 }
@@ -1089,7 +1154,7 @@ func TestRunList_JSONOutputUsesExpandAll(t *testing.T) {
 	)
 
 	opts := &listOptions{
-		scopeArg: "org/Fabrikam",
+		scopeArg: "org:Fabrikam",
 		status:   []string{"all"},
 		exporter: &stubExporter{},
 	}
@@ -1121,7 +1186,7 @@ func TestRunList_ValidationErrorBubbles(t *testing.T) {
 	ios, _, _, _ := iostreams.Test()
 	ctx.EXPECT().IOStreams().Return(ios, nil).AnyTimes()
 
-	err := runList(ctx, &listOptions{scopeArg: "org/Fabrikam", classification: []string{"5 - Disaster"}})
+	err := runList(ctx, &listOptions{scopeArg: "org:Fabrikam", classification: []string{"5 - Disaster"}})
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "invalid value for --classification")
 }

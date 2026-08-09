@@ -95,7 +95,7 @@ func TestNewCmd_RegistersAsListLeaf(t *testing.T) {
 	t.Parallel()
 
 	cmd := NewCmd(nil)
-	assert.Equal(t, "list [ORGANIZATION]", cmd.Use)
+	assert.Equal(t, "list [ORG]", cmd.Use)
 	assert.ElementsMatch(t, []string{"ls", "l"}, cmd.Aliases)
 	assert.NotNil(t, cmd.RunE)
 }

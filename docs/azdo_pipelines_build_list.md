@@ -1,7 +1,7 @@
 ## Command `azdo pipelines build list`
 
 ```
-azdo pipelines build list [ORGANIZATION/]PROJECT [flags]
+azdo pipelines build list [ORG:]PROJECT [flags]
 ```
 
 List classic build (Build v1) records in a project. Supports filter,
@@ -82,6 +82,9 @@ azdo pipelines build list Fabrikam --top 20
 
 # Filter by branch, status, and tag
 azdo pipelines build list Fabrikam --branch main --status completed --tag release
+
+# List builds in a specific organization
+azdo pipelines build list MyOrg:Fabrikam --top 20
 
 # Export as JSON
 azdo pipelines build list Fabrikam --json id,buildNumber,status,result

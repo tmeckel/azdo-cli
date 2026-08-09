@@ -1,13 +1,13 @@
 ## Command `azdo service-endpoint update`
 
 ```
-azdo service-endpoint update [ORGANIZATION/]PROJECT/ID_OR_NAME [flags]
+azdo service-endpoint update [ORG:]PROJECT/ID_OR_NAME [flags]
 ```
 
 Update an existing Azure DevOps service endpoint (service connection).
 
-The positional argument accepts the form [ORGANIZATION/]PROJECT/ID_OR_NAME. When the
-organization segment is omitted the default organization from configuration is used.
+The positional argument accepts the form [ORG:]PROJECT/ID_OR_NAME.
+When the ORG: prefix is omitted the default organization from configuration is used.
 
 Provide one or more mutating flags to change attributes or pipeline permissions.
 

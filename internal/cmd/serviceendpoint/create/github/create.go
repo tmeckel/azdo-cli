@@ -84,17 +84,17 @@ func NewCmd(ctx util.CmdContext) *cobra.Command {
 	}
 
 	cmd := &cobra.Command{
-		Use:   "github [ORGANIZATION/]PROJECT --name NAME [--url URL] [--token TOKEN]",
+		Use:   "github [ORG:]PROJECT --name NAME [--url URL] [--token TOKEN]",
 		Short: "Create a GitHub service endpoint",
 		Long: heredoc.Doc(`
 			Create a GitHub service endpoint using a personal access token (PAT) or an installation/oauth configuration.
 		`),
 		Example: heredoc.Doc(`
 			# Create a GitHub service endpoint with a personal access token (PAT)
-			azdo service-endpoint create github my-org/my-project --name "gh-ep" --token <PAT>
+			azdo service-endpoint create github myorg:my-project --name "gh-ep" --token <PAT>
 
 			# Create a GitHub service endpoint with an installation / OAuth configuration id
-			azdo service-endpoint create github my-org/my-project --name "gh-ep" --configuration-id <CONFIG_ID>
+			azdo service-endpoint create github myorg:my-project --name "gh-ep" --configuration-id <CONFIG_ID>
 		`),
 		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {

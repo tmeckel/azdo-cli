@@ -36,7 +36,7 @@ func NewCmd(ctx util.CmdContext) *cobra.Command {
 	opts := &runOptions{}
 
 	cmd := &cobra.Command{
-		Use:   "list [ORGANIZATION/]PROJECT",
+		Use:   "list [ORG:]PROJECT",
 		Short: "List runs of pipelines in a project.",
 		Long: heredoc.Doc(`
 			List runs of pipelines in an Azure DevOps project. Mirrors
@@ -51,7 +51,7 @@ func NewCmd(ctx util.CmdContext) *cobra.Command {
 			azdo pipelines runs list Fabrikam --top 20
 
 			# Filter by pipeline and branch
-			azdo pipelines runs list MyOrg/Fabrikam --pipeline-id 42 --branch main
+			azdo pipelines runs list MyOrg:Fabrikam --pipeline-id 42 --branch main
 
 			# Order by queue time, descending
 			azdo pipelines runs list Fabrikam --query-order queueTimeDescending
