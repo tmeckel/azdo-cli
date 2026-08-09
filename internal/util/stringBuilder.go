@@ -122,7 +122,7 @@ func (sb *StringBuilder) Generate(length int) (string, error) {
 
 	b := make([]byte, length)
 	for i := range b {
-		b[i] = charset[sb.rand.Int31n(int32(len(charset)))]
+		b[i] = charset[sb.rand.Intn(len(charset))]
 	}
 	s := string(b)
 

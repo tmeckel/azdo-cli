@@ -1,11 +1,11 @@
 package config
 
 import (
+	"encoding/binary"
 	"errors"
 	"os"
 	"runtime"
 	"strings"
-	"unsafe"
 
 	"github.com/emirpasic/gods/sets/hashset"
 	"github.com/zalando/go-keyring"
@@ -34,7 +34,7 @@ var nativeEndian unicode.Endianness
 
 func init() {
 	buf := [2]byte{}
-	*(*uint16)(unsafe.Pointer(&buf[0])) = uint16(0xABCD)
+	binary.NativeEndian.PutUint16(buf[:], uint16(0xABCD))
 
 	switch buf {
 	case [2]byte{0xCD, 0xAB}:
