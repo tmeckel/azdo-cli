@@ -120,7 +120,7 @@ func TestNewCmd(t *testing.T) {
 	t.Parallel()
 
 	cmd := NewCmd(nil)
-	assert.Equal(t, "list [ORGANIZATION/]PROJECT", cmd.Use)
+	assert.Equal(t, "list [ORG:]PROJECT", cmd.Use)
 	assert.ElementsMatch(t, []string{"ls", "l"}, cmd.Aliases)
 	assert.NotNil(t, cmd.RunE)
 }
@@ -134,7 +134,7 @@ func TestList_EmptyResult(t *testing.T) {
 	require.NoError(t, err)
 	d.cmd.EXPECT().Printer("list").Return(tp, nil).AnyTimes()
 
-	err = runList(d.cmd, &listOptions{scopeArg: "org/Fabrikam"})
+	err = runList(d.cmd, &listOptions{scopeArg: "org:Fabrikam"})
 	require.NoError(t, err)
 	assert.Empty(t, d.stdout.String())
 }
@@ -153,7 +153,7 @@ func TestList_NoFilters(t *testing.T) {
 	require.NoError(t, err)
 	d.cmd.EXPECT().Printer("list").Return(tp, nil).AnyTimes()
 
-	err = runList(d.cmd, &listOptions{scopeArg: "org/Fabrikam"})
+	err = runList(d.cmd, &listOptions{scopeArg: "org:Fabrikam"})
 	require.NoError(t, err)
 
 	output := d.stdout.String()
@@ -195,7 +195,7 @@ func TestList_ContinuationToken_Loops(t *testing.T) {
 	require.NoError(t, err)
 	d.cmd.EXPECT().Printer("list").Return(tp, nil).AnyTimes()
 
-	err = runList(d.cmd, &listOptions{scopeArg: "org/Fabrikam"})
+	err = runList(d.cmd, &listOptions{scopeArg: "org:Fabrikam"})
 	require.NoError(t, err)
 	assert.Equal(t, 2, callCount)
 	assert.Contains(t, d.stdout.String(), "1")
@@ -225,7 +225,7 @@ func TestList_FiltersPassedToSDK(t *testing.T) {
 	d.cmd.EXPECT().Printer("list").Return(tp, nil).AnyTimes()
 
 	err = runList(d.cmd, &listOptions{
-		scopeArg:      "org/Fabrikam",
+		scopeArg:      "org:Fabrikam",
 		definitionIDs: []int{1, 2},
 		branch:        types.ToPtr("main"),
 		buildNumber:   types.ToPtr("build-*"),
@@ -274,7 +274,7 @@ func TestList_MaxItemsCap(t *testing.T) {
 	require.NoError(t, err)
 	d.cmd.EXPECT().Printer("list").Return(tp, nil).AnyTimes()
 
-	err = runList(d.cmd, &listOptions{scopeArg: "org/Fabrikam", maxItems: 3})
+	err = runList(d.cmd, &listOptions{scopeArg: "org:Fabrikam", maxItems: 3})
 	require.NoError(t, err)
 	assert.Contains(t, d.stdout.String(), "1")
 	assert.Contains(t, d.stdout.String(), "3")
@@ -289,7 +289,7 @@ func TestList_JSONOutput(t *testing.T) {
 	d.build.EXPECT().GetBuilds(gomock.Any(), gomock.Any()).Return(&build.GetBuildsResponseValue{Value: items}, nil)
 
 	exporter := util.NewJSONExporter()
-	err := runList(d.cmd, &listOptions{scopeArg: "org/Fabrikam", exporter: exporter})
+	err := runList(d.cmd, &listOptions{scopeArg: "org:Fabrikam", exporter: exporter})
 	require.NoError(t, err)
 
 	var parsed []map[string]any
@@ -334,7 +334,7 @@ func TestList_PaginationAcrossPages_CappedByMaxItems(t *testing.T) {
 	require.NoError(t, err)
 	d.cmd.EXPECT().Printer("list").Return(tp, nil).AnyTimes()
 
-	err = runList(d.cmd, &listOptions{scopeArg: "org/Fabrikam", maxItems: 6})
+	err = runList(d.cmd, &listOptions{scopeArg: "org:Fabrikam", maxItems: 6})
 	require.NoError(t, err)
 	assert.Equal(t, 2, callCount)
 	assert.Contains(t, d.stdout.String(), "6")
@@ -364,7 +364,7 @@ func TestList_RequestedFor_ResolvesAtMe(t *testing.T) {
 	require.NoError(t, err)
 	d.cmd.EXPECT().Printer("list").Return(tp, nil).AnyTimes()
 
-	err = runList(d.cmd, &listOptions{scopeArg: "org/Fabrikam", requestedFor: types.ToPtr("@me")})
+	err = runList(d.cmd, &listOptions{scopeArg: "org:Fabrikam", requestedFor: types.ToPtr("@me")})
 	require.NoError(t, err)
 
 	require.NotNil(t, capturedArgs.RequestedFor)
@@ -395,7 +395,7 @@ func TestList_ScopeArg_ParsesOrgSlashProject(t *testing.T) {
 	require.NoError(t, err)
 	d.cmd.EXPECT().Printer("list").Return(tp, nil).AnyTimes()
 
-	err = runList(d.cmd, &listOptions{scopeArg: "myOrg/myProject"})
+	err = runList(d.cmd, &listOptions{scopeArg: "myOrg:myProject"})
 	require.NoError(t, err)
 	assert.Equal(t, "myOrg", buildOrg)
 	assert.Equal(t, "myProject", project)
@@ -428,7 +428,7 @@ func TestList_ScopeArg_DefaultOrg(t *testing.T) {
 func TestList_InvalidMaxItems(t *testing.T) {
 	t.Parallel()
 	d := newDeps(t, "")
-	err := runList(d.cmd, &listOptions{scopeArg: "org/Fabrikam", maxItems: -1})
+	err := runList(d.cmd, &listOptions{scopeArg: "org:Fabrikam", maxItems: -1})
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "--max-items")
 }

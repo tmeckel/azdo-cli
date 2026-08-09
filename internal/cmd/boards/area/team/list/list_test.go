@@ -69,7 +69,7 @@ func TestList_EmptyResult(t *testing.T) {
 		Return(&work.TeamFieldValues{Values: &[]work.TeamFieldValue{}}, nil)
 
 	cmd := NewCmd(deps.cmd)
-	cmd.SetArgs([]string{"myOrg/myProject/MyTeam"})
+	cmd.SetArgs([]string{"myOrg:myProject/MyTeam"})
 	err := cmd.Execute()
 	require.ErrorContains(t, err, "no team area paths found")
 }
@@ -87,7 +87,7 @@ func TestList_RendersTable(t *testing.T) {
 		Return(&work.TeamFieldValues{DefaultValue: types.ToPtr("Fabrikam/Frontend"), Values: &values}, nil)
 
 	cmd := NewCmd(deps.cmd)
-	cmd.SetArgs([]string{"myOrg/myProject/MyTeam"})
+	cmd.SetArgs([]string{"myOrg:myProject/MyTeam"})
 	err := cmd.Execute()
 	require.NoError(t, err)
 
@@ -119,7 +119,7 @@ func TestList_SortedOutput(t *testing.T) {
 		Return(&work.TeamFieldValues{DefaultValue: types.ToPtr("M/Path"), Values: &values}, nil)
 
 	cmd := NewCmd(deps.cmd)
-	cmd.SetArgs([]string{"myOrg/myProject/MyTeam"})
+	cmd.SetArgs([]string{"myOrg:myProject/MyTeam"})
 	err := cmd.Execute()
 	require.NoError(t, err)
 
@@ -141,7 +141,7 @@ func TestList_JSONOutput(t *testing.T) {
 		Return(&work.TeamFieldValues{DefaultValue: types.ToPtr("A/Path"), Values: &values}, nil)
 
 	cmd := NewCmd(deps.cmd)
-	cmd.SetArgs([]string{"myOrg/myProject/MyTeam", "--json=areaPath,includeChildren,isDefault"})
+	cmd.SetArgs([]string{"myOrg:myProject/MyTeam", "--json=areaPath,includeChildren,isDefault"})
 	err := cmd.Execute()
 	require.NoError(t, err)
 
@@ -164,14 +164,14 @@ func TestList_JSONOutput_EmptyValuesReturnsEmptyArray(t *testing.T) {
 		Return(&work.TeamFieldValues{Values: &[]work.TeamFieldValue{}}, nil)
 
 	cmd := NewCmd(deps.cmd)
-	cmd.SetArgs([]string{"myOrg/myProject/MyTeam", "--json=areaPath,includeChildren,isDefault"})
+	cmd.SetArgs([]string{"myOrg:myProject/MyTeam", "--json=areaPath,includeChildren,isDefault"})
 	err := cmd.Execute()
 	require.NoError(t, err)
 
 	assert.Equal(t, "[]\n", out.String())
 }
 
-func TestList_TargetArg_ParsesOrgSlashProjectSlashTeam(t *testing.T) {
+func TestList_TargetArg_ParsesOrgProjectTeam(t *testing.T) {
 	deps, _ := newDependencies(t, "myOrg")
 
 	var capturedArgs work.GetTeamFieldValuesArgs
@@ -182,7 +182,7 @@ func TestList_TargetArg_ParsesOrgSlashProjectSlashTeam(t *testing.T) {
 		})
 
 	cmd := NewCmd(deps.cmd)
-	cmd.SetArgs([]string{"myOrg/myProject/My Team"})
+	cmd.SetArgs([]string{"myOrg:myProject/My Team"})
 	err := cmd.Execute()
 	require.NoError(t, err)
 
@@ -217,7 +217,7 @@ func TestList_TargetArg_UsesDefaultOrganization(t *testing.T) {
 }
 
 func TestList_InvalidTargetArg(t *testing.T) {
-	run := func(arg string) {
+	run := func(arg string, wantErr string) {
 		t.Helper()
 
 		deps, _ := newDependencies(t, "myOrg")
@@ -226,11 +226,23 @@ func TestList_InvalidTargetArg(t *testing.T) {
 
 		err := cmd.Execute()
 		require.Error(t, err)
-		assert.Contains(t, err.Error(), "expected")
+		assert.Contains(t, err.Error(), wantErr)
 	}
 
-	run("myOrg")
-	run("myOrg/myProject/MyTeam/extra")
+	run("myOrg", "expected")
+	run("myOrg:myProject/MyTeam/extra", "expected")
+}
+
+func TestList_LegacyOrgSlashIsRejected(t *testing.T) {
+	// A legacy ORGANIZATION/PROJECT/TEAM input is structurally detectable in
+	// this fixed-target mode and must be rejected with ORG: guidance.
+	deps, _ := newDependencies(t, "myOrg")
+
+	cmd := NewCmd(deps.cmd)
+	cmd.SetArgs([]string{"myOrg/myProject/MyTeam"})
+	err := cmd.Execute()
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "legacy ORGANIZATION/... form is not supported, use ORG: syntax")
 }
 
 func TestList_WorkClientFactoryError(t *testing.T) {
@@ -248,7 +260,7 @@ func TestList_WorkClientFactoryError(t *testing.T) {
 	cmdCtx.EXPECT().ClientFactory().Return(clientFact).AnyTimes()
 	clientFact.EXPECT().Work(gomock.Any(), "myOrg").Return(nil, errors.New("boom"))
 	cmd := NewCmd(cmdCtx)
-	cmd.SetArgs([]string{"myOrg/myProject/MyTeam"})
+	cmd.SetArgs([]string{"myOrg:myProject/MyTeam"})
 	err := cmd.Execute()
 	require.ErrorContains(t, err, "failed to create Work client")
 	require.ErrorContains(t, err, "boom")
@@ -261,7 +273,7 @@ func TestList_GetTeamFieldValuesError(t *testing.T) {
 		Return(nil, errors.New("api failed"))
 
 	cmd := NewCmd(deps.cmd)
-	cmd.SetArgs([]string{"myOrg/myProject/MyTeam"})
+	cmd.SetArgs([]string{"myOrg:myProject/MyTeam"})
 	err := cmd.Execute()
 	require.ErrorContains(t, err, "failed to fetch team field values")
 	require.ErrorContains(t, err, "api failed")
@@ -293,7 +305,7 @@ func TestList_PrinterError(t *testing.T) {
 	deps.cmd.EXPECT().Printer("list").Return(nil, errors.New("printer failed"))
 
 	cmd := NewCmd(deps.cmd)
-	cmd.SetArgs([]string{"myOrg/myProject/MyTeam"})
+	cmd.SetArgs([]string{"myOrg:myProject/MyTeam"})
 	err := cmd.Execute()
 	require.ErrorContains(t, err, "printer failed")
 }
@@ -305,7 +317,7 @@ func TestList_NilResponse(t *testing.T) {
 		Return(nil, nil)
 
 	cmd := NewCmd(deps.cmd)
-	cmd.SetArgs([]string{"myOrg/myProject/MyTeam"})
+	cmd.SetArgs([]string{"myOrg:myProject/MyTeam"})
 	err := cmd.Execute()
 	require.ErrorContains(t, err, "no team area paths found")
 }
@@ -317,7 +329,7 @@ func TestList_NilValues(t *testing.T) {
 		Return(&work.TeamFieldValues{Values: nil}, nil)
 
 	cmd := NewCmd(deps.cmd)
-	cmd.SetArgs([]string{"myOrg/myProject/MyTeam"})
+	cmd.SetArgs([]string{"myOrg:myProject/MyTeam"})
 	err := cmd.Execute()
 	require.ErrorContains(t, err, "no team area paths found")
 }

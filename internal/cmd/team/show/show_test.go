@@ -82,7 +82,7 @@ func TestShow_TargetArg_ParsesOrgSlashProjectSlashTeam(t *testing.T) {
 		})
 
 	cmd := NewCmd(deps.cmd)
-	cmd.SetArgs([]string{"myOrg/myProject/My Team"})
+	cmd.SetArgs([]string{"myOrg:myProject/My Team"})
 	err := cmd.Execute()
 	require.NoError(t, err)
 }
@@ -124,7 +124,7 @@ func TestShow_TeamByGUID(t *testing.T) {
 		})
 
 	cmd := NewCmd(deps.cmd)
-	cmd.SetArgs([]string{"myOrg/myProject/00000002-0000-0000-0000-000000000000"})
+	cmd.SetArgs([]string{"myOrg:myProject/00000002-0000-0000-0000-000000000000"})
 	err := cmd.Execute()
 	require.NoError(t, err)
 }
@@ -145,7 +145,7 @@ func TestShow_JSONOutput(t *testing.T) {
 		}, nil)
 
 	cmd := NewCmd(deps.cmd)
-	cmd.SetArgs([]string{"myOrg/myProject/My Team", "--json"})
+	cmd.SetArgs([]string{"myOrg:myProject/My Team", "--json"})
 	err := cmd.Execute()
 	require.NoError(t, err)
 
@@ -176,7 +176,7 @@ func TestShow_TemplateOutput_BasicFields(t *testing.T) {
 		}, nil)
 
 	cmd := NewCmd(deps.cmd)
-	cmd.SetArgs([]string{"myOrg/myProject/My Team"})
+	cmd.SetArgs([]string{"myOrg:myProject/My Team"})
 	err := cmd.Execute()
 	require.NoError(t, err)
 
@@ -204,7 +204,7 @@ func TestShow_TemplateOutput_OnlyPresentFields(t *testing.T) {
 		}, nil)
 
 	cmd := NewCmd(deps.cmd)
-	cmd.SetArgs([]string{"myOrg/myProject/Minimal Team"})
+	cmd.SetArgs([]string{"myOrg:myProject/Minimal Team"})
 	err := cmd.Execute()
 	require.NoError(t, err)
 
@@ -232,6 +232,16 @@ func splitLines(s string) []string {
 	return lines
 }
 
+func TestShow_LegacyOrgSlashFormRejected(t *testing.T) {
+	deps := setupFakeDeps(t, "defaultOrg")
+
+	cmd := NewCmd(deps.cmd)
+	cmd.SetArgs([]string{"myOrg/myProject/My Team"})
+	err := cmd.Execute()
+	require.Error(t, err)
+	assert.ErrorContains(t, err, "legacy ORGANIZATION/... form is not supported, use ORG: syntax")
+}
+
 func TestShow_PropagatesSDKError(t *testing.T) {
 	deps := setupFakeDeps(t, "myOrg")
 
@@ -240,7 +250,7 @@ func TestShow_PropagatesSDKError(t *testing.T) {
 		Return(nil, assert.AnError)
 
 	cmd := NewCmd(deps.cmd)
-	cmd.SetArgs([]string{"myOrg/myProject/My Team"})
+	cmd.SetArgs([]string{"myOrg:myProject/My Team"})
 	err := cmd.Execute()
 	require.Error(t, err)
 	assert.ErrorContains(t, err, "failed to get team")

@@ -119,7 +119,8 @@ func TestRunList_RequestArgs(t *testing.T) {
 	}{
 		{name: "project root uses nil path", depsOrg: "default-org", scopeArg: "myproject", wantProj: "myproject", wantPath: nil},
 		{name: "subtree uses positional path", depsOrg: "org", scopeArg: "myproject/Release 2025", wantProj: "myproject", wantPath: types.ToPtr("Release%202025")},
-		{name: "explicit org stays explicit when unambiguous", depsOrg: "org", scopeArg: "org/myproject/Release 2025/Sprint 1", wantProj: "myproject", wantPath: types.ToPtr("Release%202025/Sprint%201")},
+		{name: "explicit org uses ORG: prefix", depsOrg: "org", scopeArg: "org:myproject/Release 2025/Sprint 1", wantProj: "myproject", wantPath: types.ToPtr("Release%202025/Sprint%201")},
+		{name: "legacy org slash is reinterpreted as project first", depsOrg: "default-org", scopeArg: "org/myproject/Release 2025/Sprint 1", wantProj: "org", wantPath: types.ToPtr("myproject/Release%202025/Sprint%201")},
 	}
 
 	for _, tc := range tests {
@@ -170,7 +171,7 @@ func TestRunList_ClientFactoryError(t *testing.T) {
 	auth.EXPECT().GetDefaultOrganization().Return("default-org", nil).AnyTimes()
 	clientFact.EXPECT().WorkItemTracking(gomock.Any(), "default-org").Return(nil, errors.New("boom"))
 
-	err := runList(cmd, &listOptions{scopeArg: "org/Fabrikam", depth: 3})
+	err := runList(cmd, &listOptions{scopeArg: "Fabrikam", depth: 3})
 
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "failed to create work item tracking client")

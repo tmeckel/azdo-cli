@@ -41,27 +41,32 @@ func TestRunCreate_ParameterValidation(t *testing.T) {
 		{
 			name:    "invalid new repo path too short",
 			opts:    &createOptions{repo: "onlyproj"},
-			wantErr: `not a valid repository name, expected the "[ORGANIZATION/]PROJECT/REPO" format, got "onlyproj"`,
+			wantErr: `not a valid repository name, expected the "[ORG:]PROJECT/REPO" format, got "onlyproj"`,
 		},
 		{
 			name:    "invalid new repo path too long",
 			opts:    &createOptions{repo: "a/b/c/d"},
-			wantErr: `not a valid repository name, expected the "[ORGANIZATION/]PROJECT/REPO" format, got "a/b/c/d"`,
+			wantErr: `not a valid repository name, expected the "[ORG:]PROJECT/REPO" format, got "a/b/c/d"`,
+		},
+		{
+			name:    "legacy org slash repo form",
+			opts:    &createOptions{repo: "org1/proj1/repo1"},
+			wantErr: `legacy ORGANIZATION/PROJECT/REPO form is not supported, use ORG: syntax`,
 		},
 		{
 			name:    "parent repo in different org",
-			opts:    &createOptions{repo: "org1/proj1/repo1", parentRepo: "org2/pX/rX"},
+			opts:    &createOptions{repo: "org1:proj1/repo1", parentRepo: "org2:pX/rX"},
 			wantErr: "annot fork across organizations: \"org1\" and \"org2\"",
 		},
 		{
 			name:    "parent repo in different default org",
-			opts:    &createOptions{repo: "proj1/repo1", parentRepo: "org2/pX/rX"},
+			opts:    &createOptions{repo: "proj1/repo1", parentRepo: "org2:pX/rX"},
 			wantErr: "annot fork across organizations: \"org1\" and \"org2\"",
 		},
 		{
 			name:    "invalid parent repo path",
-			opts:    &createOptions{repo: "org1/proj1/repo1", parentRepo: "a/b/c/d/e"},
-			wantErr: `not a valid repository name, expected the "[ORGANIZATION/]PROJECT/REPO" format, got "a/b/c/d/e"`,
+			opts:    &createOptions{repo: "org1:proj1/repo1", parentRepo: "a/b/c/d/e"},
+			wantErr: `not a valid repository name, expected the "[ORG:]PROJECT/REPO" format, got "a/b/c/d/e"`,
 		},
 		{
 			name:    "source-branch without parent",
@@ -90,16 +95,16 @@ func TestRunCreate_Fork(t *testing.T) {
 	}{
 		{
 			name: "fork without source branch",
-			opts: &createOptions{repo: "org1/proj1/repo1", parentRepo: "org1/pX/rX"},
+			opts: &createOptions{repo: "org1:proj1/repo1", parentRepo: "org1:pX/rX"},
 		},
 		{
 			name:        "fork with source branch",
-			opts:        &createOptions{repo: "org1/proj1/repo1", parentRepo: "org1/pX/rX", sourceBranch: "main"},
+			opts:        &createOptions{repo: "org1:proj1/repo1", parentRepo: "org1:pX/rX", sourceBranch: "main"},
 			expectedRef: types.ToPtr("refs/heads/main"),
 		},
 		{
 			name:        "fork with full source branch ref",
-			opts:        &createOptions{repo: "org1/proj1/repo1", parentRepo: "org1/pX/rX", sourceBranch: "refs/heads/main"},
+			opts:        &createOptions{repo: "org1:proj1/repo1", parentRepo: "org1:pX/rX", sourceBranch: "refs/heads/main"},
 			expectedRef: types.ToPtr("refs/heads/main"),
 		},
 	}
@@ -192,7 +197,7 @@ func TestRunCreate_APIInvocationAndOutput(t *testing.T) {
 	).Times(1)
 
 	opts := &createOptions{
-		repo: "org1/proj1/repo1",
+		repo: "org1:proj1/repo1",
 	}
 
 	err := runCreate(mCmdCtx, opts)

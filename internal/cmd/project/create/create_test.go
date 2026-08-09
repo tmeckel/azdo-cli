@@ -20,7 +20,7 @@ func TestNewCmd_mutuallyExclusiveFlags(t *testing.T) {
 	mockCmdCtx := mocks.NewMockCmdContext(ctrl)
 
 	cmd := NewCmd(mockCmdCtx)
-	cmd.SetArgs([]string{"myorg/myproject", "--no-wait", "--max-wait", "10"})
+	cmd.SetArgs([]string{"myorg:myproject", "--no-wait", "--max-wait", "10"})
 	err := cmd.Execute()
 	assert.Error(t, err)
 	assert.Equal(t, "--no-wait and --max-wait are mutually exclusive", err.Error())
@@ -35,17 +35,17 @@ func TestRunCommand_Negative(t *testing.T) {
 	}{
 		{
 			name:          "Invalid source control",
-			args:          []string{"myorg/myproject", "--source-control", "invalid"},
+			args:          []string{"myorg:myproject", "--source-control", "invalid"},
 			expectedError: "invalid source control type: invalid",
 		},
 		{
 			name:          "Invalid visibility",
-			args:          []string{"myorg/myproject", "--visibility", "invalid"},
+			args:          []string{"myorg:myproject", "--visibility", "invalid"},
 			expectedError: "invalid visibility: invalid",
 		},
 		{
 			name: "Process not found",
-			args: []string{"myorg/myproject", "--process", "nonexistent"},
+			args: []string{"myorg:myproject", "--process", "nonexistent"},
 			setupMocks: func(_ *mocks.MockCmdContext, _ *mocks.MockClientFactory, mockCoreClient *mocks.MockCoreClient, _ *mocks.MockOperationsClient) {
 				mockCoreClient.EXPECT().GetProcesses(gomock.Any(), gomock.Any()).Return(&[]core.Process{}, nil)
 			},
@@ -53,15 +53,20 @@ func TestRunCommand_Negative(t *testing.T) {
 		},
 		{
 			name: "GetProcesses API error",
-			args: []string{"myorg/myproject", "--process", "Agile"},
+			args: []string{"myorg:myproject", "--process", "Agile"},
 			setupMocks: func(_ *mocks.MockCmdContext, _ *mocks.MockClientFactory, mockCoreClient *mocks.MockCoreClient, _ *mocks.MockOperationsClient) {
 				mockCoreClient.EXPECT().GetProcesses(gomock.Any(), gomock.Any()).Return(nil, errors.New("API error"))
 			},
 			expectedError: "failed to get processes: API error",
 		},
 		{
+			name:          "Legacy org slash form rejected",
+			args:          []string{"myorg/myproject"},
+			expectedError: "legacy ORGANIZATION/... form is not supported, use ORG: syntax",
+		},
+		{
 			name: "QueueCreateProject API error",
-			args: []string{"myorg/myproject"},
+			args: []string{"myorg:myproject"},
 			setupMocks: func(_ *mocks.MockCmdContext, _ *mocks.MockClientFactory, mockCoreClient *mocks.MockCoreClient, _ *mocks.MockOperationsClient) {
 				processId := uuid.New()
 				agileString := "Agile"

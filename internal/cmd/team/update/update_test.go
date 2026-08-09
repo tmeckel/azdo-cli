@@ -25,7 +25,7 @@ func TestUpdate_RequiresNameOrDescription(t *testing.T) {
 	mockCmdCtx := mocks.NewMockCmdContext(ctrl)
 
 	cmd := NewCmd(mockCmdCtx)
-	cmd.SetArgs([]string{"myOrg/myProject/MyTeam"})
+	cmd.SetArgs([]string{"myOrg:myProject/MyTeam"})
 	err := cmd.Execute()
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "at least one of --name or --description is required")
@@ -103,7 +103,7 @@ func TestUpdate_TargetArg_ParsesOrgSlashProjectSlashTeam(t *testing.T) {
 		})
 
 	cmd := NewCmd(deps.cmd)
-	cmd.SetArgs([]string{"myOrg/myProject/My Team", "--name", "UpdatedTeam"})
+	cmd.SetArgs([]string{"myOrg:myProject/My Team", "--name", "UpdatedTeam"})
 	err := cmd.Execute()
 	require.NoError(t, err)
 }
@@ -171,7 +171,7 @@ func TestUpdate_PayloadContainsNameOnly(t *testing.T) {
 		})
 
 	cmd := NewCmd(deps.cmd)
-	cmd.SetArgs([]string{"myOrg/myProject/MyTeam", "--name", "NewName"})
+	cmd.SetArgs([]string{"myOrg:myProject/MyTeam", "--name", "NewName"})
 	err := cmd.Execute()
 	require.NoError(t, err)
 }
@@ -193,7 +193,7 @@ func TestUpdate_PayloadContainsDescriptionOnly(t *testing.T) {
 		})
 
 	cmd := NewCmd(deps.cmd)
-	cmd.SetArgs([]string{"myOrg/myProject/MyTeam", "--description", "NewDesc"})
+	cmd.SetArgs([]string{"myOrg:myProject/MyTeam", "--description", "NewDesc"})
 	err := cmd.Execute()
 	require.NoError(t, err)
 }
@@ -217,7 +217,7 @@ func TestUpdate_PayloadContainsBoth(t *testing.T) {
 		})
 
 	cmd := NewCmd(deps.cmd)
-	cmd.SetArgs([]string{"myOrg/myProject/MyTeam", "--name", "N", "--description", "D"})
+	cmd.SetArgs([]string{"myOrg:myProject/MyTeam", "--name", "N", "--description", "D"})
 	err := cmd.Execute()
 	require.NoError(t, err)
 }
@@ -237,7 +237,7 @@ func TestUpdate_JSONOutput(t *testing.T) {
 		}, nil)
 
 	cmd := NewCmd(deps.cmd)
-	cmd.SetArgs([]string{"myOrg/myProject/MyTeam", "--name", "MyTeam", "--json=id,name,description"})
+	cmd.SetArgs([]string{"myOrg:myProject/MyTeam", "--name", "MyTeam", "--json=id,name,description"})
 	err := cmd.Execute()
 	require.NoError(t, err)
 
@@ -268,7 +268,7 @@ func TestUpdate_TableOutput_ContainsAllColumns(t *testing.T) {
 		}, nil)
 
 	cmd := NewCmd(deps.cmd)
-	cmd.SetArgs([]string{"myOrg/myProject/MyTeam", "--name", "UpdatedTeam", "--description", "updated desc"})
+	cmd.SetArgs([]string{"myOrg:myProject/MyTeam", "--name", "UpdatedTeam", "--description", "updated desc"})
 	err := cmd.Execute()
 	require.NoError(t, err)
 
@@ -284,6 +284,16 @@ func TestUpdate_TableOutput_ContainsAllColumns(t *testing.T) {
 	assert.Contains(t, output, "myProject")
 }
 
+func TestUpdate_LegacyOrgSlashFormRejected(t *testing.T) {
+	deps := setupFakeUpdateDeps(t, "myOrg")
+
+	cmd := NewCmd(deps.cmd)
+	cmd.SetArgs([]string{"myOrg/myProject/MyTeam", "--name", "NewName"})
+	err := cmd.Execute()
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "legacy ORGANIZATION/... form is not supported, use ORG: syntax")
+}
+
 func TestUpdate_PropagatesSDKError(t *testing.T) {
 	deps := setupFakeUpdateDeps(t, "myOrg")
 
@@ -291,7 +301,7 @@ func TestUpdate_PropagatesSDKError(t *testing.T) {
 		Return(nil, errors.New("API error"))
 
 	cmd := NewCmd(deps.cmd)
-	cmd.SetArgs([]string{"myOrg/myProject/MyTeam", "--name", "MyTeam"})
+	cmd.SetArgs([]string{"myOrg:myProject/MyTeam", "--name", "MyTeam"})
 	err := cmd.Execute()
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "failed to update team: API error")

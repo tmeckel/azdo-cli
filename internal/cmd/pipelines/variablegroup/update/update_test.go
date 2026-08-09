@@ -27,7 +27,7 @@ func TestUpdateCmd_SuccessCases(t *testing.T) {
 	}{
 		{
 			name: "updates name and description",
-			args: []string{"org/project/123", "--name", "new name", "--description", "new desc"},
+			args: []string{"org:project/123", "--name", "new name", "--description", "new desc"},
 			setupMocks: func(t *testing.T, taskClient *mocks.MockTaskAgentClient, permClient *mocks.MockPipelinePermissionsClient, clientFactory *mocks.MockClientFactory) {
 				clientFactory.EXPECT().TaskAgent(gomock.Any(), "org").Return(taskClient, nil)
 				taskClient.EXPECT().GetVariableGroupsById(gomock.Any(), gomock.Any()).DoAndReturn(
@@ -77,7 +77,7 @@ func TestUpdateCmd_SuccessCases(t *testing.T) {
 		},
 		{
 			name: "authorize only",
-			args: []string{"org/project/123", "--authorize"},
+			args: []string{"org:project/123", "--authorize"},
 			setupMocks: func(t *testing.T, taskClient *mocks.MockTaskAgentClient, permClient *mocks.MockPipelinePermissionsClient, clientFactory *mocks.MockClientFactory) {
 				clientFactory.EXPECT().TaskAgent(gomock.Any(), "org").Return(taskClient, nil)
 				taskClient.EXPECT().GetVariableGroupsById(gomock.Any(), gomock.Any()).Return(
@@ -110,7 +110,7 @@ func TestUpdateCmd_SuccessCases(t *testing.T) {
 		},
 		{
 			name: "clears project references",
-			args: []string{"org/project/123", "--clear-project-references"},
+			args: []string{"org:project/123", "--clear-project-references"},
 			setupMocks: func(t *testing.T, taskClient *mocks.MockTaskAgentClient, permClient *mocks.MockPipelinePermissionsClient, clientFactory *mocks.MockClientFactory) {
 				clientFactory.EXPECT().TaskAgent(gomock.Any(), "org").Return(taskClient, nil)
 				taskClient.EXPECT().GetVariableGroupsById(gomock.Any(), gomock.Any()).Return(
@@ -177,17 +177,17 @@ func TestUpdateCmd_ValidationErrors(t *testing.T) {
 	}{
 		{
 			name:    "provider data flags mutually exclusive",
-			args:    []string{"org/project/123", "--provider-data-json", "{}", "--clear-provider-data"},
+			args:    []string{"org:project/123", "--provider-data-json", "{}", "--clear-provider-data"},
 			wantErr: "--provider-data-json and --clear-provider-data are mutually exclusive",
 		},
 		{
 			name:    "requires mutating flag",
-			args:    []string{"org/project/123"},
+			args:    []string{"org:project/123"},
 			wantErr: "at least one mutating flag must be supplied",
 		},
 		{
 			name:    "invalid provider data json",
-			args:    []string{"org/project/123", "--provider-data-json", "not-json"},
+			args:    []string{"org:project/123", "--provider-data-json", "not-json"},
 			wantErr: "invalid provider-data-json",
 			setupMocks: func(t *testing.T, cmdCtx *mocks.MockCmdContext, clientFactory *mocks.MockClientFactory, taskClient *mocks.MockTaskAgentClient) {
 				cmdCtx.EXPECT().ClientFactory().Return(clientFactory).AnyTimes()
@@ -250,7 +250,7 @@ func TestUpdateCmd_VariableGroupNotFound(t *testing.T) {
 	taskClient.EXPECT().GetVariableGroupsById(gomock.Any(), gomock.Any()).Return(&[]taskagent.VariableGroup{}, nil)
 
 	cmd := updatecmd.NewCmd(cmdCtx)
-	cmd.SetArgs([]string{"org/project/123", "--name", "new"})
+	cmd.SetArgs([]string{"org:project/123", "--name", "new"})
 
 	_, err := cmd.ExecuteC()
 	require.Error(t, err)
@@ -287,7 +287,7 @@ func TestUpdateCmd_AuthorizeFails(t *testing.T) {
 	permClient.EXPECT().UpdatePipelinePermisionsForResource(gomock.Any(), gomock.Any()).Return(nil, errors.New("perm failure"))
 
 	cmd := updatecmd.NewCmd(cmdCtx)
-	cmd.SetArgs([]string{"org/project/123", "--authorize"})
+	cmd.SetArgs([]string{"org:project/123", "--authorize"})
 
 	_, err := cmd.ExecuteC()
 	require.Error(t, err)

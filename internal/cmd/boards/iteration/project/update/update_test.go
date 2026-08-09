@@ -119,7 +119,7 @@ func TestNewCmd_RegistersAsUpdateLeaf(t *testing.T) {
 
 	assert.Equal(t, "update", cmd.Name())
 	assert.Equal(t, []string{"u", "up"}, cmd.Aliases)
-	assert.True(t, strings.HasPrefix(cmd.Use, "update [ORGANIZATION/]PROJECT[/PATH]/NAME"))
+	assert.True(t, strings.HasPrefix(cmd.Use, "update [ORG:]PROJECT[/PATH]/NAME"))
 	assert.Equal(t, "id,identifier,name,path,structureType,hasChildren,attributes,url,_links", cmd.Annotations["help:json-fields"])
 }
 
@@ -142,7 +142,7 @@ func TestRunUpdate_NoUpdateFlags(t *testing.T) {
 
 	deps := newDependencies(t, "org")
 
-	err := runUpdate(deps.cmd, &updateOptions{scopeArg: "org/Fabrikam/Release 2025/Sprint 1"})
+	err := runUpdate(deps.cmd, &updateOptions{scopeArg: "org:Fabrikam/Release 2025/Sprint 1"})
 
 	requireFlagError(t, err, "at least one of --start-date, --finish-date, or --attributes is required")
 }
@@ -154,7 +154,7 @@ func TestRunUpdate_InvalidTarget(t *testing.T) {
 
 	err := runUpdate(deps.cmd, &updateOptions{scopeArg: "org", startDate: "2025-01-06"})
 
-	requireFlagError(t, err, "expected 2-66 segments")
+	requireFlagError(t, err, "expected 1-64 targets, got 0")
 }
 
 func TestRunUpdate_RootNodeRejected(t *testing.T) {
@@ -164,7 +164,7 @@ func TestRunUpdate_RootNodeRejected(t *testing.T) {
 	deps.wit.EXPECT().GetClassificationNode(gomock.Any(), gomock.Any()).Times(0)
 	deps.wit.EXPECT().CreateOrUpdateClassificationNode(gomock.Any(), gomock.Any()).Times(0)
 
-	err := runUpdate(deps.cmd, &updateOptions{scopeArg: "org/Iteration", startDate: "2025-01-06"})
+	err := runUpdate(deps.cmd, &updateOptions{scopeArg: "org:Fabrikam/Iteration", startDate: "2025-01-06"})
 
 	requireFlagError(t, err, "target must reference a child of /Iteration")
 }
@@ -174,7 +174,7 @@ func TestRunUpdate_RequestArgs(t *testing.T) {
 
 	deps := newDependencies(t, "org")
 	opts := &updateOptions{
-		scopeArg:   "org/Fabrikam/Release 2025/Sprint 1",
+		scopeArg:   "org:Fabrikam/Release 2025/Sprint 1",
 		startDate:  "2025-01-06",
 		finishDate: "2025-01-19",
 		attributes: []string{"goal=Ship login"},
@@ -229,7 +229,8 @@ func TestRunUpdate_ProjectScopeParsing(t *testing.T) {
 		defaultOrg string
 	}{
 		{name: "project uses default organization", scopeArg: "proj/Sprint 1", org: "default-org", project: "proj", path: "Sprint%201", defaultOrg: "default-org"},
-		{name: "variable targets stay in path", scopeArg: "org/target1/target2/extra", org: "org", project: "target1", path: "target2/extra"},
+		{name: "variable targets stay in path", scopeArg: "org:target1/target2/extra", org: "org", project: "target1", path: "target2/extra"},
+		{name: "legacy org slash is reinterpreted as project first", scopeArg: "org/target1/target2/extra", org: "org", project: "org", path: "target1/target2/extra", defaultOrg: "org"},
 		{name: "empty scope", scopeArg: "", wantErr: "expected"},
 	}
 
@@ -324,7 +325,7 @@ func TestRunUpdate_ClientFactoryError(t *testing.T) {
 	auth.EXPECT().GetDefaultOrganization().Return("default-org", nil).AnyTimes()
 	clientFact.EXPECT().WorkItemTracking(gomock.Any(), "default-org").Return(nil, errors.New("boom"))
 
-	err := runUpdate(cmd, &updateOptions{scopeArg: "org/Fabrikam/Sprint 1", startDate: "2025-01-06"})
+	err := runUpdate(cmd, &updateOptions{scopeArg: "Fabrikam/Sprint 1", startDate: "2025-01-06"})
 
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "failed to get classification client")
@@ -336,7 +337,7 @@ func TestRunUpdate_GetError(t *testing.T) {
 	deps := newDependenciesWithDefaultOrg(t, "default-org")
 	deps.wit.EXPECT().GetClassificationNode(gomock.Any(), gomock.Any()).Return(nil, errors.New("boom"))
 
-	err := runUpdate(deps.cmd, &updateOptions{scopeArg: "org/Fabrikam/Sprint 1", startDate: "2025-01-06"})
+	err := runUpdate(deps.cmd, &updateOptions{scopeArg: "Fabrikam/Sprint 1", startDate: "2025-01-06"})
 
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "failed to fetch iteration")
@@ -351,7 +352,7 @@ func TestRunUpdate_MissingExistingID(t *testing.T) {
 	deps.wit.EXPECT().GetClassificationNode(gomock.Any(), gomock.Any()).Return(node, nil)
 	deps.wit.EXPECT().CreateOrUpdateClassificationNode(gomock.Any(), gomock.Any()).Times(0)
 
-	err := runUpdate(deps.cmd, &updateOptions{scopeArg: "org/Fabrikam/Sprint 1", startDate: "2025-01-06"})
+	err := runUpdate(deps.cmd, &updateOptions{scopeArg: "Fabrikam/Sprint 1", startDate: "2025-01-06"})
 
 	requireFlagError(t, err, "existing iteration has no ID")
 }
@@ -363,7 +364,7 @@ func TestRunUpdate_UpdateError(t *testing.T) {
 	deps.wit.EXPECT().GetClassificationNode(gomock.Any(), gomock.Any()).Return(existingUpdateNode(), nil)
 	deps.wit.EXPECT().CreateOrUpdateClassificationNode(gomock.Any(), gomock.Any()).Return(nil, errors.New("boom"))
 
-	err := runUpdate(deps.cmd, &updateOptions{scopeArg: "org/Fabrikam/Sprint 1", startDate: "2025-01-06"})
+	err := runUpdate(deps.cmd, &updateOptions{scopeArg: "Fabrikam/Sprint 1", startDate: "2025-01-06"})
 
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "failed to update iteration")
@@ -376,7 +377,7 @@ func TestRunUpdate_DefaultOutput(t *testing.T) {
 	deps.wit.EXPECT().GetClassificationNode(gomock.Any(), gomock.Any()).Return(existingUpdateNode(), nil)
 	deps.wit.EXPECT().CreateOrUpdateClassificationNode(gomock.Any(), gomock.Any()).Return(updatedUpdateNode(), nil)
 
-	err := runUpdate(deps.cmd, &updateOptions{scopeArg: "org/Fabrikam/Release 2025/Sprint 1", startDate: "2025-01-06", attributes: []string{"goal=Ship login"}})
+	err := runUpdate(deps.cmd, &updateOptions{scopeArg: "org:Fabrikam/Release 2025/Sprint 1", startDate: "2025-01-06", attributes: []string{"goal=Ship login"}})
 
 	require.NoError(t, err)
 	assert.Equal(t, "42\tSprint 1\tFabrikam/Iteration/Release 2025/Sprint 1\t2025-01-06T00:00:00Z\t2025-01-19T00:00:00Z\ttrue\n", deps.stdout.String())
@@ -398,7 +399,7 @@ func TestRunUpdate_JSONOutput(t *testing.T) {
 	deps.wit.EXPECT().GetClassificationNode(gomock.Any(), gomock.Any()).Return(existingUpdateNode(), nil)
 	deps.wit.EXPECT().CreateOrUpdateClassificationNode(gomock.Any(), gomock.Any()).Return(node, nil)
 
-	err := runUpdate(deps.cmd, &updateOptions{scopeArg: "org/Fabrikam/Release 2025/Sprint 1", startDate: "2025-01-06", attributes: []string{"goal=Ship login"}, exporter: util.NewJSONExporter()})
+	err := runUpdate(deps.cmd, &updateOptions{scopeArg: "org:Fabrikam/Release 2025/Sprint 1", startDate: "2025-01-06", attributes: []string{"goal=Ship login"}, exporter: util.NewJSONExporter()})
 
 	require.NoError(t, err)
 	var got struct {

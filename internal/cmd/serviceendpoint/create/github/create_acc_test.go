@@ -40,7 +40,7 @@ func TestAccCreateGitHubServiceEndpoint(t *testing.T) {
 						if err != nil {
 							return err
 						}
-						projectArg := fmt.Sprintf("%s/%s", ctx.Org(), projectName)
+						projectArg := fmt.Sprintf("%s:%s", ctx.Org(), projectName)
 
 						cmd := NewCmd(ctx)
 						cmd.SetArgs([]string{
@@ -135,7 +135,7 @@ func TestAccCreateGitHubServiceEndpoint(t *testing.T) {
 						if err != nil {
 							return err
 						}
-						projectArg := fmt.Sprintf("%s/%s", ctx.Org(), projectName)
+						projectArg := fmt.Sprintf("%s:%s", ctx.Org(), projectName)
 
 						cmd := NewCmd(ctx)
 						cmd.SetArgs([]string{

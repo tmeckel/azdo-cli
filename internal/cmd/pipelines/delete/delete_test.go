@@ -97,7 +97,7 @@ func TestNewCmd_RegistersAsDeleteLeaf(t *testing.T) {
 
 	cmd := NewCmd(nil)
 
-	assert.Equal(t, "delete [ORGANIZATION/]PROJECT/PIPELINE", cmd.Use)
+	assert.Equal(t, "delete [ORG:]PROJECT/PIPELINE", cmd.Use)
 	assert.ElementsMatch(t, []string{"d", "del", "rm"}, cmd.Aliases)
 	require.NotNil(t, cmd.RunE)
 	assert.Nil(t, cmd.Flags().Lookup("json"))
@@ -120,7 +120,7 @@ func TestRunDelete_ByPositiveID(t *testing.T) {
 	deps.expectDeleteDefinition("Fabrikam", 42, nil)
 
 	cmd := NewCmd(deps.cmd)
-	cmd.SetArgs([]string{"MyOrg/Fabrikam/42", "--yes"})
+	cmd.SetArgs([]string{"MyOrg:Fabrikam/42", "--yes"})
 	err := cmd.Execute()
 
 	require.NoError(t, err)
@@ -136,7 +136,7 @@ func TestRunDelete_ByName(t *testing.T) {
 	deps.expectDeleteDefinition("Fabrikam", 42, nil)
 
 	cmd := NewCmd(deps.cmd)
-	cmd.SetArgs([]string{"MyOrg/Fabrikam/My Pipeline"})
+	cmd.SetArgs([]string{"MyOrg:Fabrikam/My Pipeline"})
 	deps.prompter.EXPECT().Confirm("Are you sure you want to delete this pipeline?", false).Return(true, nil)
 	err := cmd.Execute()
 
@@ -162,7 +162,7 @@ func TestRunDelete_RejectsNonPositiveNumericID(t *testing.T) {
 	deps := setupDeleteDeps(t, "MyOrg")
 
 	cmd := NewCmd(deps.cmd)
-	cmd.SetArgs([]string{"MyOrg/Fabrikam/0", "--yes"})
+	cmd.SetArgs([]string{"MyOrg:Fabrikam/0", "--yes"})
 	err := cmd.Execute()
 
 	require.Error(t, err)
@@ -176,7 +176,7 @@ func TestRunDelete_NameNotFound(t *testing.T) {
 	deps.expectGetDefinitions("Fabrikam", "Ghost", &build.GetDefinitionsResponseValue{}, nil)
 
 	cmd := NewCmd(deps.cmd)
-	cmd.SetArgs([]string{"MyOrg/Fabrikam/Ghost", "--yes"})
+	cmd.SetArgs([]string{"MyOrg:Fabrikam/Ghost", "--yes"})
 	err := cmd.Execute()
 
 	require.Error(t, err)
@@ -195,7 +195,7 @@ func TestRunDelete_NameAmbiguous(t *testing.T) {
 	}, nil)
 
 	cmd := NewCmd(deps.cmd)
-	cmd.SetArgs([]string{"MyOrg/Fabrikam/SameName", "--yes"})
+	cmd.SetArgs([]string{"MyOrg:Fabrikam/SameName", "--yes"})
 	err := cmd.Execute()
 
 	require.Error(t, err)
@@ -208,7 +208,7 @@ func TestRunDelete_RequiresYesWhenNotInteractive(t *testing.T) {
 	deps := setupDeleteDepsWithPrompt(t, "MyOrg", false)
 
 	cmd := NewCmd(deps.cmd)
-	cmd.SetArgs([]string{"MyOrg/Fabrikam/42"})
+	cmd.SetArgs([]string{"MyOrg:Fabrikam/42"})
 	err := cmd.Execute()
 
 	require.Error(t, err)
@@ -222,7 +222,7 @@ func TestRunDelete_ConfirmationCanceled(t *testing.T) {
 	deps.prompter.EXPECT().Confirm("Are you sure you want to delete this pipeline?", false).Return(false, nil)
 
 	cmd := NewCmd(deps.cmd)
-	cmd.SetArgs([]string{"MyOrg/Fabrikam/42"})
+	cmd.SetArgs([]string{"MyOrg:Fabrikam/42"})
 	err := cmd.Execute()
 
 	require.ErrorIs(t, err, util.ErrCancel)
@@ -235,7 +235,7 @@ func TestRunDelete_PropagatesDeleteError(t *testing.T) {
 	deps.expectDeleteDefinition("Fabrikam", 42, errors.New("API error"))
 
 	cmd := NewCmd(deps.cmd)
-	cmd.SetArgs([]string{"MyOrg/Fabrikam/42", "--yes"})
+	cmd.SetArgs([]string{"MyOrg:Fabrikam/42", "--yes"})
 	err := cmd.Execute()
 
 	require.Error(t, err)

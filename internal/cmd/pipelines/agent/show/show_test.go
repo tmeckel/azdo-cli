@@ -45,7 +45,7 @@ func TestShowCmd_NumericTargets(t *testing.T) {
 	}, nil)
 
 	cmd := NewCmd(cmdCtx)
-	cmd.SetArgs([]string{"myorg/1/42"})
+	cmd.SetArgs([]string{"myorg:/1/42"})
 
 	_, err := cmd.ExecuteC()
 	require.NoError(t, err)
@@ -86,7 +86,7 @@ func TestShowCmd_JSONOutput(t *testing.T) {
 	}, nil)
 
 	cmd := NewCmd(cmdCtx)
-	cmd.SetArgs([]string{"myorg/1/42", "--json"})
+	cmd.SetArgs([]string{"myorg:/1/42", "--json"})
 
 	_, err := cmd.ExecuteC()
 	require.NoError(t, err)
@@ -134,7 +134,7 @@ func TestShowCmd_GetAgentError(t *testing.T) {
 	taskClient.EXPECT().GetAgent(gomock.Any(), gomock.Any()).Return(nil, errors.New("API failure"))
 
 	cmd := NewCmd(cmdCtx)
-	cmd.SetArgs([]string{"myorg/1/42"})
+	cmd.SetArgs([]string{"myorg:/1/42"})
 
 	_, err := cmd.ExecuteC()
 	require.Error(t, err)
@@ -159,13 +159,33 @@ func TestShowCmd_NoDefaultOrganization(t *testing.T) {
 	mockAuth.EXPECT().GetDefaultOrganization().Return("", nil)
 
 	cmd := NewCmd(cmdCtx)
-	cmd.SetArgs([]string{"1/42"})
+	cmd.SetArgs([]string{"/1/42"})
 
 	_, err := cmd.ExecuteC()
 	require.Error(t, err)
 	var flagErr *util.FlagError
 	assert.True(t, errors.As(err, &flagErr))
 	assert.Contains(t, err.Error(), "no organization specified")
+}
+
+func TestShowCmd_ProjectScopeRejected(t *testing.T) {
+	t.Parallel()
+	ctrl := gomock.NewController(t)
+	t.Cleanup(ctrl.Finish)
+
+	io, _, _, _ := iostreams.Test()
+
+	cmdCtx := mocks.NewMockCmdContext(ctrl)
+	cmdCtx.EXPECT().IOStreams().Return(io, nil).AnyTimes()
+
+	cmd := NewCmd(cmdCtx)
+	cmd.SetArgs([]string{"proj/1/42"})
+
+	_, err := cmd.ExecuteC()
+	require.Error(t, err)
+	var flagErr *util.FlagError
+	assert.True(t, errors.As(err, &flagErr))
+	assert.Contains(t, err.Error(), "project is not allowed")
 }
 
 func TestShowCmd_TooManyArgs(t *testing.T) {
@@ -179,7 +199,7 @@ func TestShowCmd_TooManyArgs(t *testing.T) {
 	cmdCtx.EXPECT().IOStreams().Return(io, nil).AnyTimes()
 
 	cmd := NewCmd(cmdCtx)
-	cmd.SetArgs([]string{"myorg/1/42", "extra"})
+	cmd.SetArgs([]string{"myorg:/1/42", "extra"})
 
 	_, err := cmd.ExecuteC()
 	require.Error(t, err)

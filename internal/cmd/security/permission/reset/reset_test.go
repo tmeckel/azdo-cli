@@ -34,7 +34,7 @@ func TestReset_SuccessRendersTable(t *testing.T) {
 	ctx := context.Background()
 	org := "org"
 	subject := "user@example.com"
-	target := org + "/" + subject
+	target := org + ":/" + subject
 	namespaceID := "11111111-1111-1111-1111-111111111111"
 	namespaceUUID := uuid.MustParse(namespaceID)
 	token := "repoV2/project/repo"
@@ -158,7 +158,7 @@ func TestReset_PromptDeclinedReturnsCancel(t *testing.T) {
 	ctx := context.Background()
 	org := "org"
 	subject := "user@example.com"
-	target := org + "/" + subject
+	target := org + ":/" + subject
 	namespaceID := "11111111-1111-1111-1111-111111111111"
 	namespaceUUID := uuid.MustParse(namespaceID)
 	token := "repoV2"
@@ -215,7 +215,7 @@ func TestReset_InvalidNamespaceID(t *testing.T) {
 	mCmdCtx.EXPECT().IOStreams().Return(ioStreams, nil).AnyTimes()
 
 	options := &opts{
-		rawTarget:   "org/user@example.com",
+		rawTarget:   "org:/user@example.com",
 		namespaceID: "not-a-guid",
 		token:       "repo",
 		permission:  []string{"Read"},
@@ -241,7 +241,7 @@ func TestReset_ParsePermissionBitsError(t *testing.T) {
 	ctx := context.Background()
 	org := "org"
 	subject := "user@example.com"
-	target := org + "/" + subject
+	target := org + ":/" + subject
 	namespaceID := "11111111-1111-1111-1111-111111111111"
 	namespaceUUID := uuid.MustParse(namespaceID)
 	token := "repo"
@@ -299,7 +299,7 @@ func TestReset_RemovePermissionFailure(t *testing.T) {
 	ctx := context.Background()
 	org := "org"
 	subject := "user@example.com"
-	target := org + "/" + subject
+	target := org + ":/" + subject
 	namespaceID := "11111111-1111-1111-1111-111111111111"
 	namespaceUUID := uuid.MustParse(namespaceID)
 	token := "repo"
@@ -356,7 +356,7 @@ func TestReset_QueryACLFails(t *testing.T) {
 	ctx := context.Background()
 	org := "org"
 	subject := "user@example.com"
-	target := org + "/" + subject
+	target := org + ":/" + subject
 	namespaceID := "11111111-1111-1111-1111-111111111111"
 	namespaceUUID := uuid.MustParse(namespaceID)
 	token := "repo"
@@ -414,7 +414,7 @@ func TestReset_NoPermissionsChangedMessage(t *testing.T) {
 	ctx := context.Background()
 	org := "org"
 	subject := "user@example.com"
-	target := org + "/" + subject
+	target := org + ":/" + subject
 	namespaceID := "11111111-1111-1111-1111-111111111111"
 	namespaceUUID := uuid.MustParse(namespaceID)
 	token := "repo"
@@ -475,7 +475,7 @@ func TestReset_ProjectScopeResolvesDescriptor(t *testing.T) {
 	org := "org"
 	project := "ProjectAlpha"
 	subject := "user@example.com"
-	target := org + "/" + project + "/" + subject
+	target := org + ":" + project + "/" + subject
 	namespaceID := "11111111-1111-1111-1111-111111111111"
 	namespaceUUID := uuid.MustParse(namespaceID)
 	token := "repoV2/project/repo"
@@ -555,7 +555,7 @@ func TestReset_IdentityDescriptorMissing(t *testing.T) {
 	ctx := context.Background()
 	org := "org"
 	subject := "user@example.com"
-	target := org + "/" + subject
+	target := org + ":/" + subject
 	namespaceID := "11111111-1111-1111-1111-111111111111"
 	token := "repo"
 

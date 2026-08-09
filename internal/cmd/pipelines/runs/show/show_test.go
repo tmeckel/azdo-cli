@@ -114,14 +114,14 @@ func TestNewCmd_RegistersAsShowLeaf(t *testing.T) {
 	assert.Equal(t, "show", cmd.Name())
 	assert.Contains(t, cmd.Aliases, "view")
 	assert.Contains(t, cmd.Aliases, "status")
-	assert.Contains(t, cmd.Use, "[ORGANIZATION/]PROJECT RUN_ID")
+	assert.Contains(t, cmd.Use, "[ORG:]PROJECT RUN_ID")
 }
 
 func TestRunShow_RunIDMustBeInteger(t *testing.T) {
 	t.Parallel()
 	d := newDeps(t, "MyOrg")
 
-	err := runShow(d.cmd, &showOptions{scopeArg: "MyOrg/Fabrikam"}, "abc")
+	err := runShow(d.cmd, &showOptions{scopeArg: "MyOrg:Fabrikam"}, "abc")
 	require.Error(t, err)
 	var fe *util.FlagError
 	assert.ErrorAs(t, err, &fe)
@@ -141,7 +141,7 @@ func TestRunShow_RunIDMustBePositive(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			d := newDeps(t, "MyOrg")
-			err := runShow(d.cmd, &showOptions{scopeArg: "MyOrg/Fabrikam"}, tt.rawID)
+			err := runShow(d.cmd, &showOptions{scopeArg: "MyOrg:Fabrikam"}, tt.rawID)
 			require.Error(t, err)
 			var fe *util.FlagError
 			assert.ErrorAs(t, err, &fe)
@@ -161,7 +161,7 @@ func TestRunShow_BasicCall(t *testing.T) {
 			return &buildObj, nil
 		})
 
-	err := runShow(d.cmd, &showOptions{scopeArg: "MyOrg/Fabrikam"}, "12345")
+	err := runShow(d.cmd, &showOptions{scopeArg: "MyOrg:Fabrikam"}, "12345")
 	require.NoError(t, err)
 }
 
@@ -178,7 +178,7 @@ func TestRunShow_TemplateOutput_BasicFields(t *testing.T) {
 
 	d.build.EXPECT().GetBuild(gomock.Any(), gomock.Any()).Return(&buildObj, nil)
 
-	err := runShow(d.cmd, &showOptions{scopeArg: "MyOrg/Fabrikam"}, "42")
+	err := runShow(d.cmd, &showOptions{scopeArg: "MyOrg:Fabrikam"}, "42")
 	require.NoError(t, err)
 
 	output := d.stdout.String()
@@ -199,7 +199,7 @@ func TestRunShow_TemplateOutput_Hyperlink(t *testing.T) {
 	buildObj := sampleBuild(1)
 	d.build.EXPECT().GetBuild(gomock.Any(), gomock.Any()).Return(&buildObj, nil)
 
-	err := runShow(d.cmd, &showOptions{scopeArg: "MyOrg/Fabrikam"}, "1")
+	err := runShow(d.cmd, &showOptions{scopeArg: "MyOrg:Fabrikam"}, "1")
 	require.NoError(t, err)
 
 	output := d.stdout.String()
@@ -219,7 +219,7 @@ func TestRunShow_TemplateOutput_DurationFormatted(t *testing.T) {
 
 	d.build.EXPECT().GetBuild(gomock.Any(), gomock.Any()).Return(&buildObj, nil)
 
-	err := runShow(d.cmd, &showOptions{scopeArg: "MyOrg/Fabrikam"}, "1")
+	err := runShow(d.cmd, &showOptions{scopeArg: "MyOrg:Fabrikam"}, "1")
 	require.NoError(t, err)
 
 	output := d.stdout.String()
@@ -236,7 +236,7 @@ func TestRunShow_TemplateOutput_NoDurationNotStarted(t *testing.T) {
 
 	d.build.EXPECT().GetBuild(gomock.Any(), gomock.Any()).Return(&buildObj, nil)
 
-	err := runShow(d.cmd, &showOptions{scopeArg: "MyOrg/Fabrikam"}, "1")
+	err := runShow(d.cmd, &showOptions{scopeArg: "MyOrg:Fabrikam"}, "1")
 	require.NoError(t, err)
 
 	output := d.stdout.String()
@@ -252,7 +252,7 @@ func TestRunShow_TemplateOutput_Tags(t *testing.T) {
 
 	d.build.EXPECT().GetBuild(gomock.Any(), gomock.Any()).Return(&buildObj, nil)
 
-	err := runShow(d.cmd, &showOptions{scopeArg: "MyOrg/Fabrikam"}, "1")
+	err := runShow(d.cmd, &showOptions{scopeArg: "MyOrg:Fabrikam"}, "1")
 	require.NoError(t, err)
 
 	output := d.stdout.String()
@@ -270,7 +270,7 @@ func TestRunShow_TemplateOutput_NoTags(t *testing.T) {
 
 	d.build.EXPECT().GetBuild(gomock.Any(), gomock.Any()).Return(&buildObj, nil)
 
-	err := runShow(d.cmd, &showOptions{scopeArg: "MyOrg/Fabrikam"}, "1")
+	err := runShow(d.cmd, &showOptions{scopeArg: "MyOrg:Fabrikam"}, "1")
 	require.NoError(t, err)
 
 	output := d.stdout.String()
@@ -291,7 +291,7 @@ func TestRunShow_TemplateOutput_DefinitionAndQueueNested(t *testing.T) {
 
 	d.build.EXPECT().GetBuild(gomock.Any(), gomock.Any()).Return(&buildObj, nil)
 
-	err := runShow(d.cmd, &showOptions{scopeArg: "MyOrg/Fabrikam"}, "1")
+	err := runShow(d.cmd, &showOptions{scopeArg: "MyOrg:Fabrikam"}, "1")
 	require.NoError(t, err)
 
 	output := d.stdout.String()
@@ -332,7 +332,7 @@ func TestRunShow_TemplateOutput_ResultVisibility(t *testing.T) {
 
 			d.build.EXPECT().GetBuild(gomock.Any(), gomock.Any()).Return(&buildObj, nil)
 
-			err := runShow(d.cmd, &showOptions{scopeArg: "MyOrg/Fabrikam"}, "1")
+			err := runShow(d.cmd, &showOptions{scopeArg: "MyOrg:Fabrikam"}, "1")
 			require.NoError(t, err)
 
 			output := d.stdout.String()
@@ -355,7 +355,7 @@ func TestRunShow_JSONOutput(t *testing.T) {
 
 	spy := &spyExporter{}
 	err := runShow(d.cmd, &showOptions{
-		scopeArg: "MyOrg/Fabrikam",
+		scopeArg: "MyOrg:Fabrikam",
 		exporter: spy,
 	}, "1")
 	require.NoError(t, err)
@@ -377,7 +377,7 @@ func TestRunShow_ProjectScopeParsing(t *testing.T) {
 		wantProj string
 		withCfg  bool
 	}{
-		{name: "org/project", scopeArg: "MyOrg/Fabrikam", wantOrg: "MyOrg", wantProj: "Fabrikam", withCfg: false},
+		{name: "org:project", scopeArg: "MyOrg:Fabrikam", wantOrg: "MyOrg", wantProj: "Fabrikam", withCfg: false},
 		{name: "project only uses config default", scopeArg: "Fabrikam", wantOrg: "default-org", wantProj: "Fabrikam", withCfg: true},
 	}
 
@@ -420,7 +420,7 @@ func TestRunShow_ClientFactoryError(t *testing.T) {
 	cmd.EXPECT().ClientFactory().Return(clientFact).AnyTimes()
 	clientFact.EXPECT().Build(gomock.Any(), "MyOrg").Return(nil, assert.AnError)
 
-	err := runShow(cmd, &showOptions{scopeArg: "MyOrg/Fabrikam"}, "1")
+	err := runShow(cmd, &showOptions{scopeArg: "MyOrg:Fabrikam"}, "1")
 	require.Error(t, err)
 	assert.ErrorIs(t, err, assert.AnError)
 }
@@ -431,7 +431,7 @@ func TestRunShow_SDKError(t *testing.T) {
 
 	d.build.EXPECT().GetBuild(gomock.Any(), gomock.Any()).Return(nil, assert.AnError)
 
-	err := runShow(d.cmd, &showOptions{scopeArg: "MyOrg/Fabrikam"}, "1")
+	err := runShow(d.cmd, &showOptions{scopeArg: "MyOrg:Fabrikam"}, "1")
 	require.Error(t, err)
 	assert.ErrorIs(t, err, assert.AnError)
 }

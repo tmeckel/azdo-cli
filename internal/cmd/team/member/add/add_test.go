@@ -128,7 +128,7 @@ func TestAdd_SingleMember_HappyPath(t *testing.T) {
 		Return(&graph.GraphMembership{}, nil)
 
 	cmd := NewCmd(deps.cmd)
-	cmd.SetArgs([]string{"myOrg/myProject/MyTeam", "--user", "user@example.com"})
+	cmd.SetArgs([]string{"myOrg:myProject/MyTeam", "--user", "user@example.com"})
 	err := cmd.Execute()
 	require.NoError(t, err)
 
@@ -153,7 +153,7 @@ func TestAdd_SingleMember_AlreadyMember(t *testing.T) {
 		Return(nil)
 
 	cmd := NewCmd(deps.cmd)
-	cmd.SetArgs([]string{"myOrg/myProject/MyTeam", "--user", "user@example.com"})
+	cmd.SetArgs([]string{"myOrg:myProject/MyTeam", "--user", "user@example.com"})
 	err := cmd.Execute()
 	require.NoError(t, err)
 
@@ -175,7 +175,7 @@ func TestAdd_SingleMember_Race_409OnAdd(t *testing.T) {
 		Return(nil, conflict())
 
 	cmd := NewCmd(deps.cmd)
-	cmd.SetArgs([]string{"myOrg/myProject/MyTeam", "--user", "user@example.com"})
+	cmd.SetArgs([]string{"myOrg:myProject/MyTeam", "--user", "user@example.com"})
 	err := cmd.Execute()
 	require.NoError(t, err)
 
@@ -189,7 +189,7 @@ func TestAdd_TeamNotFound(t *testing.T) {
 		Return(nil, fmt.Errorf("team not found"))
 
 	cmd := NewCmd(deps.cmd)
-	cmd.SetArgs([]string{"myOrg/myProject/NoTeam", "--user", "user@example.com"})
+	cmd.SetArgs([]string{"myOrg:myProject/NoTeam", "--user", "user@example.com"})
 	err := cmd.Execute()
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "team not found")
@@ -202,7 +202,7 @@ func TestAdd_TeamHasNoIdentity(t *testing.T) {
 		Return(&core.WebApiTeam{Name: types.ToPtr("NoIdentity")}, nil)
 
 	cmd := NewCmd(deps.cmd)
-	cmd.SetArgs([]string{"myOrg/myProject/MyTeam", "--user", "user@example.com"})
+	cmd.SetArgs([]string{"myOrg:myProject/MyTeam", "--user", "user@example.com"})
 	err := cmd.Execute()
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "no underlying descriptor")
@@ -219,7 +219,7 @@ func TestAdd_MemberNotFound(t *testing.T) {
 		Return(map[string]*graph.GraphSubject{}, nil)
 
 	cmd := NewCmd(deps.cmd)
-	cmd.SetArgs([]string{"myOrg/myProject/MyTeam", "--user", "ghost@x.com"})
+	cmd.SetArgs([]string{"myOrg:myProject/MyTeam", "--user", "ghost@x.com"})
 	err := cmd.Execute()
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "failed to resolve")
@@ -236,7 +236,7 @@ func TestAdd_MemberResolutionError(t *testing.T) {
 		Return(nil, errors.New("network down"))
 
 	cmd := NewCmd(deps.cmd)
-	cmd.SetArgs([]string{"myOrg/myProject/MyTeam", "--user", "ghost@x.com"})
+	cmd.SetArgs([]string{"myOrg:myProject/MyTeam", "--user", "ghost@x.com"})
 	err := cmd.Execute()
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "failed to resolve")
@@ -261,7 +261,7 @@ func TestAdd_TargetArg_ParsesOrgSlashProjectSlashTeam(t *testing.T) {
 		Return(&graph.GraphMembership{}, nil)
 
 	cmd := NewCmd(deps.cmd)
-	cmd.SetArgs([]string{"myCustomOrg/MyProject/MyTeam", "--user", "u@x.com"})
+	cmd.SetArgs([]string{"myCustomOrg:MyProject/MyTeam", "--user", "u@x.com"})
 	err := cmd.Execute()
 	require.NoError(t, err)
 
@@ -284,7 +284,7 @@ func TestAdd_JSONOutput_EnvelopeShape(t *testing.T) {
 		Return(&graph.GraphMembership{}, nil)
 
 	cmd := NewCmd(deps.cmd)
-	cmd.SetArgs([]string{"myOrg/myProject/MyTeam", "--user", "user@example.com", "--json"})
+	cmd.SetArgs([]string{"myOrg:myProject/MyTeam", "--user", "user@example.com", "--json"})
 	err := cmd.Execute()
 	require.NoError(t, err)
 
@@ -312,7 +312,7 @@ func TestAdd_JSONFieldFilter(t *testing.T) {
 		Return(&graph.GraphMembership{}, nil)
 
 	cmd := NewCmd(deps.cmd)
-	cmd.SetArgs([]string{"myOrg/myProject/MyTeam", "--user", "user@example.com", "--json=teamName"})
+	cmd.SetArgs([]string{"myOrg:myProject/MyTeam", "--user", "user@example.com", "--json=teamName"})
 	err := cmd.Execute()
 	require.NoError(t, err)
 
@@ -327,7 +327,7 @@ func TestAdd_MissingUserFlag(t *testing.T) {
 	deps, _ := setupFakeDeps(t, "myOrg")
 
 	cmd := NewCmd(deps.cmd)
-	cmd.SetArgs([]string{"myOrg/myProject/MyTeam"})
+	cmd.SetArgs([]string{"myOrg:myProject/MyTeam"})
 	err := cmd.Execute()
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "required flag")
@@ -358,7 +358,7 @@ func TestAdd_Bulk_MultipleMembersAdded(t *testing.T) {
 		Return(&graph.GraphMembership{}, nil).Times(3)
 
 	cmd := NewCmd(deps.cmd)
-	cmd.SetArgs([]string{"myOrg/myProject/MyTeam", "-u", "alice@c.com", "-u", "bob@c.com", "-u", "charlie@c.com"})
+	cmd.SetArgs([]string{"myOrg:myProject/MyTeam", "-u", "alice@c.com", "-u", "bob@c.com", "-u", "charlie@c.com"})
 	err := cmd.Execute()
 	require.NoError(t, err)
 
@@ -401,7 +401,7 @@ func TestAdd_Bulk_MixedResults(t *testing.T) {
 	)
 
 	cmd := NewCmd(deps.cmd)
-	cmd.SetArgs([]string{"myOrg/myProject/MyTeam", "-u", "alice@c.com", "-u", "bob@c.com", "-u", "error@c.com"})
+	cmd.SetArgs([]string{"myOrg:myProject/MyTeam", "-u", "alice@c.com", "-u", "bob@c.com", "-u", "error@c.com"})
 	err := cmd.Execute()
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "failed to add member")
@@ -429,7 +429,7 @@ func TestAdd_Bulk_DedupePreservesInputOrder(t *testing.T) {
 		Return(&graph.GraphMembership{}, nil).Times(2)
 
 	cmd := NewCmd(deps.cmd)
-	cmd.SetArgs([]string{"myOrg/myProject/MyTeam", "-u", "alice@c.com", "-u", "bob@c.com", "-u", "alice@c.com"})
+	cmd.SetArgs([]string{"myOrg:myProject/MyTeam", "-u", "alice@c.com", "-u", "bob@c.com", "-u", "alice@c.com"})
 	err := cmd.Execute()
 	require.NoError(t, err)
 
@@ -465,7 +465,7 @@ func TestAdd_Bulk_ExitCodePartialSuccess(t *testing.T) {
 	)
 
 	cmd := NewCmd(deps.cmd)
-	cmd.SetArgs([]string{"myOrg/myProject/MyTeam", "-u", "alice@c.com", "-u", "error@c.com"})
+	cmd.SetArgs([]string{"myOrg:myProject/MyTeam", "-u", "alice@c.com", "-u", "error@c.com"})
 	err := cmd.Execute()
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "failed to add member")
@@ -489,7 +489,7 @@ func TestAdd_Bulk_JSONEnvelopeShape(t *testing.T) {
 		Return(&graph.GraphMembership{}, nil).Times(2)
 
 	cmd := NewCmd(deps.cmd)
-	cmd.SetArgs([]string{"myOrg/myProject/MyTeam", "-u", "alice@c.com", "-u", "bob@c.com", "--json"})
+	cmd.SetArgs([]string{"myOrg:myProject/MyTeam", "-u", "alice@c.com", "-u", "bob@c.com", "--json"})
 	err := cmd.Execute()
 	require.NoError(t, err)
 
@@ -517,7 +517,7 @@ func TestAdd_Bulk_TableHasNoGroupColumn(t *testing.T) {
 		Return(&graph.GraphMembership{}, nil)
 
 	cmd := NewCmd(deps.cmd)
-	cmd.SetArgs([]string{"myOrg/myProject/MyTeam", "--user", "user@example.com"})
+	cmd.SetArgs([]string{"myOrg:myProject/MyTeam", "--user", "user@example.com"})
 	err := cmd.Execute()
 	require.NoError(t, err)
 
@@ -528,4 +528,66 @@ func TestAdd_Bulk_TableHasNoGroupColumn(t *testing.T) {
 	assert.Contains(t, output, "Alice")
 	assert.Contains(t, output, "aad.Y")
 	assert.Contains(t, output, "added")
+}
+
+func TestAdd_LegacyOrgSlashFormRejected(t *testing.T) {
+	deps, _ := setupFakeDeps(t, "myOrg")
+
+	cmd := NewCmd(deps.cmd)
+	cmd.SetArgs([]string{"myOrg/myProject/MyTeam", "--user", "user@example.com"})
+	err := cmd.Execute()
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "legacy ORGANIZATION/... form is not supported, use ORG: syntax")
+}
+
+func TestAdd_DefaultsToConfiguredOrganization(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	t.Cleanup(ctrl.Finish)
+
+	ios, _, out, _ := iostreams.Test()
+	ios.SetStdoutTTY(false)
+	ios.SetStderrTTY(false)
+
+	mockCmdCtx := mocks.NewMockCmdContext(ctrl)
+	mockClientFactory := mocks.NewMockClientFactory(ctrl)
+	mockCoreClient := mocks.NewMockCoreClient(ctrl)
+	mockGraphClient := mocks.NewMockGraphClient(ctrl)
+	mockExtClient := mocks.NewMockAzDOExtension(ctrl)
+	mockConfig := mocks.NewMockConfig(ctrl)
+	mockAuthCfg := mocks.NewMockAuthConfig(ctrl)
+
+	defaultOrg := "defaultOrg"
+
+	mockCmdCtx.EXPECT().Config().Return(mockConfig, nil).AnyTimes()
+	mockConfig.EXPECT().Authentication().Return(mockAuthCfg).AnyTimes()
+	mockAuthCfg.EXPECT().GetDefaultOrganization().Return(defaultOrg, nil).AnyTimes()
+	mockCmdCtx.EXPECT().IOStreams().Return(ios, nil).AnyTimes()
+	mockCmdCtx.EXPECT().Context().Return(context.Background()).AnyTimes()
+	mockCmdCtx.EXPECT().ClientFactory().Return(mockClientFactory).AnyTimes()
+	mockClientFactory.EXPECT().Core(gomock.Any(), defaultOrg).Return(mockCoreClient, nil).AnyTimes()
+	mockClientFactory.EXPECT().Graph(gomock.Any(), defaultOrg).Return(mockGraphClient, nil).AnyTimes()
+	mockClientFactory.EXPECT().Extensions(gomock.Any(), defaultOrg).Return(mockExtClient, nil).AnyTimes()
+
+	mockCoreClient.EXPECT().GetTeam(gomock.Any(), gomock.Any()).
+		DoAndReturn(func(_ context.Context, args core.GetTeamArgs) (*core.WebApiTeam, error) {
+			assert.Equal(t, "myProject", *args.ProjectId)
+			return teamResult("vssgp.X", "My Team"), nil
+		})
+	mockExtClient.EXPECT().ResolveSubjects(gomock.Any(), gomock.Any()).
+		Return(map[string]*graph.GraphSubject{
+			"user@example.com": subject("aad.Y", "Alice", "aad", "l"),
+		}, nil)
+	mockGraphClient.EXPECT().CheckMembershipExistence(gomock.Any(), gomock.Any()).
+		Return(notFound())
+	mockGraphClient.EXPECT().AddMembership(gomock.Any(), gomock.Any()).
+		Return(&graph.GraphMembership{}, nil)
+
+	tp, err := printer.NewTablePrinter(out, false, 200)
+	require.NoError(t, err)
+	mockCmdCtx.EXPECT().Printer(gomock.Any()).Return(tp, nil).AnyTimes()
+
+	cmd := NewCmd(mockCmdCtx)
+	cmd.SetArgs([]string{"myProject/MyTeam", "--user", "user@example.com"})
+	err = cmd.Execute()
+	require.NoError(t, err)
 }

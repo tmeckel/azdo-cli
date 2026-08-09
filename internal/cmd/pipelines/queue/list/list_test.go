@@ -85,7 +85,7 @@ func TestNewCmd(t *testing.T) {
 	t.Parallel()
 
 	cmd := NewCmd(nil)
-	assert.Equal(t, "list [ORGANIZATION/]PROJECT", cmd.Use)
+	assert.Equal(t, "list [ORG:]PROJECT", cmd.Use)
 	assert.ElementsMatch(t, []string{"ls", "l"}, cmd.Aliases)
 	assert.NotNil(t, cmd.RunE)
 	assert.Equal(t, "", cmd.Flag("action-filter").DefValue)
@@ -107,7 +107,7 @@ func TestRun_ScopeResolution(t *testing.T) {
 		defaultOrg   string
 		taskAgentOrg string
 	}{
-		{name: "explicit org", scope: "myorg/Fabrikam", taskAgentOrg: "myorg"},
+		{name: "explicit org", scope: "myorg:Fabrikam", taskAgentOrg: "myorg"},
 		{name: "default org", scope: "Fabrikam", defaultOrg: "default-org", taskAgentOrg: "default-org"},
 	}
 
@@ -146,9 +146,9 @@ func TestRun_InvalidInput(t *testing.T) {
 		opts    opts
 		wantErr string
 	}{
-		{name: "invalid project scope", opts: opts{scope: "org/project/extra"}, wantErr: "invalid project argument"},
-		{name: "negative max items", opts: opts{scope: "org/project", maxItems: -1}, wantErr: "invalid --max-items"},
-		{name: "invalid action filter", opts: opts{scope: "org/project", actionFilter: types.ToPtr("view")}, wantErr: "invalid action filter"},
+		{name: "invalid project scope", opts: opts{scope: "org:project/extra"}, wantErr: "invalid project argument"},
+		{name: "negative max items", opts: opts{scope: "org:project", maxItems: -1}, wantErr: "invalid --max-items"},
+		{name: "invalid action filter", opts: opts{scope: "org:project", actionFilter: types.ToPtr("view")}, wantErr: "invalid action filter"},
 	}
 
 	for _, tt := range tests {
@@ -179,7 +179,7 @@ func TestRun_SDKError(t *testing.T) {
 	deps := newDependencies(t, "org")
 	deps.taskClient.EXPECT().GetAgentQueues(gomock.Any(), gomock.Any()).Return(nil, fmt.Errorf("API error"))
 
-	err := run(deps.cmd, &opts{scope: "org/project"})
+	err := run(deps.cmd, &opts{scope: "org:project"})
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "API error")
 }
@@ -211,7 +211,7 @@ func TestRun_ActionFilter(t *testing.T) {
 			require.NoError(t, err)
 			deps.cmd.EXPECT().Printer("list").Return(tp, nil).AnyTimes()
 
-			err = run(deps.cmd, &opts{scope: "org/project", actionFilter: tt.actionFilter})
+			err = run(deps.cmd, &opts{scope: "org:project", actionFilter: tt.actionFilter})
 			require.NoError(t, err)
 		})
 	}
@@ -235,7 +235,7 @@ func TestRun_BasicCall(t *testing.T) {
 	require.NoError(t, err)
 	deps.cmd.EXPECT().Printer("list").Return(tp, nil).AnyTimes()
 
-	err = run(deps.cmd, &opts{scope: "myorg/Fabrikam"})
+	err = run(deps.cmd, &opts{scope: "myorg:Fabrikam"})
 	require.NoError(t, err)
 
 	assert.Contains(t, deps.stdout.String(), "7\tDefault\tpool-1\t11111111-1111-1111-1111-111111111111")
@@ -261,7 +261,7 @@ func TestRun_FilterByNameAndMaxItemsCap(t *testing.T) {
 	require.NoError(t, err)
 	deps.cmd.EXPECT().Printer("list").Return(tp, nil).AnyTimes()
 
-	err = run(deps.cmd, &opts{scope: "org/project", name: "Default", maxItems: 1})
+	err = run(deps.cmd, &opts{scope: "org:project", name: "Default", maxItems: 1})
 	require.NoError(t, err)
 
 	assert.Contains(t, deps.stdout.String(), "Default")
@@ -276,7 +276,7 @@ func TestRun_JSONOutput(t *testing.T) {
 	deps.taskClient.EXPECT().GetAgentQueues(gomock.Any(), gomock.Any()).Return(&queues, nil)
 
 	exporter := util.NewJSONExporter()
-	err := run(deps.cmd, &opts{scope: "org/project", exporter: exporter})
+	err := run(deps.cmd, &opts{scope: "org:project", exporter: exporter})
 	require.NoError(t, err)
 
 	var parsed []map[string]any

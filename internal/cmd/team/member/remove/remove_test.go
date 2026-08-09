@@ -118,7 +118,7 @@ func TestRemove_SingleMember_HappyPath_YesFlag(t *testing.T) {
 		Return(nil)
 
 	cmd := NewCmd(deps.cmd)
-	cmd.SetArgs([]string{"myOrg/myProject/MyTeam", "-u", "alice@c.com", "-y"})
+	cmd.SetArgs([]string{"myOrg:myProject/MyTeam", "-u", "alice@c.com", "-y"})
 	err := cmd.Execute()
 	require.NoError(t, err)
 
@@ -142,7 +142,7 @@ func TestRemove_SingleMember_InteractiveCancel(t *testing.T) {
 	deps.prompter.EXPECT().Confirm(gomock.Any(), false).Return(false, nil)
 
 	cmd := NewCmd(deps.cmd)
-	cmd.SetArgs([]string{"myOrg/myProject/MyTeam", "-u", "alice@c.com"})
+	cmd.SetArgs([]string{"myOrg:myProject/MyTeam", "-u", "alice@c.com"})
 	err := cmd.Execute()
 	require.Error(t, err)
 	assert.True(t, errors.Is(err, util.ErrCancel), "expected ErrCancel")
@@ -159,7 +159,7 @@ func TestRemove_SingleMember_NotAMember(t *testing.T) {
 		Return(notFound())
 
 	cmd := NewCmd(deps.cmd)
-	cmd.SetArgs([]string{"myOrg/myProject/MyTeam", "-u", "alice@c.com", "-y"})
+	cmd.SetArgs([]string{"myOrg:myProject/MyTeam", "-u", "alice@c.com", "-y"})
 	err := cmd.Execute()
 	require.NoError(t, err)
 
@@ -179,7 +179,7 @@ func TestRemove_SingleMember_Race_404OnRemove(t *testing.T) {
 		Return(notFound())
 
 	cmd := NewCmd(deps.cmd)
-	cmd.SetArgs([]string{"myOrg/myProject/MyTeam", "-u", "alice@c.com", "-y"})
+	cmd.SetArgs([]string{"myOrg:myProject/MyTeam", "-u", "alice@c.com", "-y"})
 	err := cmd.Execute()
 	require.NoError(t, err)
 
@@ -193,7 +193,7 @@ func TestRemove_TeamNotFound(t *testing.T) {
 		Return(nil, fmt.Errorf("team not found"))
 
 	cmd := NewCmd(deps.cmd)
-	cmd.SetArgs([]string{"myOrg/myProject/NoTeam", "-u", "alice@c.com", "-y"})
+	cmd.SetArgs([]string{"myOrg:myProject/NoTeam", "-u", "alice@c.com", "-y"})
 	err := cmd.Execute()
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "team not found")
@@ -206,7 +206,7 @@ func TestRemove_TeamHasNoIdentity(t *testing.T) {
 		Return(&core.WebApiTeam{Name: types.ToPtr("NoIdentity")}, nil)
 
 	cmd := NewCmd(deps.cmd)
-	cmd.SetArgs([]string{"myOrg/myProject/MyTeam", "-u", "alice@c.com", "-y"})
+	cmd.SetArgs([]string{"myOrg:myProject/MyTeam", "-u", "alice@c.com", "-y"})
 	err := cmd.Execute()
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "no underlying descriptor")
@@ -222,7 +222,7 @@ func TestRemove_MemberNotFound(t *testing.T) {
 		Return(nil, errors.New("not found"))
 
 	cmd := NewCmd(deps.cmd)
-	cmd.SetArgs([]string{"myOrg/myProject/MyTeam", "-u", "ghost@x.com", "-y"})
+	cmd.SetArgs([]string{"myOrg:myProject/MyTeam", "-u", "ghost@x.com", "-y"})
 	err := cmd.Execute()
 	require.Error(t, err)
 	assert.Contains(t, buf.String(), "not found")
@@ -246,7 +246,7 @@ func TestRemove_TargetArg_ParsesOrgSlashProjectSlashTeam(t *testing.T) {
 		Return(nil)
 
 	cmd := NewCmd(deps.cmd)
-	cmd.SetArgs([]string{"myCustomOrg/MyProject/MyTeam", "-u", "u@x.com", "-y"})
+	cmd.SetArgs([]string{"myCustomOrg:MyProject/MyTeam", "-u", "u@x.com", "-y"})
 	err := cmd.Execute()
 	require.NoError(t, err)
 
@@ -267,7 +267,7 @@ func TestRemove_JSONOutput_EnvelopeShape(t *testing.T) {
 		Return(nil)
 
 	cmd := NewCmd(deps.cmd)
-	cmd.SetArgs([]string{"myOrg/myProject/MyTeam", "-u", "alice@c.com", "-y", "--json"})
+	cmd.SetArgs([]string{"myOrg:myProject/MyTeam", "-u", "alice@c.com", "-y", "--json"})
 	err := cmd.Execute()
 	require.NoError(t, err)
 
@@ -301,7 +301,7 @@ func TestRemove_Bulk_DedupePreservesInputOrder(t *testing.T) {
 		Return(nil).Times(2)
 
 	cmd := NewCmd(deps.cmd)
-	cmd.SetArgs([]string{"myOrg/myProject/MyTeam", "-u", "alice@c.com", "-u", "bob@c.com", "-u", "alice@c.com", "-y"})
+	cmd.SetArgs([]string{"myOrg:myProject/MyTeam", "-u", "alice@c.com", "-u", "bob@c.com", "-u", "alice@c.com", "-y"})
 	err := cmd.Execute()
 	require.NoError(t, err)
 
@@ -335,7 +335,7 @@ func TestRemove_Bulk_ExitCodePartialSuccess(t *testing.T) {
 	)
 
 	cmd := NewCmd(deps.cmd)
-	cmd.SetArgs([]string{"myOrg/myProject/MyTeam", "-u", "alice@c.com", "-u", "error@c.com", "-y"})
+	cmd.SetArgs([]string{"myOrg:myProject/MyTeam", "-u", "alice@c.com", "-u", "error@c.com", "-y"})
 	err := cmd.Execute()
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "failure(s)")
@@ -361,7 +361,7 @@ func TestRemove_Bulk_Prompt_NotShownWhenAllNotAMember(t *testing.T) {
 	// No RemoveMembership calls expected
 
 	cmd := NewCmd(deps.cmd)
-	cmd.SetArgs([]string{"myOrg/myProject/MyTeam", "-u", "alice@c.com", "-u", "bob@c.com"})
+	cmd.SetArgs([]string{"myOrg:myProject/MyTeam", "-u", "alice@c.com", "-u", "bob@c.com"})
 	err := cmd.Execute()
 	require.NoError(t, err)
 
@@ -375,8 +375,68 @@ func TestRemove_MissingUserFlag(t *testing.T) {
 	deps, _ := setupFakeDeps(t, "myOrg")
 
 	cmd := NewCmd(deps.cmd)
-	cmd.SetArgs([]string{"myOrg/myProject/MyTeam"})
+	cmd.SetArgs([]string{"myOrg:myProject/MyTeam"})
 	err := cmd.Execute()
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "required flag")
+}
+
+func TestRemove_LegacyOrgSlashFormRejected(t *testing.T) {
+	deps, _ := setupFakeDeps(t, "myOrg")
+
+	cmd := NewCmd(deps.cmd)
+	cmd.SetArgs([]string{"myOrg/myProject/MyTeam", "-u", "alice@c.com", "-y"})
+	err := cmd.Execute()
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "legacy ORGANIZATION/... form is not supported, use ORG: syntax")
+}
+
+func TestRemove_DefaultsToConfiguredOrganization(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	t.Cleanup(ctrl.Finish)
+
+	ios, _, out, _ := iostreams.Test()
+	ios.SetStdoutTTY(false)
+	ios.SetStderrTTY(false)
+
+	mockCmdCtx := mocks.NewMockCmdContext(ctrl)
+	mockClientFactory := mocks.NewMockClientFactory(ctrl)
+	mockCoreClient := mocks.NewMockCoreClient(ctrl)
+	mockGraphClient := mocks.NewMockGraphClient(ctrl)
+	mockExtClient := mocks.NewMockAzDOExtension(ctrl)
+	mockConfig := mocks.NewMockConfig(ctrl)
+	mockAuthCfg := mocks.NewMockAuthConfig(ctrl)
+
+	defaultOrg := "defaultOrg"
+
+	mockCmdCtx.EXPECT().Config().Return(mockConfig, nil).AnyTimes()
+	mockConfig.EXPECT().Authentication().Return(mockAuthCfg).AnyTimes()
+	mockAuthCfg.EXPECT().GetDefaultOrganization().Return(defaultOrg, nil).AnyTimes()
+	mockCmdCtx.EXPECT().IOStreams().Return(ios, nil).AnyTimes()
+	mockCmdCtx.EXPECT().Context().Return(context.Background()).AnyTimes()
+	mockCmdCtx.EXPECT().ClientFactory().Return(mockClientFactory).AnyTimes()
+	mockClientFactory.EXPECT().Core(gomock.Any(), defaultOrg).Return(mockCoreClient, nil).AnyTimes()
+	mockClientFactory.EXPECT().Graph(gomock.Any(), defaultOrg).Return(mockGraphClient, nil).AnyTimes()
+	mockClientFactory.EXPECT().Extensions(gomock.Any(), defaultOrg).Return(mockExtClient, nil).AnyTimes()
+
+	mockCoreClient.EXPECT().GetTeam(gomock.Any(), gomock.Any()).
+		DoAndReturn(func(_ context.Context, args core.GetTeamArgs) (*core.WebApiTeam, error) {
+			assert.Equal(t, "myProject", *args.ProjectId)
+			return teamResult("vssgp.X", "My Team"), nil
+		})
+	mockExtClient.EXPECT().ResolveSubject(gomock.Any(), "alice@c.com").
+		Return(subject("aad.1", "Alice", "aad", "la"), nil)
+	mockGraphClient.EXPECT().CheckMembershipExistence(gomock.Any(), gomock.Any()).
+		Return(nil)
+	mockGraphClient.EXPECT().RemoveMembership(gomock.Any(), gomock.Any()).
+		Return(nil)
+
+	tp, err := printer.NewTablePrinter(out, false, 200)
+	require.NoError(t, err)
+	mockCmdCtx.EXPECT().Printer(gomock.Any()).Return(tp, nil).AnyTimes()
+
+	cmd := NewCmd(mockCmdCtx)
+	cmd.SetArgs([]string{"myProject/MyTeam", "-u", "alice@c.com", "-y"})
+	err = cmd.Execute()
+	require.NoError(t, err)
 }

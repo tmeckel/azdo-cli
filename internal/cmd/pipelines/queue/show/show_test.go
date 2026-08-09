@@ -87,7 +87,7 @@ func TestNewCmd_RegistersAsShowLeaf(t *testing.T) {
 	assert.Equal(t, "show", cmd.Name())
 	assert.Contains(t, cmd.Aliases, "view")
 	assert.Contains(t, cmd.Aliases, "status")
-	assert.True(t, strings.HasPrefix(cmd.Use, "show [ORGANIZATION/]PROJECT/QUEUE"))
+	assert.True(t, strings.HasPrefix(cmd.Use, "show [ORG:]PROJECT/QUEUE"))
 	assert.NotNil(t, cmd.RunE)
 }
 
@@ -116,7 +116,7 @@ func TestRunShow_ResolveByPositiveInteger(t *testing.T) {
 			return sampleQueue(), nil
 		})
 
-	opts := &showOptions{targetArg: "myorg/Fabrikam/7"}
+	opts := &showOptions{targetArg: "myorg:Fabrikam/7"}
 	err := runShow(deps.cmd, opts)
 	require.NoError(t, err)
 }
@@ -138,7 +138,7 @@ func TestRunShow_ResolveByName(t *testing.T) {
 			return sampleQueue(), nil
 		})
 
-	opts := &showOptions{targetArg: "myorg/Fabrikam/Default"}
+	opts := &showOptions{targetArg: "myorg:Fabrikam/Default"}
 	err := runShow(deps.cmd, opts)
 	require.NoError(t, err)
 }
@@ -155,7 +155,7 @@ func TestRunShow_TemplateOutput_BasicFields(t *testing.T) {
 			return sampleQueue(), nil
 		})
 
-	opts := &showOptions{targetArg: "myorg/Fabrikam/7"}
+	opts := &showOptions{targetArg: "myorg:Fabrikam/7"}
 	err := runShow(deps.cmd, opts)
 	require.NoError(t, err)
 
@@ -171,7 +171,7 @@ func TestRunShow_InvalidQueueID(t *testing.T) {
 	deps := newDependencies(t)
 	deps.clientFact.EXPECT().TaskAgent(gomock.Any(), "myorg").Return(deps.taskClient, nil)
 
-	opts := &showOptions{targetArg: "myorg/Fabrikam/0"}
+	opts := &showOptions{targetArg: "myorg:Fabrikam/0"}
 	err := runShow(deps.cmd, opts)
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "invalid queue id 0")
@@ -190,7 +190,7 @@ func TestRunShow_TemplateOutput_Pool_Nested(t *testing.T) {
 	}
 	deps.taskClient.EXPECT().GetAgentQueue(gomock.Any(), gomock.Any()).Return(q, nil)
 
-	opts := &showOptions{targetArg: "myorg/Fabrikam/7"}
+	opts := &showOptions{targetArg: "myorg:Fabrikam/7"}
 	err := runShow(deps.cmd, opts)
 	require.NoError(t, err)
 
@@ -208,7 +208,7 @@ func TestRunShow_TemplateOutput_NoPool(t *testing.T) {
 	q.Pool = nil
 	deps.taskClient.EXPECT().GetAgentQueue(gomock.Any(), gomock.Any()).Return(q, nil)
 
-	opts := &showOptions{targetArg: "myorg/Fabrikam/7"}
+	opts := &showOptions{targetArg: "myorg:Fabrikam/7"}
 	err := runShow(deps.cmd, opts)
 	require.NoError(t, err)
 
@@ -224,7 +224,7 @@ func TestRunShow_JSONOutput(t *testing.T) {
 	deps.taskClient.EXPECT().GetAgentQueue(gomock.Any(), gomock.Any()).Return(sampleQueue(), nil)
 
 	exporter := util.NewJSONExporter()
-	opts := &showOptions{targetArg: "myorg/Fabrikam/7", exporter: exporter}
+	opts := &showOptions{targetArg: "myorg:Fabrikam/7", exporter: exporter}
 	err := runShow(deps.cmd, opts)
 	require.NoError(t, err)
 
@@ -248,7 +248,7 @@ func TestRunShow_ProjectScopeParsing(t *testing.T) {
 	}{
 		{
 			name:      "explicit org",
-			targetArg: "myorg/Fabrikam/7",
+			targetArg: "myorg:Fabrikam/7",
 			wantOrg:   "myorg",
 		},
 		{
@@ -259,7 +259,7 @@ func TestRunShow_ProjectScopeParsing(t *testing.T) {
 		},
 		{
 			name:      "invalid input with too many segments",
-			targetArg: "org/proj/extra/7",
+			targetArg: "org:proj/extra/7",
 			wantErr:   "invalid input",
 		},
 		{
@@ -300,7 +300,7 @@ func TestRunShow_ClientFactoryError(t *testing.T) {
 	expectedErr := fmt.Errorf("connection failed")
 	deps.clientFact.EXPECT().TaskAgent(gomock.Any(), "myorg").Return(nil, expectedErr)
 
-	opts := &showOptions{targetArg: "myorg/Fabrikam/7"}
+	opts := &showOptions{targetArg: "myorg:Fabrikam/7"}
 	err := runShow(deps.cmd, opts)
 	require.Error(t, err)
 	assert.ErrorIs(t, err, expectedErr)
@@ -314,7 +314,7 @@ func TestRunShow_ResolveByName_ListError(t *testing.T) {
 	expectedErr := fmt.Errorf("list failed")
 	deps.taskClient.EXPECT().GetAgentQueues(gomock.Any(), gomock.Any()).Return(nil, expectedErr)
 
-	opts := &showOptions{targetArg: "myorg/Fabrikam/Default"}
+	opts := &showOptions{targetArg: "myorg:Fabrikam/Default"}
 	err := runShow(deps.cmd, opts)
 	require.Error(t, err)
 	assert.ErrorIs(t, err, expectedErr)
@@ -331,7 +331,7 @@ func TestRunShow_ResolveByName_MultipleMatches(t *testing.T) {
 	}
 	deps.taskClient.EXPECT().GetAgentQueues(gomock.Any(), gomock.Any()).Return(&queueList, nil)
 
-	opts := &showOptions{targetArg: "myorg/Fabrikam/Default"}
+	opts := &showOptions{targetArg: "myorg:Fabrikam/Default"}
 	err := runShow(deps.cmd, opts)
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "multiple queues named")
@@ -347,7 +347,7 @@ func TestRunShow_ResolveByName_MissingID(t *testing.T) {
 	}
 	deps.taskClient.EXPECT().GetAgentQueues(gomock.Any(), gomock.Any()).Return(&queueList, nil)
 
-	opts := &showOptions{targetArg: "myorg/Fabrikam/Default"}
+	opts := &showOptions{targetArg: "myorg:Fabrikam/Default"}
 	err := runShow(deps.cmd, opts)
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), `queue "Default" returned without an ID`)
@@ -361,7 +361,7 @@ func TestRunShow_ResolveByName_NotFound(t *testing.T) {
 	queueList := []taskagent.TaskAgentQueue{{Id: types.ToPtr(7), Name: types.ToPtr("Other")}}
 	deps.taskClient.EXPECT().GetAgentQueues(gomock.Any(), gomock.Any()).Return(&queueList, nil)
 
-	opts := &showOptions{targetArg: "myorg/Fabrikam/Default"}
+	opts := &showOptions{targetArg: "myorg:Fabrikam/Default"}
 	err := runShow(deps.cmd, opts)
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), `queue "Default" not found`)
@@ -375,7 +375,7 @@ func TestRunShow_SDKError(t *testing.T) {
 	expectedErr := fmt.Errorf("API error")
 	deps.taskClient.EXPECT().GetAgentQueue(gomock.Any(), gomock.Any()).Return(nil, expectedErr)
 
-	opts := &showOptions{targetArg: "myorg/Fabrikam/7"}
+	opts := &showOptions{targetArg: "myorg:Fabrikam/7"}
 	err := runShow(deps.cmd, opts)
 	require.Error(t, err)
 	assert.ErrorIs(t, err, expectedErr)

@@ -117,7 +117,7 @@ func TestNewCmd_RegistersAsShowLeaf(t *testing.T) {
 	assert.Equal(t, "show", cmd.Name())
 	assert.Contains(t, cmd.Aliases, "view")
 	assert.Contains(t, cmd.Aliases, "status")
-	assert.Contains(t, cmd.Use, "show [ORGANIZATION/]PROJECT/PIPELINE")
+	assert.Contains(t, cmd.Use, "show [ORG:]PROJECT/PIPELINE")
 }
 
 func TestNewCmd_RequiresOneArg(t *testing.T) {
@@ -136,7 +136,7 @@ func TestRunShow_ResolveByPositiveInteger(t *testing.T) {
 	d.setupBuildClient()
 	d.expectGetDefinition("Fabrikam", 42, sampleDef(t), nil)
 
-	opts := &showOptions{scopeArg: "MyOrg/Fabrikam/42"}
+	opts := &showOptions{scopeArg: "MyOrg:Fabrikam/42"}
 	err := runShow(d.cmd, opts)
 	require.NoError(t, err)
 }
@@ -158,7 +158,7 @@ func TestRunShow_RejectsNonPositiveNumericPipelineID(t *testing.T) {
 			d := newDependencies(t, "MyOrg")
 			d.setupBuildClient()
 
-			opts := &showOptions{scopeArg: "MyOrg/Fabrikam/" + tt.raw}
+			opts := &showOptions{scopeArg: "MyOrg:Fabrikam/" + tt.raw}
 			err := runShow(d.cmd, opts)
 			require.Error(t, err)
 			assert.Contains(t, err.Error(), "pipeline id must be greater than zero")
@@ -181,7 +181,7 @@ func TestRunShow_ResolveByName(t *testing.T) {
 
 	d.expectGetDefinition("Fabrikam", 42, sampleDef(t), nil)
 
-	opts := &showOptions{scopeArg: "MyOrg/Fabrikam/MyPipeline"}
+	opts := &showOptions{scopeArg: "MyOrg:Fabrikam/MyPipeline"}
 	err := runShow(d.cmd, opts)
 	require.NoError(t, err)
 
@@ -198,7 +198,7 @@ func TestRunShow_NameNotFound(t *testing.T) {
 		Value: []build.BuildDefinitionReference{},
 	}, nil)
 
-	opts := &showOptions{scopeArg: "MyOrg/Fabrikam/NonExistent"}
+	opts := &showOptions{scopeArg: "MyOrg:Fabrikam/NonExistent"}
 	err := runShow(d.cmd, opts)
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "not found")
@@ -218,7 +218,7 @@ func TestRunShow_NameAmbiguous(t *testing.T) {
 		},
 	}, nil)
 
-	opts := &showOptions{scopeArg: "MyOrg/Fabrikam/SameName"}
+	opts := &showOptions{scopeArg: "MyOrg:Fabrikam/SameName"}
 	err := runShow(d.cmd, opts)
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "ambiguous")
@@ -230,7 +230,7 @@ func TestRunShow_TemplateOutput_BasicFields(t *testing.T) {
 	d.setupBuildClient()
 	d.setupGetDefinition(sampleDef(t), nil)
 
-	opts := &showOptions{scopeArg: "MyOrg/Fabrikam/42"}
+	opts := &showOptions{scopeArg: "MyOrg:Fabrikam/42"}
 	err := runShow(d.cmd, opts)
 	require.NoError(t, err)
 
@@ -250,7 +250,7 @@ func TestRunShow_ResolveByNameQueryError(t *testing.T) {
 	d.setupBuildClient()
 	d.expectGetDefinitionsByName("Fabrikam", "MyPipeline", nil, fmt.Errorf("lookup failed"))
 
-	opts := &showOptions{scopeArg: "MyOrg/Fabrikam/MyPipeline"}
+	opts := &showOptions{scopeArg: "MyOrg:Fabrikam/MyPipeline"}
 	err := runShow(d.cmd, opts)
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "failed to query pipeline definitions")
@@ -266,7 +266,7 @@ func TestRunShow_ResolveByNameWithEmptyDefinitionID(t *testing.T) {
 		Value: []build.BuildDefinitionReference{{Name: &defName}},
 	}, nil)
 
-	opts := &showOptions{scopeArg: "MyOrg/Fabrikam/MyPipeline"}
+	opts := &showOptions{scopeArg: "MyOrg:Fabrikam/MyPipeline"}
 	err := runShow(d.cmd, opts)
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "returned empty id")
@@ -278,7 +278,7 @@ func TestRunShow_TemplateOutput_URL(t *testing.T) {
 	d.setupBuildClient()
 	d.setupGetDefinition(sampleDef(t), nil)
 
-	opts := &showOptions{scopeArg: "MyOrg/Fabrikam/42"}
+	opts := &showOptions{scopeArg: "MyOrg:Fabrikam/42"}
 	err := runShow(d.cmd, opts)
 	require.NoError(t, err)
 
@@ -300,7 +300,7 @@ func TestRunShow_TemplateOutput_DescriptionMarkdown(t *testing.T) {
 	}`
 	d.setupGetDefinition(defFromJSON(t, defJSON), nil)
 
-	opts := &showOptions{scopeArg: "MyOrg/Fabrikam/1"}
+	opts := &showOptions{scopeArg: "MyOrg:Fabrikam/1"}
 	err := runShow(d.cmd, opts)
 	require.NoError(t, err)
 
@@ -323,7 +323,7 @@ func TestRunShow_TemplateOutput_NoDescription(t *testing.T) {
 	}`
 	d.setupGetDefinition(defFromJSON(t, defJSON), nil)
 
-	opts := &showOptions{scopeArg: "MyOrg/Fabrikam/1"}
+	opts := &showOptions{scopeArg: "MyOrg:Fabrikam/1"}
 	err := runShow(d.cmd, opts)
 	require.NoError(t, err)
 
@@ -337,7 +337,7 @@ func TestRunShow_TemplateOutput_ProcessAndRepository_Nested(t *testing.T) {
 	d.setupBuildClient()
 	d.setupGetDefinition(sampleDef(t), nil)
 
-	opts := &showOptions{scopeArg: "MyOrg/Fabrikam/42"}
+	opts := &showOptions{scopeArg: "MyOrg:Fabrikam/42"}
 	err := runShow(d.cmd, opts)
 	require.NoError(t, err)
 
@@ -355,7 +355,7 @@ func TestRunShow_JSONOutput(t *testing.T) {
 	d.expectGetDefinition("Fabrikam", 42, sampleDef(t), nil)
 
 	cmd := NewCmd(d.cmd)
-	cmd.SetArgs([]string{"--json", "MyOrg/Fabrikam/42"})
+	cmd.SetArgs([]string{"--json", "MyOrg:Fabrikam/42"})
 	err := cmd.Execute()
 	require.NoError(t, err)
 
@@ -374,7 +374,7 @@ func TestRunShow_ProjectScopeParsing(t *testing.T) {
 		org     string
 		wantErr bool
 	}{
-		{name: "three segments", scope: "MyOrg/Fabrikam/42", org: "MyOrg", wantErr: false},
+		{name: "three segments", scope: "MyOrg:Fabrikam/42", org: "MyOrg", wantErr: false},
 		{name: "two segments", scope: "Fabrikam/42", org: "Fabrikam", wantErr: false},
 		{name: "empty", scope: "", org: "", wantErr: true},
 	}
@@ -426,7 +426,7 @@ func TestRunShow_ClientFactoryError(t *testing.T) {
 
 	clientFact.EXPECT().Build(gomock.Any(), gomock.Any()).Return(nil, assert.AnError).Times(1)
 
-	opts := &showOptions{scopeArg: "MyOrg/Fabrikam/42"}
+	opts := &showOptions{scopeArg: "MyOrg:Fabrikam/42"}
 	err := runShow(cmd, opts)
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "failed to create Build client")
@@ -438,7 +438,7 @@ func TestRunShow_APIFetchError(t *testing.T) {
 	d.setupBuildClient()
 	d.setupGetDefinition(nil, fmt.Errorf("API returned status 500"))
 
-	opts := &showOptions{scopeArg: "MyOrg/Fabrikam/42"}
+	opts := &showOptions{scopeArg: "MyOrg:Fabrikam/42"}
 	err := runShow(d.cmd, opts)
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "failed to fetch pipeline definition")

@@ -63,7 +63,7 @@ func TestAccDeleteServiceEndpoint(t *testing.T) {
 					if projectName == "" || endpointName == "" {
 						return fmt.Errorf("missing project or endpoint name in context")
 					}
-					target := fmt.Sprintf("%s/%s/%s", ctx.Org(), projectName, endpointName)
+					target := fmt.Sprintf("%s:%s/%s", ctx.Org(), projectName, endpointName)
 					opts := &deleteOptions{
 						targetArg: target,
 						yes:       true,

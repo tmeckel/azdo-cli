@@ -3,6 +3,7 @@ package show
 import (
 	"bytes"
 	"context"
+	"errors"
 	"fmt"
 	"regexp"
 	"strings"
@@ -104,7 +105,7 @@ func TestNewCmd_RegistersAsShowLeaf(t *testing.T) {
 	assert.Equal(t, "show", cmd.Name())
 	assert.Contains(t, cmd.Aliases, "view")
 	assert.Contains(t, cmd.Aliases, "status")
-	assert.True(t, strings.HasPrefix(cmd.Use, "show [ORGANIZATION/]POOL"))
+	assert.True(t, strings.HasPrefix(cmd.Use, "show [ORG:]/POOL"))
 	assert.NotNil(t, cmd.RunE)
 }
 
@@ -134,7 +135,7 @@ func TestRunShow_ResolveByPositiveInteger(t *testing.T) {
 			return samplePool(), nil
 		})
 
-	opts := &showOptions{targetArg: "myorg/7"}
+	opts := &showOptions{targetArg: "myorg:/7"}
 	err := runShow(deps.cmd, opts)
 	require.NoError(t, err)
 }
@@ -156,7 +157,7 @@ func TestRunShow_ResolveByName(t *testing.T) {
 			return samplePool(), nil
 		})
 
-	opts := &showOptions{targetArg: "myorg/Default"}
+	opts := &showOptions{targetArg: "myorg:/Default"}
 	err := runShow(deps.cmd, opts)
 	require.NoError(t, err)
 }
@@ -168,7 +169,7 @@ func TestRunShow_BasicCall(t *testing.T) {
 	deps.clientFact.EXPECT().TaskAgent(gomock.Any(), "myorg").Return(deps.taskClient, nil)
 	deps.taskClient.EXPECT().GetAgentPool(gomock.Any(), gomock.Any()).Return(samplePool(), nil)
 
-	opts := &showOptions{targetArg: "myorg/7"}
+	opts := &showOptions{targetArg: "myorg:/7"}
 	err := runShow(deps.cmd, opts)
 	require.NoError(t, err)
 
@@ -185,7 +186,7 @@ func TestRunShow_OrgFromConfigDefault(t *testing.T) {
 	deps.clientFact.EXPECT().TaskAgent(gomock.Any(), "myorg").Return(deps.taskClient, nil)
 	deps.taskClient.EXPECT().GetAgentPool(gomock.Any(), gomock.Any()).Return(samplePool(), nil)
 
-	opts := &showOptions{targetArg: "7"}
+	opts := &showOptions{targetArg: "/7"}
 	err := runShow(deps.cmd, opts)
 	require.NoError(t, err)
 
@@ -200,7 +201,7 @@ func TestRunShow_OrgFromPositional(t *testing.T) {
 	deps.clientFact.EXPECT().TaskAgent(gomock.Any(), "otherorg").Return(deps.taskClient, nil)
 	deps.taskClient.EXPECT().GetAgentPool(gomock.Any(), gomock.Any()).Return(samplePool(), nil)
 
-	opts := &showOptions{targetArg: "otherorg/7"}
+	opts := &showOptions{targetArg: "otherorg:/7"}
 	err := runShow(deps.cmd, opts)
 	require.NoError(t, err)
 
@@ -215,7 +216,7 @@ func TestRunShow_TemplateOutput_BasicFields(t *testing.T) {
 	deps.clientFact.EXPECT().TaskAgent(gomock.Any(), "myorg").Return(deps.taskClient, nil)
 	deps.taskClient.EXPECT().GetAgentPool(gomock.Any(), gomock.Any()).Return(samplePool(), nil)
 
-	opts := &showOptions{targetArg: "myorg/7"}
+	opts := &showOptions{targetArg: "myorg:/7"}
 	err := runShow(deps.cmd, opts)
 	require.NoError(t, err)
 
@@ -237,7 +238,7 @@ func TestRunShow_TemplateOutput_NoCreatedBy(t *testing.T) {
 	pool.CreatedBy = nil
 	deps.taskClient.EXPECT().GetAgentPool(gomock.Any(), gomock.Any()).Return(pool, nil)
 
-	opts := &showOptions{targetArg: "myorg/7"}
+	opts := &showOptions{targetArg: "myorg:/7"}
 	err := runShow(deps.cmd, opts)
 	require.NoError(t, err)
 
@@ -255,7 +256,7 @@ func TestRunShow_TemplateOutput_NoOwner(t *testing.T) {
 	pool.Owner = nil
 	deps.taskClient.EXPECT().GetAgentPool(gomock.Any(), gomock.Any()).Return(pool, nil)
 
-	opts := &showOptions{targetArg: "myorg/7"}
+	opts := &showOptions{targetArg: "myorg:/7"}
 	err := runShow(deps.cmd, opts)
 	require.NoError(t, err)
 
@@ -273,7 +274,7 @@ func TestRunShow_TemplateOutput_AutoUpdateTrue(t *testing.T) {
 	pool.AutoUpdate = types.ToPtr(true)
 	deps.taskClient.EXPECT().GetAgentPool(gomock.Any(), gomock.Any()).Return(pool, nil)
 
-	opts := &showOptions{targetArg: "myorg/7"}
+	opts := &showOptions{targetArg: "myorg:/7"}
 	err := runShow(deps.cmd, opts)
 	require.NoError(t, err)
 
@@ -291,7 +292,7 @@ func TestRunShow_TemplateOutput_AutoUpdateFalse(t *testing.T) {
 	pool.AutoUpdate = types.ToPtr(false)
 	deps.taskClient.EXPECT().GetAgentPool(gomock.Any(), gomock.Any()).Return(pool, nil)
 
-	opts := &showOptions{targetArg: "myorg/7"}
+	opts := &showOptions{targetArg: "myorg:/7"}
 	err := runShow(deps.cmd, opts)
 	require.NoError(t, err)
 
@@ -309,7 +310,7 @@ func TestRunShow_TemplateOutput_AutoProvisionTrue(t *testing.T) {
 	pool.AutoProvision = types.ToPtr(true)
 	deps.taskClient.EXPECT().GetAgentPool(gomock.Any(), gomock.Any()).Return(pool, nil)
 
-	opts := &showOptions{targetArg: "myorg/7"}
+	opts := &showOptions{targetArg: "myorg:/7"}
 	err := runShow(deps.cmd, opts)
 	require.NoError(t, err)
 
@@ -327,7 +328,7 @@ func TestRunShow_TemplateOutput_IsHosted(t *testing.T) {
 	pool.IsHosted = types.ToPtr(true)
 	deps.taskClient.EXPECT().GetAgentPool(gomock.Any(), gomock.Any()).Return(pool, nil)
 
-	opts := &showOptions{targetArg: "myorg/7"}
+	opts := &showOptions{targetArg: "myorg:/7"}
 	err := runShow(deps.cmd, opts)
 	require.NoError(t, err)
 
@@ -345,7 +346,7 @@ func TestRunShow_TemplateOutput_IsLegacy(t *testing.T) {
 	pool.IsLegacy = types.ToPtr(true)
 	deps.taskClient.EXPECT().GetAgentPool(gomock.Any(), gomock.Any()).Return(pool, nil)
 
-	opts := &showOptions{targetArg: "myorg/7"}
+	opts := &showOptions{targetArg: "myorg:/7"}
 	err := runShow(deps.cmd, opts)
 	require.NoError(t, err)
 
@@ -361,7 +362,7 @@ func TestRunShow_TemplateOutput_CreatedOn(t *testing.T) {
 
 	deps.taskClient.EXPECT().GetAgentPool(gomock.Any(), gomock.Any()).Return(samplePool(), nil)
 
-	opts := &showOptions{targetArg: "myorg/7"}
+	opts := &showOptions{targetArg: "myorg:/7"}
 	err := runShow(deps.cmd, opts)
 	require.NoError(t, err)
 
@@ -378,7 +379,7 @@ func TestRunShow_JSONOutput(t *testing.T) {
 	deps.taskClient.EXPECT().GetAgentPool(gomock.Any(), gomock.Any()).Return(samplePool(), nil)
 
 	exporter := util.NewJSONExporter()
-	opts := &showOptions{targetArg: "myorg/7", exporter: exporter}
+	opts := &showOptions{targetArg: "myorg:/7", exporter: exporter}
 	err := runShow(deps.cmd, opts)
 	require.NoError(t, err)
 
@@ -403,7 +404,7 @@ func TestRunShow_RawFlag(t *testing.T) {
 	pool := samplePool()
 	deps.taskClient.EXPECT().GetAgentPool(gomock.Any(), gomock.Any()).Return(pool, nil)
 
-	opts := &showOptions{targetArg: "myorg/7", raw: true}
+	opts := &showOptions{targetArg: "myorg:/7", raw: true}
 	err := runShow(deps.cmd, opts)
 	require.NoError(t, err)
 }
@@ -415,7 +416,7 @@ func TestRunShow_ClientFactoryError(t *testing.T) {
 	expectedErr := fmt.Errorf("connection failed")
 	deps.clientFact.EXPECT().TaskAgent(gomock.Any(), "myorg").Return(nil, expectedErr)
 
-	opts := &showOptions{targetArg: "myorg/7"}
+	opts := &showOptions{targetArg: "myorg:/7"}
 	err := runShow(deps.cmd, opts)
 	require.Error(t, err)
 	assert.ErrorIs(t, err, expectedErr)
@@ -429,7 +430,7 @@ func TestRunShow_SDKError(t *testing.T) {
 	expectedErr := fmt.Errorf("API error")
 	deps.taskClient.EXPECT().GetAgentPool(gomock.Any(), gomock.Any()).Return(nil, expectedErr)
 
-	opts := &showOptions{targetArg: "myorg/7"}
+	opts := &showOptions{targetArg: "myorg:/7"}
 	err := runShow(deps.cmd, opts)
 	require.Error(t, err)
 	assert.ErrorIs(t, err, expectedErr)
@@ -442,7 +443,7 @@ func TestRunShow_PoolNotFound(t *testing.T) {
 	deps.clientFact.EXPECT().TaskAgent(gomock.Any(), "myorg").Return(deps.taskClient, nil)
 	deps.taskClient.EXPECT().GetAgentPool(gomock.Any(), gomock.Any()).Return(nil, nil)
 
-	opts := &showOptions{targetArg: "myorg/999"}
+	opts := &showOptions{targetArg: "myorg:/999"}
 	err := runShow(deps.cmd, opts)
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "not found")
@@ -457,10 +458,22 @@ func TestRunShow_InvalidTarget(t *testing.T) {
 	deps.taskClient.EXPECT().GetAgentPools(gomock.Any(), gomock.Any()).
 		Return(&[]taskagent.TaskAgentPool{}, nil)
 
-	opts := &showOptions{targetArg: "myorg/NonExistentPool"}
+	opts := &showOptions{targetArg: "myorg:/NonExistentPool"}
 	err := runShow(deps.cmd, opts)
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "not found")
+}
+
+func TestRunShow_ProjectScopeRejected(t *testing.T) {
+	t.Parallel()
+
+	deps := setupFakeDeps(t)
+	opts := &showOptions{targetArg: "proj/7"}
+	err := runShow(deps.cmd, opts)
+	require.Error(t, err)
+	var flagErr *util.FlagError
+	assert.True(t, errors.As(err, &flagErr))
+	assert.Contains(t, err.Error(), "project is not allowed")
 }
 
 func TestRunShow_PoolTypeAutomation(t *testing.T) {
@@ -473,7 +486,7 @@ func TestRunShow_PoolTypeAutomation(t *testing.T) {
 	pool.PoolType = &taskagent.TaskAgentPoolTypeValues.Automation
 	deps.taskClient.EXPECT().GetAgentPool(gomock.Any(), gomock.Any()).Return(pool, nil)
 
-	opts := &showOptions{targetArg: "myorg/7"}
+	opts := &showOptions{targetArg: "myorg:/7"}
 	err := runShow(deps.cmd, opts)
 	require.NoError(t, err)
 
@@ -491,7 +504,7 @@ func TestRunShow_PoolTypeDeployment(t *testing.T) {
 	pool.PoolType = &taskagent.TaskAgentPoolTypeValues.Deployment
 	deps.taskClient.EXPECT().GetAgentPool(gomock.Any(), gomock.Any()).Return(pool, nil)
 
-	opts := &showOptions{targetArg: "myorg/7"}
+	opts := &showOptions{targetArg: "myorg:/7"}
 	err := runShow(deps.cmd, opts)
 	require.NoError(t, err)
 
@@ -521,7 +534,7 @@ func TestRunShow_ParentCommandWiring(t *testing.T) {
 	poolCmd.AddCommand(showCmd)
 	rootCmd.AddCommand(poolCmd)
 
-	found, _, err := rootCmd.Find([]string{"pool", "show", "myorg/7"})
+	found, _, err := rootCmd.Find([]string{"pool", "show", "myorg:/7"})
 	require.NoError(t, err)
 	assert.Equal(t, "show", found.Name())
 }
@@ -534,7 +547,7 @@ func TestRunShow_TemplateOutput_Scope(t *testing.T) {
 
 	deps.taskClient.EXPECT().GetAgentPool(gomock.Any(), gomock.Any()).Return(samplePool(), nil)
 
-	opts := &showOptions{targetArg: "myorg/7"}
+	opts := &showOptions{targetArg: "myorg:/7"}
 	err := runShow(deps.cmd, opts)
 	require.NoError(t, err)
 
@@ -553,7 +566,7 @@ func TestRunShow_TemplateOutput_ScopeNil(t *testing.T) {
 	pool.Scope = nil
 	deps.taskClient.EXPECT().GetAgentPool(gomock.Any(), gomock.Any()).Return(pool, nil)
 
-	opts := &showOptions{targetArg: "myorg/7"}
+	opts := &showOptions{targetArg: "myorg:/7"}
 	err := runShow(deps.cmd, opts)
 	require.NoError(t, err)
 

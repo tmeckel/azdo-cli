@@ -32,7 +32,7 @@ func TestDelete_SuccessIgnoresInheritedEntries(t *testing.T) {
 	ctx := context.Background()
 	org := "org"
 	subject := "user@example.com"
-	target := org + "/" + subject
+	target := org + ":/" + subject
 	namespaceID := "11111111-1111-1111-1111-111111111111"
 	namespaceUUID := uuid.MustParse(namespaceID)
 	token := "repoV2/project/repo"
@@ -111,7 +111,7 @@ func TestDelete_SuccessSkipsDefaultTokenEntry(t *testing.T) {
 	ctx := context.Background()
 	org := "org"
 	subject := "user@example.com"
-	target := org + "/" + subject
+	target := org + ":/" + subject
 	namespaceID := "22222222-2222-2222-2222-222222222222"
 	namespaceUUID := uuid.MustParse(namespaceID)
 	token := "repoV2"
@@ -190,7 +190,7 @@ func TestDelete_PromptDeclinedReturnsCancel(t *testing.T) {
 	ctx := context.Background()
 	org := "org"
 	subject := "user@example.com"
-	target := org + "/" + subject
+	target := org + ":/" + subject
 	namespaceID := "11111111-1111-1111-1111-111111111111"
 	token := "repo"
 	descriptor := "vssgp.Subject"
@@ -268,7 +268,7 @@ func TestDelete_ResolveIdentityError(t *testing.T) {
 	mExtensions.EXPECT().ResolveIdentity(ctx, subject).Return(nil, fmt.Errorf("boom"))
 
 	opts := &opts{
-		rawTarget:   org + "/" + subject,
+		rawTarget:   org + ":/" + subject,
 		namespaceID: "11111111-1111-1111-1111-111111111111",
 		token:       "repo",
 		yes:         true,
@@ -309,7 +309,7 @@ func TestDelete_RemoveAccessControlEntriesFailure(t *testing.T) {
 	mSecurity.EXPECT().RemoveAccessControlEntries(ctx, gomock.Any()).Return(types.ToPtr(false), nil)
 
 	opts := &opts{
-		rawTarget:   org + "/" + subject,
+		rawTarget:   org + ":/" + subject,
 		namespaceID: "11111111-1111-1111-1111-111111111111",
 		token:       "repo",
 		yes:         true,
@@ -334,7 +334,7 @@ func TestDelete_DescriptorStillPresentAfterRemoval(t *testing.T) {
 	ctx := context.Background()
 	org := "org"
 	subject := "user@example.com"
-	target := org + "/" + subject
+	target := org + ":/" + subject
 	namespaceID := "11111111-1111-1111-1111-111111111111"
 	namespaceUUID := uuid.MustParse(namespaceID)
 	token := "repo"
@@ -400,7 +400,7 @@ func TestDelete_ProjectScopedTargetResolvesDescriptor(t *testing.T) {
 	org := "org"
 	project := "ProjectAlpha"
 	subject := "user@example.com"
-	target := org + "/" + project + "/" + subject
+	target := org + ":" + project + "/" + subject
 	namespaceID := "11111111-1111-1111-1111-111111111111"
 	namespaceUUID := uuid.MustParse(namespaceID)
 	token := "repoV2/project/repo"

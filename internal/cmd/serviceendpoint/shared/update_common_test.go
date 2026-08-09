@@ -50,7 +50,7 @@ func TestAddUpdateCommonFlags(t *testing.T) {
 		// Verify context
 		ctx := updatedCmd.Context()
 		require.NotNil(t, ctx, "context should not be nil")
-		opts := ctx.Value("updateCommonOptions")
+		opts := ctx.Value(updateCommonOptionsKey{})
 		require.NotNil(t, opts, "updateCommonOptions should be in context")
 		_, ok := opts.(*updateCommonOptions)
 		require.True(t, ok, "context value should be of type *updateCommonOptions")
@@ -78,7 +78,7 @@ func TestAddUpdateCommonFlags(t *testing.T) {
 
 		// Retrieve options from context
 		ctx := cmd.Context()
-		opts := ctx.Value("updateCommonOptions").(*updateCommonOptions)
+		opts := ctx.Value(updateCommonOptionsKey{}).(*updateCommonOptions)
 
 		require.Equal(t, "my-endpoint", opts.Name)
 		require.Equal(t, "desc", opts.Description)
@@ -116,7 +116,7 @@ func TestAddUpdateCommonFlags(t *testing.T) {
 
 		updatedCtx := cmd.Context()
 		require.Equal(t, "value", updatedCtx.Value(key("existing")))
-		require.NotNil(t, updatedCtx.Value("updateCommonOptions"))
+		require.NotNil(t, updatedCtx.Value(updateCommonOptionsKey{}))
 	})
 
 	t.Run("Optional name flag", func(t *testing.T) {
@@ -136,7 +136,7 @@ func TestAddUpdateCommonFlags(t *testing.T) {
 		require.NoError(t, err)
 
 		ctx := cmd.Context()
-		opts := ctx.Value("updateCommonOptions").(*updateCommonOptions)
+		opts := ctx.Value(updateCommonOptionsKey{}).(*updateCommonOptions)
 		require.Equal(t, "desc", opts.Description)
 		require.Equal(t, "", opts.Name)
 	})

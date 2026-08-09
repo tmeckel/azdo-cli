@@ -61,7 +61,7 @@ func TestList_UsesSubjectDescriptorWhenIdentityMissing(t *testing.T) {
 	)
 
 	o := &opts{
-		rawTarget:   fmt.Sprintf("org/%s", sid),
+		rawTarget:   fmt.Sprintf("org:/%s", sid),
 		namespaceID: namespaceID,
 	}
 

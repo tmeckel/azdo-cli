@@ -73,7 +73,7 @@ func TestNewCmd_RegistersAsListLeaf(t *testing.T) {
 	t.Parallel()
 
 	cmd := NewCmd(nil)
-	assert.Equal(t, "list [ORGANIZATION/]POOL", cmd.Use)
+	assert.Equal(t, "list [ORG:]/POOL", cmd.Use)
 	assert.ElementsMatch(t, []string{"ls", "l"}, cmd.Aliases)
 	assert.NotNil(t, cmd.RunE)
 }
@@ -124,7 +124,7 @@ func TestRunList_BasicCall(t *testing.T) {
 	require.NoError(t, err)
 	deps.cmd.EXPECT().Printer("table").Return(tp, nil).AnyTimes()
 
-	err = run(deps.cmd, &opts{targetArg: "myorg/1"})
+	err = run(deps.cmd, &opts{targetArg: "myorg:/1"})
 	require.NoError(t, err)
 
 	output := deps.stdout.String()
@@ -151,7 +151,7 @@ func TestRunList_OrgFromArg(t *testing.T) {
 	require.NoError(t, err)
 	deps.cmd.EXPECT().Printer("table").Return(tp, nil).AnyTimes()
 
-	err = run(deps.cmd, &opts{targetArg: "explicit-org/1"})
+	err = run(deps.cmd, &opts{targetArg: "explicit-org:/1"})
 	require.NoError(t, err)
 	assert.Contains(t, deps.stdout.String(), "agent-01")
 }
@@ -160,9 +160,9 @@ func TestRunList_ProjectScopeRejected(t *testing.T) {
 	t.Parallel()
 
 	deps := setupFakeDeps(t, "org")
-	err := run(deps.cmd, &opts{targetArg: "org/proj/1"})
+	err := run(deps.cmd, &opts{targetArg: "proj/1"})
 	require.Error(t, err)
-	assert.Contains(t, err.Error(), "does not accept a project scope")
+	assert.Contains(t, err.Error(), "project is not allowed")
 }
 
 func TestRunList_NoDefaultOrg(t *testing.T) {
@@ -183,7 +183,7 @@ func TestRunList_NoDefaultOrg(t *testing.T) {
 	cfg.EXPECT().Authentication().Return(auth).AnyTimes()
 	auth.EXPECT().GetDefaultOrganization().Return("", fmt.Errorf("no default org"))
 
-	err := run(cmd, &opts{targetArg: "1"})
+	err := run(cmd, &opts{targetArg: "/1"})
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "no organization specified")
 }
@@ -192,7 +192,7 @@ func TestRunList_InvalidMaxItemsNegative(t *testing.T) {
 	t.Parallel()
 
 	deps := setupFakeDeps(t, "org")
-	err := run(deps.cmd, &opts{targetArg: "org/1", maxItems: -5})
+	err := run(deps.cmd, &opts{targetArg: "org:/1", maxItems: -5})
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "invalid --max-items")
 }
@@ -218,7 +218,7 @@ func TestRunList_ClientFactoryError(t *testing.T) {
 
 	clientFact.EXPECT().TaskAgent(gomock.Any(), "myorg").Return(nil, fmt.Errorf("connection failed"))
 
-	err := run(cmd, &opts{targetArg: "1"})
+	err := run(cmd, &opts{targetArg: "/1"})
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "connection failed")
 }
@@ -229,7 +229,7 @@ func TestRunList_SDKError(t *testing.T) {
 	deps := setupFakeDeps(t, "org")
 	deps.tac.EXPECT().GetAgents(gomock.Any(), gomock.Any()).Return(nil, fmt.Errorf("API error"))
 
-	err := run(deps.cmd, &opts{targetArg: "org/1"})
+	err := run(deps.cmd, &opts{targetArg: "org:/1"})
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "API error")
 }
@@ -245,7 +245,7 @@ func TestRunList_EmptyResult(t *testing.T) {
 	require.NoError(t, err)
 	deps.cmd.EXPECT().Printer("table").Return(tp, nil).AnyTimes()
 
-	err = run(deps.cmd, &opts{targetArg: "org/1"})
+	err = run(deps.cmd, &opts{targetArg: "org:/1"})
 	require.NoError(t, err)
 }
 
@@ -266,7 +266,7 @@ func TestRunList_FilterByName(t *testing.T) {
 	require.NoError(t, err)
 	deps.cmd.EXPECT().Printer("table").Return(tp, nil).AnyTimes()
 
-	err = run(deps.cmd, &opts{targetArg: "org/1", filter: "filtered-agent"})
+	err = run(deps.cmd, &opts{targetArg: "org:/1", filter: "filtered-agent"})
 	require.NoError(t, err)
 }
 
@@ -287,7 +287,7 @@ func TestRunList_IncludeCapabilities(t *testing.T) {
 	require.NoError(t, err)
 	deps.cmd.EXPECT().Printer("table").Return(tp, nil).AnyTimes()
 
-	err = run(deps.cmd, &opts{targetArg: "org/1", includeCapabilities: true})
+	err = run(deps.cmd, &opts{targetArg: "org:/1", includeCapabilities: true})
 	require.NoError(t, err)
 }
 
@@ -306,7 +306,7 @@ func TestRunList_MaxItemsCaps(t *testing.T) {
 	require.NoError(t, err)
 	deps.cmd.EXPECT().Printer("table").Return(tp, nil).AnyTimes()
 
-	err = run(deps.cmd, &opts{targetArg: "org/1", maxItems: 1})
+	err = run(deps.cmd, &opts{targetArg: "org:/1", maxItems: 1})
 	require.NoError(t, err)
 
 	output := deps.stdout.String()
@@ -329,7 +329,7 @@ func TestRunList_MaxItemsExceedsResult(t *testing.T) {
 	require.NoError(t, err)
 	deps.cmd.EXPECT().Printer("table").Return(tp, nil).AnyTimes()
 
-	err = run(deps.cmd, &opts{targetArg: "org/1", maxItems: 100})
+	err = run(deps.cmd, &opts{targetArg: "org:/1", maxItems: 100})
 	require.NoError(t, err)
 
 	output := deps.stdout.String()
@@ -346,7 +346,7 @@ func TestRunList_JSONOutput(t *testing.T) {
 
 	exporter := util.NewJSONExporter()
 
-	err := run(deps.cmd, &opts{targetArg: "org/1", exporter: exporter})
+	err := run(deps.cmd, &opts{targetArg: "org:/1", exporter: exporter})
 	require.NoError(t, err)
 
 	var parsed []map[string]any
@@ -368,7 +368,7 @@ func TestRunList_JSONOutputEmpty(t *testing.T) {
 
 	exporter := util.NewJSONExporter()
 
-	err := run(deps.cmd, &opts{targetArg: "org/1", exporter: exporter})
+	err := run(deps.cmd, &opts{targetArg: "org:/1", exporter: exporter})
 	require.NoError(t, err)
 
 	assert.Equal(t, "[]\n", deps.stdout.String())
@@ -395,7 +395,7 @@ func TestRunList_JSONOutputAllFields(t *testing.T) {
 
 	exporter := util.NewJSONExporter()
 
-	err := run(deps.cmd, &opts{targetArg: "org/1", exporter: exporter})
+	err := run(deps.cmd, &opts{targetArg: "org:/1", exporter: exporter})
 	require.NoError(t, err)
 
 	var parsed []map[string]any
