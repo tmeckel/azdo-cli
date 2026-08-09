@@ -1,6 +1,8 @@
+# yamllint disable rule:truthy rule:line-length
 # code: language=github-actions.workflows tabSize=2
 ---
 name: Lint
+
 on:
   push:
     tags-ignore:
@@ -17,7 +19,7 @@ permissions:
 
 env:
   LINT_VERSION: ${{ vars.golangci_version || '2.12.2' }}
-  GO_VERSION: ${{ vars.golang_version || '1.25' }}
+  GO_VERSION: ${{ vars.golang_version || '1.26' }}
 
 jobs:
   lint:
@@ -25,15 +27,15 @@ jobs:
 
     steps:
       - name: Set up Go ${{ env.GO_VERSION }}
-        uses: actions/setup-go@v6
+        uses: actions/setup-go@v7
         with:
           go-version: ${{ env.GO_VERSION }}
 
       - name: Check out code
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
 
       - name: Restore Go modules cache
-        uses: actions/cache@v5
+        uses: actions/cache@v6
         with:
           path: ~/go/pkg/mod
           key: go-${{ runner.os }}-${{ hashFiles('go.mod') }}
