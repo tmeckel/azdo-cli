@@ -371,21 +371,21 @@ This repository provides `azdo` commands to inspect namespaces, list and show AC
 
    - List ACEs for a namespace (optionally filter by token or subject):
 
-     `azdo security permission list [ORGANIZATION[/PROJECT/]SUBJECT] --namespace-id <namespace-uuid> [--token <token>] [--recurse]`
+     `azdo security permission list [ORG:][PROJECT/]/SUBJECT --namespace-id <namespace-uuid> [--token <token>] [--recurse]`
 
      Examples:
 
      - List all ACEs for a namespace using your default organization:
-       
+
        `azdo security permission list --namespace-id 5a27515b-ccd7-42c9-84f1-54c998f03866`
 
      - List ACEs for a specific subject (email or group descriptor):
-       
-       `azdo security permission list fabrikam/contoso@example.com --namespace-id 5a27515b-...`
+
+       `azdo security permission list fabrikam:/contoso@example.com --namespace-id 5a27515b-...`
 
    - Show permissions for a single subject on a token:
 
-     `azdo security permission show ORGANIZATION/SUBJECT --namespace-id <namespace-uuid> --token <token>`
+     `azdo security permission show ORG:/SUBJECT --namespace-id <namespace-uuid> --token <token>`
 
      This returns explicit and effective allow/deny action lists for the subject.
 
@@ -396,15 +396,15 @@ This repository provides `azdo` commands to inspect namespaces, list and show AC
      Examples:
      - Allow a textual action for a subject:
 
-       `azdo security permission update fabrikam/contoso@example.com --namespace-id <namespace-uuid> --token /projects/123 --allow-bit Read`
+       `azdo security permission update fabrikam:/contoso@example.com --namespace-id <namespace-uuid> --token /projects/123 --allow-bit Read`
 
      - Allow multiple actions (names or numeric values):
 
-       `azdo security permission update fabrikam/contoso@example.com --namespace-id <namespace-uuid> --token /projects/123 --allow-bit Read --allow-bit Contribute --allow-bit 0x4`
+       `azdo security permission update fabrikam:/contoso@example.com --namespace-id <namespace-uuid> --token /projects/123 --allow-bit Read --allow-bit Contribute --allow-bit 0x4`
 
      - Deny a numeric bit and merge with existing ACEs:
 
-       `azdo security permission update fabrikam/contoso@example.com --namespace-id <namespace-uuid> --token /projects/123 --deny-bit 8 --merge`
+       `azdo security permission update fabrikam:/contoso@example.com --namespace-id <namespace-uuid> --token /projects/123 --deny-bit 8 --merge`
 
 Notes:
 
@@ -699,7 +699,7 @@ This calls the same logic implemented in `internal/cmd/security/permission/list/
 
 
 ### Namespace 11238e09-49f2-40c7-94d0-8f0307204ce4 (AccountAdminSecurity)
-- Observed token prefixes: 
+- Observed token prefixes:
 - Token depth counts:
   - depth 2: 1 tokens
 

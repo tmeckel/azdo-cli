@@ -1,7 +1,7 @@
 ## Command `azdo pipelines variable-group delete`
 
 ```
-azdo pipelines variable-group delete [ORGANIZATION/]PROJECT/GROUP [flags]
+azdo pipelines variable-group delete [ORG:]PROJECT/GROUP [flags]
 ```
 
 Delete a variable group from a project using its numeric ID or name. The command prompts
@@ -53,7 +53,7 @@ for confirmation unless --yes is supplied.
 azdo pipelines variable-group delete MyProject/123 --yes
 
 # Delete a variable group by name in a specific organization
-azdo pipelines variable-group delete 'myorg/MyProject/Shared Config'
+azdo pipelines variable-group delete 'myorg:MyProject/Shared Config'
 
 # Remove a shared group from two additional projects
 azdo pipelines variable-group delete MyProject/SharedConfig --project-reference ProjectB --project-reference ProjectC

@@ -1,7 +1,7 @@
 ## Command `azdo service-endpoint create github`
 
 ```
-azdo service-endpoint create github [ORGANIZATION/]PROJECT --name NAME [--url URL] [--token TOKEN] [flags]
+azdo service-endpoint create github [ORG:]PROJECT --name NAME [--url URL] [--token TOKEN] [flags]
 ```
 
 Create a GitHub service endpoint using a personal access token (PAT) or an installation/oauth configuration.
@@ -71,10 +71,10 @@ Create a GitHub service endpoint using a personal access token (PAT) or an insta
 
 ```bash
 # Create a GitHub service endpoint with a personal access token (PAT)
-azdo service-endpoint create github my-org/my-project --name "gh-ep" --token <PAT>
+azdo service-endpoint create github myorg:my-project --name "gh-ep" --token <PAT>
 
 # Create a GitHub service endpoint with an installation / OAuth configuration id
-azdo service-endpoint create github my-org/my-project --name "gh-ep" --configuration-id <CONFIG_ID>
+azdo service-endpoint create github myorg:my-project --name "gh-ep" --configuration-id <CONFIG_ID>
 ```
 
 ### See also

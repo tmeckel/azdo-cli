@@ -1,12 +1,13 @@
 ## Command `azdo security group membership add`
 
 ```
-azdo security group membership add [ORGANIZATION/]GROUP | [ORGANIZATION/]PROJECT/GROUP [flags]
+azdo security group membership add [ORG:][PROJECT/]GROUP [flags]
 ```
 
 Add a user or group as a member to an Azure DevOps security group.
 
-The positional argument accepts either ORGANIZATION/GROUP or ORGANIZATION/PROJECT/GROUP.
+The positional argument accepts [ORG:][PROJECT/]GROUP.
+When the ORG: prefix is omitted the default organization from configuration is used.
 Use --member to provide the member's email, descriptor, or principal name.
 
 
@@ -44,10 +45,10 @@ Use --member to provide the member's email, descriptor, or principal name.
 
 ```bash
 # Add a user by email to an organization-level group
-azdo security group membership add MyOrg/Project Administrators --member user@example.com
+azdo security group membership add /Project Administrators --member user@example.com
 
 # Add a group by descriptor to a project-level group
-azdo security group membership add MyOrg/MyProject/Readers --member vssgp.Uy0xLTItMw==
+azdo security group membership add MyOrg:MyProject/Readers --member vssgp.Uy0xLTItMw==
 ```
 
 ### See also

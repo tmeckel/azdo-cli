@@ -38,6 +38,5 @@ Work seamlessly with Azure DevOps from the command line.
 
 ```bash
 $ azdo project list
-$ azdo repo clone myorg/myrepo
+$ azdo repo clone myorg:myproject/myrepo
 ```
-

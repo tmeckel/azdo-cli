@@ -1,7 +1,7 @@
 ## Command `azdo pipelines delete`
 
 ```
-azdo pipelines delete [ORGANIZATION/]PROJECT/PIPELINE [flags]
+azdo pipelines delete [ORG:]PROJECT/PIPELINE [flags]
 ```
 
 Delete a pipeline definition by ID or name.
@@ -30,7 +30,7 @@ The command prompts for confirmation unless --yes is supplied.
 azdo pipelines delete Fabrikam/42 --yes
 
 # Delete a pipeline by name
-azdo pipelines delete 'myorg/Fabrikam/My Pipeline'
+azdo pipelines delete 'myorg:Fabrikam/My Pipeline'
 
 # Delete with confirmation
 azdo pipelines delete Fabrikam/MyPipeline

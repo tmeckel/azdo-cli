@@ -1,7 +1,7 @@
 ## Command `azdo team update`
 
 ```
-azdo team update [ORGANIZATION/]PROJECT/TEAM [flags]
+azdo team update [ORG:]PROJECT/TEAM [flags]
 ```
 
 Update a team's name and/or description. At least one of --name or
@@ -48,7 +48,7 @@ GUID inside the project.
 azdo team update Fabrikam/"Old Name" --name "New Name"
 
 # Update a team's description only
-azdo team update MyOrg/Fabrikam/MyTeam --description "New description"
+azdo team update MyOrg:Fabrikam/MyTeam --description "New description"
 ```
 
 ### See also

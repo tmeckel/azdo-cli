@@ -3,7 +3,7 @@
 List repositories of a project inside an organization
 
 ```
-azdo repo list [organization/]<project> [flags]
+azdo repo list [ORG:]PROJECT [flags]
 ```
 
 ### Options
@@ -38,7 +38,7 @@ azdo repo list [organization/]<project> [flags]
 azdo repo list myproject
 
 # list the repositories of a project using specified organization
-azdo repo list myorg/myproject
+azdo repo list myorg:myproject
 ```
 
 ### See also

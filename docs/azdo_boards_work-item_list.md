@@ -1,7 +1,7 @@
 ## Command `azdo boards work-item list`
 
 ```
-azdo boards work-item list [ORGANIZATION/]PROJECT [flags]
+azdo boards work-item list [ORG:]PROJECT [flags]
 ```
 
 List work items belonging to a project within an Azure DevOps organization.

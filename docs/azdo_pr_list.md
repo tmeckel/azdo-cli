@@ -1,7 +1,7 @@
 ## Command `azdo pr list`
 
 ```
-azdo pr list [[organization/]project/repository] [flags]
+azdo pr list [[ORG:]PROJECT/REPOSITORY] [flags]
 ```
 
 List pull requests in a Azure DevOps repository or project.

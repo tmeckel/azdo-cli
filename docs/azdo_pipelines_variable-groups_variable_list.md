@@ -1,7 +1,7 @@
 ## Command `azdo pipelines variable-groups variable list`
 
 ```
-azdo pipelines variable-groups variable list [ORGANIZATION/]PROJECT/VARIABLEGROUP [flags]
+azdo pipelines variable-groups variable list [ORG:]PROJECT/VARIABLEGROUP [flags]
 ```
 
 List the variables in a variable group.
@@ -39,7 +39,7 @@ The VARIABLEGROUP can be specified by its ID or name.
 azdo pipelines variable-groups variable list MyProject/123
 
 # List variables in a group by name within a project and organization
-azdo pipelines variable-groups variable list 'MyOrg/MyProject/My Variable Group'
+azdo pipelines variable-groups variable list 'MyOrg:MyProject/My Variable Group'
 
 # Export variables to JSON
 azdo pipelines variable-groups variable list MyProject/123 --json

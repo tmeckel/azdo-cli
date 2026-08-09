@@ -3,7 +3,7 @@
 Restore a deleted repository
 
 ```
-azdo repo restore [organization/]project/repository
+azdo repo restore [ORG:]PROJECT/REPOSITORY
 ```
 
 ### ALIASES
@@ -14,10 +14,10 @@ azdo repo restore [organization/]project/repository
 
 ```bash
 # restore a deleted repository in the default organization
-azdo repo list myproject/myrepo
+azdo repo restore myproject/myrepo
 
 # restore a deleted repository using specified organization
-azdo repo list myorg/myproject/myrepo
+azdo repo restore myorg:myproject/myrepo
 ```
 
 ### See also

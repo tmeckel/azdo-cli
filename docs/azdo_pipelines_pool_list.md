@@ -1,7 +1,7 @@
 ## Command `azdo pipelines pool list`
 
 ```
-azdo pipelines pool list [ORGANIZATION] [flags]
+azdo pipelines pool list [ORG] [flags]
 ```
 
 List Azure DevOps agent pools for an organization.
@@ -52,6 +52,9 @@ azdo pipelines pool list
 
 # List pools in a specific organization
 azdo pipelines pool list myorg
+
+# List pools in a specific organization (colon form)
+azdo pipelines pool list myorg:
 
 # List pools filtered by name
 azdo pipelines pool list myorg --name Default

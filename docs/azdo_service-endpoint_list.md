@@ -1,13 +1,13 @@
 ## Command `azdo service-endpoint list`
 
 ```
-azdo service-endpoint list [ORGANIZATION/]PROJECT [flags]
+azdo service-endpoint list [ORG:]PROJECT [flags]
 ```
 
 List Azure DevOps service endpoints (service connections) defined within a project.
 
-The project scope accepts the form [ORGANIZATION/]PROJECT. When the organization
-segment is omitted the default organization from configuration is used.
+The project scope accepts the form [ORG:]PROJECT. When the ORG: prefix
+is omitted the default organization from configuration is used.
 
 
 ### Options
@@ -78,10 +78,10 @@ segment is omitted the default organization from configuration is used.
 azdo service-endpoint list MyProject
 
 # List service endpoints for a project in a specific organization
-azdo service-endpoint list myorg/MyProject
+azdo service-endpoint list myorg:MyProject
 
 # List AzureRM endpoints that are ready for use
-azdo service-endpoint list myorg/MyProject --type AzureRM --action-filter manage
+azdo service-endpoint list myorg:MyProject --type AzureRM --action-filter manage
 ```
 
 ### See also

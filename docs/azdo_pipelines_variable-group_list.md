@@ -1,7 +1,7 @@
 ## Command `azdo pipelines variable-group list`
 
 ```
-azdo pipelines variable-group list [ORGANIZATION/]PROJECT [flags]
+azdo pipelines variable-group list [ORG:]PROJECT [flags]
 ```
 
 List every variable group defined in a project with optional filtering.
@@ -56,6 +56,9 @@ $ azdo pipelines variable-groups list "my-project"
 
 # List variable groups with a specific name
 $ azdo pipelines variable-groups list "my-project" --name "my-variable-group"
+
+# List variable groups in a specific organization
+$ azdo pipelines variable-groups list "my-org:my-project"
 ```
 
 ### See also

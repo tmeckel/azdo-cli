@@ -1,7 +1,7 @@
 ## Command `azdo pipelines variable-group variable delete`
 
 ```
-azdo pipelines variable-group variable delete [ORGANIZATION/]PROJECT/VARIABLE_GROUP_ID_OR_NAME --name VARIABLE_NAME [flags]
+azdo pipelines variable-group variable delete [ORG:]PROJECT/VARIABLE_GROUP_ID_OR_NAME --name VARIABLE_NAME [flags]
 ```
 
 Remove a variable from a variable group. The variable name lookup is case-insensitive.

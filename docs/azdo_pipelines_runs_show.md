@@ -1,7 +1,7 @@
 ## Command `azdo pipelines runs show`
 
 ```
-azdo pipelines runs show [ORGANIZATION/]PROJECT RUN_ID [flags]
+azdo pipelines runs show [ORG:]PROJECT RUN_ID [flags]
 ```
 
 Display the details of a single Azure Pipelines run.
@@ -41,7 +41,7 @@ Mirrors 'az pipelines runs show'.
 azdo pipelines runs show Fabrikam 12345
 
 # Show a run by ID with explicit organization
-azdo pipelines runs show MyOrg/Fabrikam 12345
+azdo pipelines runs show MyOrg:Fabrikam 12345
 
 # Export as JSON
 azdo pipelines runs show Fabrikam 12345 --json id,buildNumber,status,result

@@ -1,7 +1,7 @@
 ## Command `azdo pipelines variable-group variable update`
 
 ```
-azdo pipelines variable-group variable update [ORGANIZATION/]PROJECT/VARIABLE_GROUP_ID_OR_NAME --name VARIABLE_NAME [flags]
+azdo pipelines variable-group variable update [ORG:]PROJECT/VARIABLE_GROUP_ID_OR_NAME --name VARIABLE_NAME [flags]
 ```
 
 Update an existing variable in a variable group. Supports renaming, value changes,

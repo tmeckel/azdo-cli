@@ -1,12 +1,12 @@
 ## Command `azdo pipelines pool show`
 
 ```
-azdo pipelines pool show [ORGANIZATION/]POOL [flags]
+azdo pipelines pool show [ORG:]/POOL [flags]
 ```
 
 Display the details of a single Azure DevOps agent pool.
 The pool is identified by integer ID or name, with an
-optional organization prefix.
+optional ORG: prefix.
 
 
 ### Options
@@ -42,13 +42,13 @@ optional organization prefix.
 
 ```bash
 # Show a pool by ID
-azdo pipelines pool show 42
+azdo pipelines pool show /42
 
 # Show a pool by name
-azdo pipelines pool show 'Default'
+azdo pipelines pool show '/Default'
 
 # Show a pool in a specific organization
-azdo pipelines pool show 'myorg/Default'
+azdo pipelines pool show 'myorg:/Default'
 ```
 
 ### See also

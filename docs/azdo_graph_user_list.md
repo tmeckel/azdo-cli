@@ -1,13 +1,15 @@
 ## Command `azdo graph user list`
 
 ```
-azdo graph user list [project] [flags]
+azdo graph user list [PROJECT] [flags]
 ```
 
 List users and groups from an Azure DevOps project or organization.
 
 By default, it lists users in the organization. You can scope the search to a specific
-project by providing the project name as an argument.
+project by providing the project name as an argument. When an organization is supplied
+with --organization together with a project argument, the project scope is resolved as
+ORG:PROJECT.
 
 The command allows filtering by user type (e.g., 'aad', 'msa', 'svc') and supports
 prefix-based filtering on user display names.
@@ -61,6 +63,9 @@ azdo graph user list
 
 # List all users in a specific project
 azdo graph user list "My Project"
+
+# List users in a project of a specific organization (equivalent to ORG:PROJECT)
+azdo graph user list "My Project" --organization "MyOrganization"
 
 # List all users with the 'msa' subject type (Microsoft Account)
 azdo graph user list --type msa

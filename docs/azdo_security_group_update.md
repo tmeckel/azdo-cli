@@ -1,12 +1,12 @@
 ## Command `azdo security group update`
 
 ```
-azdo security group update ORGANIZATION/GROUP | ORGANIZATION/PROJECT/GROUP [flags]
+azdo security group update ORG:[PROJECT/]GROUP [flags]
 ```
 
 Update the display name and/or description of an Azure DevOps security group.
 
-Provide the organization segment and optional project segment to scope the lookup. At least one of --name or --description must be specified.
+Provide the ORG: prefix and an optional project segment to scope the lookup. At least one of --name or --description must be specified.
 
 
 ### Options
@@ -49,10 +49,10 @@ Provide the organization segment and optional project segment to scope the looku
 
 ```bash
 # Update only the description of a project-level group
-azdo security group update MyOrg/MyProject/Developers --description "Updated description"
+azdo security group update MyOrg:MyProject/Developers --description "Updated description"
 
 # Update the name of an organization-level group
-azdo security group update MyOrg/Old Group Name --name "New Group Name"
+azdo security group update MyOrg:/Old Group Name --name "New Group Name"
 ```
 
 ### See also

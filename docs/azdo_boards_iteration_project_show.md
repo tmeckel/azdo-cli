@@ -1,7 +1,7 @@
 ## Command `azdo boards iteration project show`
 
 ```
-azdo boards iteration project show [ORGANIZATION/]PROJECT[/PATH]/NAME [flags]
+azdo boards iteration project show [ORG:]PROJECT[/PATH]/NAME [flags]
 ```
 
 Display the details of a single iteration (sprint) node in a project.
@@ -52,7 +52,7 @@ The iteration is identified by its fully-qualified path under /Iteration.
 azdo boards iteration project show Fabrikam/Sprint\ 1
 
 # Show a nested iteration
-azdo boards iteration project show myorg/Fabrikam/Release\ 2025/Sprint\ 1
+azdo boards iteration project show myorg:Fabrikam/Release\ 2025/Sprint\ 1
 
 # Include child nodes in the template output
 azdo boards iteration project show Fabrikam/Release\ 2025 --include-children

@@ -1,10 +1,10 @@
 ## Command `azdo security group list`
 
 ```
-azdo security group list [ORGANIZATION[/PROJECT]] [flags]
+azdo security group list [ORG:][PROJECT] [flags]
 ```
 
-List all security groups within a given project or organization.
+List all security groups within a given project, organization, or ORG: scope.
 
 ### Options
 

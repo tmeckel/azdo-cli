@@ -16,14 +16,14 @@ Work with Azure DevOps Projects.
 ### Examples
 
 ```bash
-# Creatign a new project in the default organization
+# Creating a new project in the default organization
 $ azdo project create <project>
 
 # Listing existing project in the default organization
 $ azdo project list
 
 # Delete a project in an organization
-$ azdo project delete myorg/myproject
+$ azdo project delete myorg:myproject
 ```
 
 ### See also

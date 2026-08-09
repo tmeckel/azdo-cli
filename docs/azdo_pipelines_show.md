@@ -1,7 +1,7 @@
 ## Command `azdo pipelines show`
 
 ```
-azdo pipelines show [ORGANIZATION/]PROJECT/PIPELINE [flags]
+azdo pipelines show [ORG:]PROJECT/PIPELINE [flags]
 ```
 
 Display the details of a single Azure Pipelines definition.
@@ -46,7 +46,7 @@ azdo pipelines show Fabrikam/42
 azdo pipelines show Fabrikam/My Pipeline
 
 # Show with explicit organization
-azdo pipelines show MyOrg/Fabrikam/42
+azdo pipelines show MyOrg:Fabrikam/42
 
 # Export as JSON
 azdo pipelines show Fabrikam/42 --json id,name,revision

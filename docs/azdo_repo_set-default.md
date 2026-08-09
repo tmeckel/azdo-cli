@@ -36,7 +36,7 @@ Interactively select a default repository:
 $ azdo repo set-default
 
 Set a repository explicitly:
-$ azdo repo set-default [organization/]project/repo
+$ azdo repo set-default [ORG:]PROJECT/REPO
 
 View the current default repository:
 $ azdo repo set-default --view

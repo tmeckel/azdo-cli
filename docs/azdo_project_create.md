@@ -1,7 +1,7 @@
 ## Command `azdo project create`
 
 ```
-azdo project create [ORGANIZATION/]PROJECT [flags]
+azdo project create [ORG:]PROJECT [flags]
 ```
 
 Create a new Azure DevOps project in the specified organization.
@@ -14,7 +14,7 @@ In this case, it will output the operation ID, status, and URL, which you can us
 
 The --max-wait flag allows you to specify a custom timeout for the polling operation.
 
-If the organization name is omitted from the project argument, the default configured organization is used.
+If the organization prefix is omitted from the project argument, the default configured organization is used.
 
 
 ### Options
@@ -77,13 +77,13 @@ If the organization name is omitted from the project argument, the default confi
 azdo project create MyProject --description "A new project" --process "Scrum" --visibility private
 
 # Create a public project with TFVC source control in a specific organization
-azdo project create MyOrg/MyPublicProject --description "Public project" --source-control tfvc --visibility public
+azdo project create MyOrg:MyPublicProject --description "Public project" --source-control tfvc --visibility public
 
 # Create a project and return immediately without waiting for completion
-azdo project create MyOrg/MyAsyncProject --no-wait
+azdo project create MyOrg:MyAsyncProject --no-wait
 
 # Create a project and wait for a maximum of 5 minutes for completion
-azdo project create MyOrg/MyTimedProject --max-wait 300
+azdo project create MyOrg:MyTimedProject --max-wait 300
 ```
 
 ### See also

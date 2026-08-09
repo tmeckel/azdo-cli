@@ -1,7 +1,7 @@
 ## Command `azdo pipelines variable-groups list`
 
 ```
-azdo pipelines variable-groups list [ORGANIZATION/]PROJECT [flags]
+azdo pipelines variable-groups list [ORG:]PROJECT [flags]
 ```
 
 List every variable group defined in a project with optional filtering.

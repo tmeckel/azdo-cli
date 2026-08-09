@@ -1,13 +1,13 @@
 ## Command `azdo team member remove`
 
 ```
-azdo team member remove [ORGANIZATION/]PROJECT/TEAM [flags]
+azdo team member remove [ORG:]PROJECT/TEAM [flags]
 ```
 
 Remove one or more users or groups from a team.
 
 The positional argument accepts the team's project and team name in the
-form [ORGANIZATION/]PROJECT/TEAM.
+form [ORG:]PROJECT/TEAM.
 
 
 ### Options
@@ -55,7 +55,7 @@ azdo team member remove Fabrikam/FabrikamEngineering/MyTeam --user user@example.
 azdo team member remove Fabrikam/MyProject/MyTeam -u alice@contoso.com -u bob@contoso.com
 
 # Remove a user without confirmation prompt
-azdo team member remove MyOrg/Fabrikam/MyTeam --user vssgp.Uy0xLTItMw== --yes
+azdo team member remove MyOrg:Fabrikam/MyTeam --user vssgp.Uy0xLTItMw== --yes
 ```
 
 ### See also

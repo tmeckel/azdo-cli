@@ -1,12 +1,13 @@
 ## Command `azdo security group membership remove`
 
 ```
-azdo security group membership remove [ORGANIZATION/]GROUP | [ORGANIZATION/]PROJECT/GROUP [flags]
+azdo security group membership remove [ORG:][PROJECT/]GROUP [flags]
 ```
 
 Remove a user or group from an Azure DevOps security group.
 
-The positional argument accepts either ORGANIZATION/GROUP or ORGANIZATION/PROJECT/GROUP.
+The positional argument accepts [ORG:][PROJECT/]GROUP.
+When the ORG: prefix is omitted the default organization from configuration is used.
 Use --member to provide the member's email, descriptor, or principal name.
 
 
@@ -50,7 +51,7 @@ Use --member to provide the member's email, descriptor, or principal name.
 
 ```bash
 # Remove a user by email from an organization-level group
-azdo security group membership remove MyOrg/Project Administrators --member user@example.com
+azdo security group membership remove /Project Administrators --member user@example.com
 ```
 
 ### See also

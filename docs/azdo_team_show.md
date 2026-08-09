@@ -1,7 +1,7 @@
 ## Command `azdo team show`
 
 ```
-azdo team show [ORGANIZATION/]PROJECT/TEAM [flags]
+azdo team show [ORG:]PROJECT/TEAM [flags]
 ```
 
 Show details of a single team in a project. The team is identified by its
@@ -40,7 +40,7 @@ configured default when omitted.
 azdo team show Fabrikam/"Fabrikam Engineering"
 
 # Show a team by ID in a specific organization
-azdo team show MyOrg/Fabrikam/00000002-0000-0000-0000-000000000000
+azdo team show MyOrg:Fabrikam/00000002-0000-0000-0000-000000000000
 ```
 
 ### See also

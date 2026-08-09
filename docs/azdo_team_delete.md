@@ -1,7 +1,7 @@
 ## Command `azdo team delete`
 
 ```
-azdo team delete [ORGANIZATION/]PROJECT/TEAM [flags]
+azdo team delete [ORG:]PROJECT/TEAM [flags]
 ```
 
 Delete a team from a project.
@@ -43,7 +43,7 @@ A confirmation prompt is shown unless --yes is provided.
 azdo team delete Fabrikam/"Old Team"
 
 # Delete a team without confirmation
-azdo team delete MyOrg/Fabrikam/00000002-0000-0000-0000-000000000000 --yes
+azdo team delete MyOrg:Fabrikam/00000002-0000-0000-0000-000000000000 --yes
 ```
 
 ### See also

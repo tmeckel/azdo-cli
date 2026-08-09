@@ -1,12 +1,12 @@
 ## Command `azdo pipelines queue show`
 
 ```
-azdo pipelines queue show [ORGANIZATION/]PROJECT/QUEUE [flags]
+azdo pipelines queue show [ORG:]PROJECT/QUEUE [flags]
 ```
 
 Display the details of a single Azure DevOps agent queue.
 The queue is identified by integer ID or name, with an
-optional organization prefix.
+optional ORG: prefix.
 
 
 ### Options
@@ -44,7 +44,7 @@ azdo pipelines queue show Fabrikam/7
 azdo pipelines queue show 'Fabrikam/Default'
 
 # Show a queue in a specific organization
-azdo pipelines queue show 'myorg/Fabrikam/Default'
+azdo pipelines queue show 'myorg:Fabrikam/Default'
 ```
 
 ### See also
