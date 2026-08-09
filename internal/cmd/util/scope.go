@@ -9,8 +9,8 @@ import (
 	"github.com/tmeckel/azdo-cli/internal/types"
 )
 
-// Path represents a parsed user-input path of the form
-// [ORGANIZATION[/PROJECT]]/TARGET[/SUBTARGET[/...]].
+// Path represents a parsed user-input scope of the form
+// [ORG:][PROJECT/]TARGET[/TARGET...] or [ORG:]/TARGET[/TARGET...].
 // Organization is always populated after a successful Parse.
 type Path struct {
 	Organization string
@@ -19,261 +19,351 @@ type Path struct {
 }
 
 // ParseOptions configures how a raw user input is split into a Path.
+//
+// The organization is always taken from an explicit ORG: prefix. A bare leading
+// segment is never treated as an organization by structured parsing; only
+// ParseOrganizationArg classifies a bare segment as an organization.
 type ParseOptions struct {
+	// AllowImplicitOrg allows the ORG: prefix to be omitted. When omitted, Parse
+	// loads the default organization from ctx.Config().Authentication().GetDefaultOrganization().
 	AllowImplicitOrg bool
-	RequireProject   bool
-	MinTargets       int
-	MaxTargets       int
+	// RequireProject requires one project segment before any target segments.
+	RequireProject bool
+	// DisallowProject rejects inputs that carry a project segment. Inputs must
+	// use the leading-slash no-project marker, for example "/POOL/AGENT" or
+	// "ORG:/POOL/AGENT".
+	DisallowProject bool
+	// DisallowTargets rejects inputs that carry target segments. It must be set
+	// whenever a wrapper accepts no targets at all; MaxTargets cannot express
+	// this because MaxTargets == 0 means unbounded.
+	DisallowTargets bool
+	// MinTargets is the required number of trailing target segments.
+	MinTargets int
+	// MaxTargets is the maximum number of trailing target segments. Zero means
+	// unbounded; use DisallowTargets to reject targets entirely.
+	MaxTargets int
 }
 
-// Parse splits raw command input into a Path using fixed Azure DevOps-style path rules.
+// Parse splits raw command input into a Path using deterministic Azure
+// DevOps-style scope rules. Heuristics never decide whether a segment is an
+// organization, project, or target: an explicit "ORG:" prefix carries the
+// organization and a leading "/" marks the no-project form.
 //
-// Input is first trimmed, then split on "/". Each segment is trimmed again, and empty
-// segments are rejected. The resulting path is interpreted as:
+// The input is trimmed, then an optional ORG: prefix is recognized. The
+// remainder is split on "/", each segment is trimmed, and empty segments are
+// rejected. After the organization prefix the grammar is:
 //
-//	[ORGANIZATION][/PROJECT][/TARGET[/TARGET...]]
+//	PROJECT/TARGET...   project-first form; the first segment is the project
+//	/TARGET...          no-project form; every segment is a target
 //
-// `opts` controls which prefix segments are allowed and how many trailing target
-// segments must exist:
+// The project rule (required, optional, or disallowed) and the target range
+// select the valid shapes for a mode:
 //
-//   - AllowImplicitOrg allows organization to be omitted. When omitted, Parse loads the
-//     default organization from ctx.Config().Authentication().GetDefaultOrganization().
-//   - RequireProject requires one project segment before any target segments.
-//   - MinTargets defines required trailing target count.
-//   - MaxTargets defines allowed trailing target count. When MaxTargets is zero, Parse
-//     treats it as exactly MinTargets.
+//   - AllowImplicitOrg allows the ORG: prefix to be omitted. When omitted, Parse
+//     loads the default organization from the user configuration.
+//   - RequireProject requires the project-first form.
+//   - DisallowProject requires the no-project form.
+//   - DisallowTargets rejects any target segments.
+//   - MinTargets defines the required trailing target count.
+//   - MaxTargets defines the allowed trailing target count. Zero means unbounded;
+//     DisallowTargets is the only way to express that no targets are allowed.
 //
-// Parse only supports at most two non-target prefix segments: optional organization and
-// optional project. Targets are always the trailing segments and the prefix is the
-// leading segments. The parser works from the back: for each candidate prefix length
-// the target count is n - prefixLen, and only candidates whose target count falls
-// within [MinTargets, MaxTargets] are considered.
-//
-// When MinTargets == MaxTargets the target count is fixed, so the prefix is simply the
-// remaining leading segments (0, 1, or 2). When MaxTargets > MinTargets multiple
-// prefix lengths may be valid. In that case Parse disambiguates as follows:
-//
-//   - If the smallest valid prefix would push targets to MaxTargets, prefer the largest
-//     prefix so target capacity is not exhausted.
-//   - If the largest valid prefix would push targets to MinTargets, prefer the smallest
-//     prefix so target capacity is preserved.
-//   - Otherwise, when project is optional (RequireProject is false) prefer the smallest
-//     prefix so the optional project segment is not consumed; when organization is
-//     optional (AllowImplicitOrg is true) prefer the largest prefix so an explicitly
-//     provided organization is retained.
-//
-// If only a sub-maximum prefix is valid (the full org+project prefix does not fit) and
-// organization is required, Parse rejects the input rather than guessing whether the
-// missing segment is organization or project.
+// Ambiguous inputs such as a legacy "ORG/SUBJECT" are interpreted as canonical
+// project-first forms (PROJECT/SUBJECT) and are never auto-detected as an
+// organization. Structurally detectable legacy organization forms — for example
+// "ORG/PROJECT" where a mode cannot accept a project-plus-extra-segment shape —
+// are rejected with ORG: guidance. The no-project form requires the "/" marker;
+// an organization-only input in a mode that accepts targets must use "ORG:/".
 //
 // Examples:
 //
-//	Parse(ctx, "org", ParseOptions{AllowImplicitOrg: false})
-//	// => &Path{Organization: "org"}
+//	Parse(ctx, "org:/group", ParseOptions{AllowImplicitOrg: false, MinTargets: 1, MaxTargets: 1})
+//	// => &Path{Organization: "org", Targets: []string{"group"}}
 //
-//	Parse(ctx, "", ParseOptions{AllowImplicitOrg: true})
-//	// => &Path{Organization: <default org>}
-//
-//	Parse(ctx, "project", ParseOptions{AllowImplicitOrg: true, RequireProject: true})
-//	// => &Path{Organization: <default org>, Project: "project"}
-//
-//	Parse(nil, "org/project/group", ParseOptions{MinTargets: 1, MaxTargets: 1})
+//	Parse(nil, "org:project/group", ParseOptions{AllowImplicitOrg: false, MinTargets: 1, MaxTargets: 1})
 //	// => &Path{Organization: "org", Project: "project", Targets: []string{"group"}}
 //
-//	Parse(ctx, "pool/agent", ParseOptions{AllowImplicitOrg: true, MinTargets: 2, MaxTargets: 2})
+//	Parse(ctx, "/group", ParseOptions{AllowImplicitOrg: true, MinTargets: 1, MaxTargets: 1})
+//	// => &Path{Organization: <default org>, Targets: []string{"group"}}
+//
+//	Parse(ctx, "project/group", ParseOptions{AllowImplicitOrg: true, MinTargets: 1, MaxTargets: 1})
+//	// => &Path{Organization: <default org>, Project: "project", Targets: []string{"group"}}
+//
+//	Parse(ctx, "project", ParseOptions{AllowImplicitOrg: true, DisallowTargets: true})
+//	// => &Path{Organization: <default org>, Project: "project"}
+//
+//	Parse(ctx, "org:", ParseOptions{AllowImplicitOrg: true, DisallowTargets: true})
+//	// => &Path{Organization: "org"}
+//
+//	Parse(ctx, "/pool/agent", ParseOptions{AllowImplicitOrg: true, DisallowProject: true, MinTargets: 2, MaxTargets: 2})
 //	// => &Path{Organization: <default org>, Targets: []string{"pool", "agent"}}
 //
-//	Parse(nil, "org/project/target/extra", ParseOptions{MinTargets: 1, MaxTargets: 2})
-//	// => &Path{Organization: "org", Project: "project", Targets: []string{"target", "extra"}}
-//
 // Error conditions:
-//   - opts are invalid, for example MaxTargets is non-zero and smaller than MinTargets
-//   - any segment is empty after trimming, for example "org/" or "org/ /project"
-//   - total segment count falls outside the allowed range derived from opts
-//   - only a sub-maximum prefix is valid, organization is required, and target count is
-//     variable — the input is ambiguous
+//   - opts are invalid, for example a negative target count, MaxTargets below
+//     MinTargets, DisallowTargets combined with a positive target bound, or
+//     RequireProject combined with DisallowProject
+//   - the input contains multiple or misplaced colons, an empty ORG: prefix, or
+//     an empty segment after trimming, for example "org:project/" or "org:/ /x"
+//   - the input shape violates the project rule or the target range
+//   - an explicit organization is required but the ORG: prefix is missing
+//   - a structurally detectable legacy ORGANIZATION/... form is used without ORG:
+//   - "ORG:" is used in a mode that accepts targets instead of the "ORG:/" marker
 //   - organization is omitted but ctx is nil
-//   - organization is omitted and default organization lookup fails or returns empty
+//   - organization is omitted and the default organization lookup fails or returns empty
 func Parse(ctx CmdContext, raw string, opts ParseOptions) (*Path, error) {
-	trimmed := strings.TrimSpace(raw)
-	var parts []string
-	if trimmed != "" {
-		parts = strings.Split(trimmed, "/")
-		for i := range parts {
-			parts[i] = strings.TrimSpace(parts[i])
-			if parts[i] == "" {
-				return nil, fmt.Errorf("input %q contains empty segment", raw)
-			}
-		}
+	if err := validateParseOptions(opts); err != nil {
+		return nil, err
 	}
 
-	n := len(parts)
-
-	// Validate and normalize the allowed target range.
-	minTargets := opts.MinTargets
-	maxTargets := opts.MaxTargets
-	if maxTargets == 0 {
-		maxTargets = minTargets
-	}
-	if minTargets < 0 || maxTargets < minTargets {
-		return nil, fmt.Errorf("invalid options: target range [%d,%d] is not satisfiable", opts.MinTargets, opts.MaxTargets)
+	org, hasOrg, noProject, segments, err := splitScope(raw)
+	if err != nil {
+		return nil, err
 	}
 
-	// Prefix (organization + project) segment ranges.
-	minOrg := 0
-	if !opts.AllowImplicitOrg {
-		minOrg = 1
-	}
-	minProject := 0
-	if opts.RequireProject {
-		minProject = 1
-	}
-	const maxOrg = 1
-	const maxProject = 1
-	minPrefix := minOrg + minProject
-	maxPrefix := maxOrg + maxProject
-
-	minTotal := minPrefix + minTargets
-	maxTotal := maxPrefix + maxTargets
-
-	// Range check.
-	if n < minTotal || n > maxTotal {
-		return nil, fmt.Errorf("invalid input %q: expected %d-%d segments, got %d", raw, minTotal, maxTotal, n)
+	// An explicit ORG: prefix is mandatory when the mode does not allow the
+	// default organization.
+	if !hasOrg && !opts.AllowImplicitOrg {
+		return nil, fmt.Errorf("invalid input %q: explicit organization is required, use ORG: syntax (expected %s)", raw, expectedForms(opts))
 	}
 
-	// Determine prefix length by collecting valid candidates from the back.
-	// Targets occupy the trailing segments, so for each candidate prefix
-	// length the target count is n - prefixLen.
-	var validPrefixes []int
-	for pl := maxPrefix; pl >= minPrefix; pl-- {
-		tc := n - pl
-		if tc >= minTargets && tc <= maxTargets {
-			validPrefixes = append(validPrefixes, pl)
-		}
-	}
-
-	if len(validPrefixes) == 0 {
-		return nil, fmt.Errorf("invalid input %q: expected %d-%d segments, got %d", raw, minTotal, maxTotal, n)
-	}
-
-	var prefixLen int
-	if len(validPrefixes) == 1 {
-		prefixLen = validPrefixes[0]
-		// When only a sub-maximum prefix is valid the full org+project
-		// prefix does not fit.  If org is required and the target count
-		// is variable the input is ambiguous — the missing segment could
-		// be org or project — so reject rather than guess.
-		if prefixLen < maxPrefix && !opts.AllowImplicitOrg && minTargets != maxTargets {
-			return nil, fmt.Errorf("invalid input %q: expected %d-%d segments, got %d", raw, minTotal, maxTotal, n)
-		}
-	} else {
-		// Multiple valid prefix lengths — disambiguate.
-		high := validPrefixes[0]                   // largest prefix, fewest targets
-		low := validPrefixes[len(validPrefixes)-1] // smallest prefix, most targets
-		tHigh := n - high
-		tLow := n - low
-
-		switch {
-		case tLow == maxTargets:
-			// Smallest prefix pushes targets to the maximum — prefer the
-			// largest prefix so target capacity is not exhausted.
-			prefixLen = high
-		case tHigh == minTargets:
-			// Largest prefix pushes targets to the minimum — prefer the
-			// smallest prefix to preserve target capacity.
-			prefixLen = low
-		case !opts.RequireProject:
-			// Project is optional — prefer the smallest prefix so the
-			// optional project segment is not consumed.
-			prefixLen = low
-		case opts.AllowImplicitOrg:
-			// Organization is optional — prefer the largest prefix so
-			// an explicitly provided organization is retained.
-			prefixLen = high
-		default:
-			prefixLen = high
-		}
-	}
-
-	targetCount := n - prefixLen
-
-	p := &Path{}
-	if targetCount > 0 {
-		p.Targets = make([]string, targetCount)
-		copy(p.Targets, parts[prefixLen:])
-	}
-
-	switch prefixLen {
-	case 0:
-	case 1:
+	var project string
+	var targets []string
+	if noProject {
 		if opts.RequireProject {
-			p.Project = parts[0]
-		} else {
-			p.Organization = parts[0]
+			return nil, fmt.Errorf("invalid input %q: project is required (expected %s)", raw, expectedForms(opts))
 		}
-	case 2:
-		p.Organization = parts[0]
-		p.Project = parts[1]
+		if opts.DisallowTargets {
+			return nil, fmt.Errorf("invalid input %q: targets are not allowed (expected %s)", raw, expectedForms(opts))
+		}
+		targets = segments
+	} else {
+		if len(segments) > 0 {
+			project = segments[0]
+		}
+		if len(segments) > 1 {
+			targets = segments[1:]
+		}
+		if opts.DisallowProject && len(segments) > 0 {
+			return nil, fmt.Errorf("invalid input %q: project is not allowed, use the / no-project marker (expected %s)", raw, expectedForms(opts))
+		}
+		if opts.RequireProject && len(segments) == 0 {
+			return nil, fmt.Errorf("invalid input %q: project is required (expected %s)", raw, expectedForms(opts))
+		}
+		// Reject structurally detectable legacy organization/slash forms. A
+		// form is only classified as legacy when no colon is present and the
+		// segment count exceeds every canonical shape of the mode: a second
+		// segment in a no-target mode, or more than project plus the fixed
+		// target count. Other non-colon inputs follow canonical project-first
+		// parsing.
+		legacy := !hasOrg && len(segments) > 0 &&
+			((opts.DisallowTargets && len(segments) > 1) ||
+				(opts.MaxTargets > 0 && opts.MinTargets == opts.MaxTargets && len(segments) > opts.MaxTargets+1))
+		if legacy {
+			return nil, fmt.Errorf("invalid input %q: legacy ORGANIZATION/... form is not supported, use ORG: syntax (expected %s)", raw, expectedForms(opts))
+		}
+		// Organization-only input requires the "/" marker whenever targets are
+		// allowed, so the explicit no-project shape is unambiguous.
+		if hasOrg && len(segments) == 0 && !opts.DisallowTargets {
+			return nil, fmt.Errorf("invalid input %q: use ORG:/ to specify an organization without a project or targets", raw)
+		}
 	}
 
-	if p.Organization == "" {
-		if ctx == nil {
-			return nil, fmt.Errorf("no organization specified and no default organization configured")
-		}
-		cfg, err := ctx.Config()
+	if opts.DisallowTargets && len(targets) > 0 {
+		return nil, fmt.Errorf("invalid input %q: targets are not allowed (expected %s)", raw, expectedForms(opts))
+	}
+	if len(targets) < opts.MinTargets {
+		return nil, targetCountError(raw, opts, len(targets))
+	}
+	if opts.MaxTargets > 0 && len(targets) > opts.MaxTargets {
+		return nil, targetCountError(raw, opts, len(targets))
+	}
+
+	if org == "" {
+		var err error
+		org, err = defaultOrganization(ctx)
 		if err != nil {
 			return nil, err
 		}
-		org, err := cfg.Authentication().GetDefaultOrganization()
-		if err != nil {
-			return nil, fmt.Errorf("no organization specified and no default organization configured: %w", err)
-		}
-		org = strings.TrimSpace(org)
-		if org == "" {
-			return nil, fmt.Errorf("no organization specified and no default organization configured")
-		}
-		p.Organization = org
 	}
 
+	p := &Path{
+		Organization: org,
+		Project:      project,
+		Targets:      targets,
+	}
 	return p, nil
 }
 
-// ParseScope resolves the organization and optional project from an input argument of the form
-// "[ORGANIZATION[/PROJECT]]". When the input is empty, the default organization from the user configuration
-// is returned. The function trims whitespace around individual segments and ensures the resulting values are
-// non-empty when provided.
-func ParseScope(ctx CmdContext, scope string) (*Path, error) {
-	return Parse(ctx, scope, ParseOptions{
-		AllowImplicitOrg: true,
-	})
+// validateParseOptions rejects option combinations that cannot describe a valid
+// parse mode.
+func validateParseOptions(opts ParseOptions) error {
+	if opts.MinTargets < 0 || opts.MaxTargets < 0 {
+		return fmt.Errorf("invalid options: target counts must not be negative")
+	}
+	if opts.MaxTargets > 0 && opts.MaxTargets < opts.MinTargets {
+		return fmt.Errorf("invalid options: target range [%d,%d] is not satisfiable", opts.MinTargets, opts.MaxTargets)
+	}
+	if opts.DisallowTargets && opts.MinTargets > 0 {
+		return fmt.Errorf("invalid options: targets are disallowed but min targets is %d", opts.MinTargets)
+	}
+	if opts.DisallowTargets && opts.MaxTargets > 0 {
+		return fmt.Errorf("invalid options: targets are disallowed but max targets is %d", opts.MaxTargets)
+	}
+	if opts.RequireProject && opts.DisallowProject {
+		return fmt.Errorf("invalid options: project cannot be required and disallowed at the same time")
+	}
+	return nil
 }
 
-// ParseOrganizationArg resolves the organization from an input argument of the form "[ORGANIZATION]".
-// When the input is empty, the default organization from the user configuration is returned.
-func ParseOrganizationArg(ctx CmdContext, arg string) (string, error) {
-	scope, err := Parse(ctx, arg, ParseOptions{
-		AllowImplicitOrg: true,
-	})
+// expectedForms describes the canonical input shapes of a mode for error
+// messages, so every syntax error points users to the ORG: and "/" forms.
+func expectedForms(opts ParseOptions) string {
+	switch {
+	case opts.DisallowTargets && opts.RequireProject:
+		return "PROJECT or ORG:PROJECT"
+	case opts.DisallowTargets && opts.DisallowProject:
+		return "ORG or ORG:"
+	case opts.DisallowTargets:
+		return "PROJECT, ORG:PROJECT, or ORG:"
+	case opts.DisallowProject:
+		return "/TARGET... or ORG:/TARGET..."
+	case opts.RequireProject:
+		return "PROJECT/TARGET... or ORG:PROJECT/TARGET..."
+	default:
+		return "/TARGET..., PROJECT/TARGET..., ORG:/TARGET..., or ORG:PROJECT/TARGET..."
+	}
+}
+
+// targetCountError builds the target cardinality error for a mode.
+func targetCountError(raw string, opts ParseOptions, got int) error {
+	forms := expectedForms(opts)
+	switch {
+	case opts.MaxTargets == 0:
+		return fmt.Errorf("invalid input %q: expected at least %d targets, got %d (expected %s)", raw, opts.MinTargets, got, forms)
+	case opts.MinTargets == opts.MaxTargets:
+		return fmt.Errorf("invalid input %q: expected exactly %d targets, got %d (expected %s)", raw, opts.MinTargets, got, forms)
+	default:
+		return fmt.Errorf("invalid input %q: expected %d-%d targets, got %d (expected %s)", raw, opts.MinTargets, opts.MaxTargets, got, forms)
+	}
+}
+
+// splitScope trims raw input and splits it into an optional explicit
+// organization (ORG: prefix), an optional no-project marker, and the remaining
+// slash-separated segments. Segments are trimmed individually; empty segments,
+// multiple colons, colons not directly following the organization, and an empty
+// organization prefix are rejected.
+func splitScope(raw string) (org string, hasOrg bool, noProject bool, segments []string, err error) {
+	trimmed := strings.TrimSpace(raw)
+
+	if idx := strings.Index(trimmed, ":"); idx >= 0 {
+		if strings.Contains(trimmed[idx+1:], ":") {
+			return "", false, false, nil, fmt.Errorf("invalid input %q: contains multiple colons", raw)
+		}
+		if strings.Contains(trimmed[:idx], "/") {
+			return "", false, false, nil, fmt.Errorf("invalid input %q: colon must directly follow the organization", raw)
+		}
+		org = strings.TrimSpace(trimmed[:idx])
+		if org == "" {
+			return "", false, false, nil, fmt.Errorf("invalid input %q: organization must not be empty", raw)
+		}
+		hasOrg = true
+		trimmed = trimmed[idx+1:]
+	}
+
+	noProject = strings.HasPrefix(trimmed, "/")
+	if noProject {
+		trimmed = strings.TrimPrefix(trimmed, "/")
+	}
+
+	if trimmed != "" {
+		parts := strings.Split(trimmed, "/")
+		for _, part := range parts {
+			part = strings.TrimSpace(part)
+			if part == "" {
+				return "", false, false, nil, fmt.Errorf("input %q contains empty segment", raw)
+			}
+			segments = append(segments, part)
+		}
+	}
+
+	return org, hasOrg, noProject, segments, nil
+}
+
+// defaultOrganization resolves the configured default organization. The
+// returned error and wrapping behavior are shared by every parser that allows
+// an implicit organization.
+func defaultOrganization(ctx CmdContext) (string, error) {
+	if ctx == nil {
+		return "", fmt.Errorf("no organization specified and no default organization configured")
+	}
+	cfg, err := ctx.Config()
 	if err != nil {
 		return "", err
 	}
-	if scope.Project != "" {
-		return "", fmt.Errorf("project scope not allowed for this command")
+	org, err := cfg.Authentication().GetDefaultOrganization()
+	if err != nil {
+		return "", fmt.Errorf("no organization specified and no default organization configured: %w", err)
 	}
-	return scope.Organization, nil
+	org = strings.TrimSpace(org)
+	if org == "" {
+		return "", fmt.Errorf("no organization specified and no default organization configured")
+	}
+	return org, nil
 }
 
-// ParseProjectScope parses arguments in the form [ORGANIZATION/]PROJECT. When the organization
-// segment is omitted the default organization from the user's configuration is used. The function
-// trims whitespace around individual segments and ensures the resulting values are non-empty.
+// ParseScope resolves the organization and optional project from an input
+// argument. Accepted forms are PROJECT, ORG:, and ORG:PROJECT; an empty input
+// resolves to the default organization from the user configuration. Bare
+// segments are project-first, so a bare ORG is parsed as a project.
+func ParseScope(ctx CmdContext, scope string) (*Path, error) {
+	return Parse(ctx, scope, ParseOptions{
+		AllowImplicitOrg: true,
+		DisallowTargets:  true,
+	})
+}
+
+// ParseOrganizationArg resolves the organization from an organization-only
+// argument of the form ORG or ORG:. When the input is empty, the default
+// organization from the user configuration is returned. This is the only
+// wrapper that classifies a bare segment as an organization; structured
+// wrappers never do.
+func ParseOrganizationArg(ctx CmdContext, arg string) (string, error) {
+	org, hasOrg, noProject, segments, err := splitScope(arg)
+	if err != nil {
+		return "", err
+	}
+	switch {
+	case noProject:
+		return "", fmt.Errorf("invalid organization %q: expected ORG or ORG: syntax", arg)
+	case hasOrg:
+		if len(segments) > 0 {
+			return "", fmt.Errorf("invalid organization %q: project scope not allowed for this command", arg)
+		}
+	case len(segments) > 1:
+		return "", fmt.Errorf("invalid organization %q: project scope not allowed for this command", arg)
+	case len(segments) == 1:
+		org = segments[0]
+	}
+	if org == "" {
+		return defaultOrganization(ctx)
+	}
+	return org, nil
+}
+
+// ParseProjectScope parses arguments of the form PROJECT or ORG:PROJECT. When
+// the organization prefix is omitted the default organization from the user's
+// configuration is used. Legacy ORGANIZATION/PROJECT inputs are rejected with
+// ORG: guidance.
 func ParseProjectScope(ctx CmdContext, arg string) (*Path, error) {
 	return Parse(ctx, arg, ParseOptions{
 		AllowImplicitOrg: true,
 		RequireProject:   true,
+		DisallowTargets:  true,
 	})
 }
 
-// ParseTarget validates and parses a target argument of form ORGANIZATION/TARGET or ORGANIZATION/PROJECT/TARGET.
+// ParseTarget validates and parses a target argument of the form ORG:/TARGET or
+// ORG:PROJECT/TARGET. An explicit organization is required.
 func ParseTarget(target string) (*Path, error) {
 	return Parse(nil, target, ParseOptions{
 		AllowImplicitOrg: false,
@@ -282,9 +372,10 @@ func ParseTarget(target string) (*Path, error) {
 	})
 }
 
-// ParseTargetWithDefaultOrganization resolves a group-oriented target that allows an implicit organization by
-// falling back to the configured default. Accepted formats are [ORGANIZATION/]GROUP and
-// [ORGANIZATION/]PROJECT/GROUP (used by security membership commands where the middle segment is optional).
+// ParseTargetWithDefaultOrganization resolves a target that allows an implicit
+// organization by falling back to the configured default. Accepted forms are
+// /TARGET, PROJECT/TARGET, ORG:/TARGET, and ORG:PROJECT/TARGET. A legacy
+// ORG/TARGET input is parsed as a project-first PROJECT/TARGET.
 func ParseTargetWithDefaultOrganization(ctx CmdContext, target string) (*Path, error) {
 	return Parse(ctx, target, ParseOptions{
 		AllowImplicitOrg: true,
@@ -293,9 +384,10 @@ func ParseTargetWithDefaultOrganization(ctx CmdContext, target string) (*Path, e
 	})
 }
 
-// ParseProjectTargetWithDefaultOrganization resolves targets that must include a project segment. It accepts
-// arguments in the form [ORGANIZATION/]PROJECT/TARGET, falling back to the user's default organization when the
-// organization segment is omitted.
+// ParseProjectTargetWithDefaultOrganization resolves targets that must include
+// a project segment. Accepted forms are PROJECT/TARGET and ORG:PROJECT/TARGET,
+// falling back to the user's default organization when the organization prefix
+// is omitted.
 func ParseProjectTargetWithDefaultOrganization(ctx CmdContext, target string) (*Path, error) {
 	return Parse(ctx, target, ParseOptions{
 		AllowImplicitOrg: true,
@@ -305,12 +397,14 @@ func ParseProjectTargetWithDefaultOrganization(ctx CmdContext, target string) (*
 	})
 }
 
-// ParsePoolAgentTargetWithDefaultOrganization resolves a pool/agent target that allows an implicit
-// organization by falling back to the configured default. Accepted formats are
-// [ORGANIZATION/]POOL/AGENT (2 or 3 segments).
+// ParsePoolAgentTargetWithDefaultOrganization resolves a pool/agent target that
+// allows an implicit organization by falling back to the configured default.
+// Accepted forms are /POOL/AGENT and ORG:/POOL/AGENT; the no-project marker is
+// required because this mode disallows projects.
 func ParsePoolAgentTargetWithDefaultOrganization(ctx CmdContext, raw string) (*Path, error) {
 	return Parse(ctx, raw, ParseOptions{
 		AllowImplicitOrg: true,
+		DisallowProject:  true,
 		MinTargets:       2,
 		MaxTargets:       2,
 	})
