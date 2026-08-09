@@ -25,7 +25,7 @@ func NewCmd(ctx util.CmdContext) *cobra.Command {
 	opts := &opts{}
 
 	cmd := &cobra.Command{
-		Use:   "list [ORGANIZATION/]PROJECT",
+		Use:   "list [ORG:]PROJECT",
 		Short: "List agent queues",
 		Long: heredoc.Doc(`
 			List agent queues in an Azure DevOps project.
@@ -35,10 +35,10 @@ func NewCmd(ctx util.CmdContext) *cobra.Command {
 			azdo pipelines queue list Fabrikam
 
 			# List queues in a specific organization
-			azdo pipelines queue list myorg/Fabrikam
+			azdo pipelines queue list myorg:Fabrikam
 
 			# List queues filtered by name
-			azdo pipelines queue list myorg/Fabrikam --name Default
+			azdo pipelines queue list myorg:Fabrikam --name Default
 
 			# Output as JSON
 			azdo pipelines queue list Fabrikam --json

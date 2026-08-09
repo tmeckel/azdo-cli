@@ -36,13 +36,13 @@ func NewCmd(ctx util.CmdContext) *cobra.Command {
 			- Attempts to change the default branch, rename, or disable an already-disabled repository will be blocked with a clear error message.
 			- Trying to re-disable a disabled repository or re-enable an enabled repository will also produce a specific "already disabled/enabled" error.
 		`),
-		Use: "edit [organization/]project/repository",
+		Use: "edit [ORG:]PROJECT/REPOSITORY",
 		Example: heredoc.Doc(`
         # Change the default branch (org from default config)
         azdo repo edit myproject/myrepo --default-branch live
 
         # Change the default branch with a full ref
-        azdo repo edit myorg/myproject/myrepo --default-branch refs/heads/live
+        azdo repo edit myorg:myproject/myrepo --default-branch refs/heads/live
 
         # Rename a repository
         azdo repo edit myproject/myrepo --name NewRepoName

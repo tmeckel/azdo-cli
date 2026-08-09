@@ -37,10 +37,13 @@ func NewCmd(ctx util.CmdContext) *cobra.Command {
 	opts := &createOpts{}
 
 	cmd := &cobra.Command{
-		Use:   "create [ORGANIZATION|ORGANIZATION/PROJECT]",
+		Use:   "create [ORG:][PROJECT]",
 		Short: "Create a security group",
 		Long: heredoc.Doc(`
 			Create a security group in an Azure DevOps organization or project.
+
+			The scope accepts [ORG:][PROJECT]. When omitted the default organization
+			from configuration is used.
 
 			Security groups can be created by name, email, or origin ID. Exactly one of these must be specified.
 		`),

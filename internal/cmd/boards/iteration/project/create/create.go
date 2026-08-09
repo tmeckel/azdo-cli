@@ -28,7 +28,7 @@ func NewCmd(ctx util.CmdContext) *cobra.Command {
 	opts := &createOptions{}
 
 	cmd := &cobra.Command{
-		Use:   "create [ORGANIZATION/]PROJECT[/PATH]/NAME",
+		Use:   "create [ORG:]PROJECT[/PATH]/NAME",
 		Short: "Create an iteration (sprint) in a project.",
 		Example: heredoc.Doc(`
 			# Create a top-level iteration
@@ -39,7 +39,7 @@ func NewCmd(ctx util.CmdContext) *cobra.Command {
 				--start-date 2025-01-06 --finish-date 2025-01-19
 
 			# Create a nested iteration under an existing release
-			azdo boards iteration project create myorg/Fabrikam/Release\ 2025/Sprint\ 2
+			azdo boards iteration project create myorg:Fabrikam/Release\ 2025/Sprint\ 2
 
 			# Set a custom attribute alongside the dates
 			azdo boards iteration project create Fabrikam/Sprint\ 1 \

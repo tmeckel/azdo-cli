@@ -33,19 +33,19 @@ func NewCmd(ctx util.CmdContext) *cobra.Command {
 	o := &opts{}
 
 	cmd := &cobra.Command{
-		Use:   "show [ORGANIZATION/]PROJECT",
+		Use:   "show [ORG:]PROJECT",
 		Short: "Show details of an Azure DevOps Project",
 		Long: heredoc.Doc(`
 			Shows details of an Azure DevOps project in the specified organization.
 
-			If the organization name is omitted from the project argument, the default configured organization is used.
+			If the organization prefix is omitted from the project argument, the default configured organization is used.
 		`),
 		Example: heredoc.Doc(`
 			# Show project details in the default organization
 			azdo project show MyProject
 
 			# Show project details in a specific organization
-			azdo project show MyOrg/MyProject
+			azdo project show MyOrg:MyProject
 		`),
 		Args: cobra.ExactArgs(1),
 		Aliases: []string{

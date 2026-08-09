@@ -51,22 +51,22 @@ func NewCmd(ctx util.CmdContext) *cobra.Command {
 	}
 
 	cmd := &cobra.Command{
-		Use:   "list [ORGANIZATION/]PROJECT",
+		Use:   "list [ORG:]PROJECT",
 		Short: "List area paths defined for a project.",
 		Long: heredoc.Doc(`
 			List Azure Boards area paths for a project. The project argument accepts the form
-			[ORGANIZATION/]PROJECT. When the organization segment is omitted, the default
-			organization from configuration is used.
+			[ORG:]PROJECT. When the ORG: prefix is omitted, the default organization from
+			configuration is used.
 		`),
 		Example: heredoc.Doc(`
 			# List the top-level area paths for Fabrikam using the default organization
 			azdo boards area project list Fabrikam
 
 			# List the full area tree for a project in a specific organization
-			azdo boards area project list myorg/Fabrikam --depth 5
+			azdo boards area project list myorg:Fabrikam --depth 5
 
 			# List the sub-tree under a specific area path (relative paths are resolved under <project>/Area)
-			azdo boards area project list myorg/Fabrikam --path Payments --depth 3
+			azdo boards area project list myorg:Fabrikam --path Payments --depth 3
 		`),
 		Aliases: []string{"ls", "l"},
 		Args:    util.ExactArgs(1, "project argument required"),

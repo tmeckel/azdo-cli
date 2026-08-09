@@ -31,7 +31,7 @@ func NewCmd(ctx util.CmdContext) *cobra.Command {
 	opts := &options{}
 
 	cmd := &cobra.Command{
-		Use:   "delete [ORGANIZATION/]PROJECT/GROUP",
+		Use:   "delete [ORG:]PROJECT/GROUP",
 		Short: "Delete a variable group from a project",
 		Long: heredoc.Doc(`
 			Delete a variable group from a project using its numeric ID or name. The command prompts
@@ -42,7 +42,7 @@ func NewCmd(ctx util.CmdContext) *cobra.Command {
 			azdo pipelines variable-group delete MyProject/123 --yes
 
 			# Delete a variable group by name in a specific organization
-			azdo pipelines variable-group delete 'myorg/MyProject/Shared Config'
+			azdo pipelines variable-group delete 'myorg:MyProject/Shared Config'
 
 			# Remove a shared group from two additional projects
 			azdo pipelines variable-group delete MyProject/SharedConfig --project-reference ProjectB --project-reference ProjectC

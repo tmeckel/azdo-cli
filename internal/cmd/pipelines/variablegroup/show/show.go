@@ -59,15 +59,15 @@ func NewCmd(ctx util.CmdContext) *cobra.Command {
 	o := &opts{}
 
 	cmd := &cobra.Command{
-		Use:   "show [ORGANIZATION/]PROJECT/VARIABLE_GROUP_ID_OR_NAME",
+		Use:   "show [ORG:]PROJECT/VARIABLE_GROUP_ID_OR_NAME",
 		Short: "Show variable group details",
 		Long: heredoc.Doc(`
 			Display metadata for a variable group, including its authorization state and variables.
 
-			The positional argument accepts the form [ORGANIZATION/]PROJECT/VARIABLE_GROUP_ID_OR_NAME.
+			The positional argument accepts the form [ORG:]PROJECT/VARIABLE_GROUP_ID_OR_NAME.
 			When the organization segment is omitted the default organization from configuration is used.
 		`),
-		Args: util.ExactArgs(1, "target argument is required and must be in the form [ORGANIZATION/]PROJECT/VARIABLE_GROUP_ID_OR_NAME"),
+		Args: util.ExactArgs(1, "target argument is required and must be in the form [ORG:]PROJECT/VARIABLE_GROUP_ID_OR_NAME"),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			o.targetArg = args[0]
 			return run(ctx, o)

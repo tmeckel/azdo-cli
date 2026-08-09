@@ -30,22 +30,22 @@ func NewCmd(ctx util.CmdContext) *cobra.Command {
 	commandOpts := &opts{}
 
 	cmd := &cobra.Command{
-		Use:   "show ORGANIZATION/GROUP | ORGANIZATION/PROJECT/GROUP",
+		Use:   "show ORG:[PROJECT/]GROUP",
 		Short: "Show details of an Azure DevOps security group",
 		Long: heredoc.Doc(`
 			Display the details of an Azure DevOps security group within an organization or project scope.
 
-			The organization segment is required. Provide an optional project segment to narrow the search scope.
+			The ORG: prefix is required. Provide an optional project segment to narrow the search scope.
 		`),
 		Example: heredoc.Doc(`
 			# Show an organization-level security group
-			azdo security group show MyOrg/Project Collection Administrators
+			azdo security group show MyOrg:/Project Collection Administrators
 
 			# Show a project-level security group
-			azdo security group show MyOrg/MyProject/Contributors
+			azdo security group show MyOrg:MyProject/Contributors
 
 			# Show details as JSON
-			azdo security group show MyOrg/Contributors --json
+			azdo security group show MyOrg:/Contributors --json
 		`),
 		Args: cobra.ExactArgs(1),
 		Aliases: []string{

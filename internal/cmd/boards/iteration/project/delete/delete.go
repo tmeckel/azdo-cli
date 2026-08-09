@@ -25,7 +25,7 @@ func NewCmd(ctx util.CmdContext) *cobra.Command {
 	opts := &deleteOptions{}
 
 	cmd := &cobra.Command{
-		Use:   "delete [ORGANIZATION/]PROJECT[/PATH]/NAME",
+		Use:   "delete [ORG:]PROJECT[/PATH]/NAME",
 		Short: "Delete an iteration from a project.",
 		Long: heredoc.Doc(`
 			Delete an iteration (sprint) from a project. The command prompts for

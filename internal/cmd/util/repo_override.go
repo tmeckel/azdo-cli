@@ -9,7 +9,7 @@ import (
 
 func EnableRepoOverride(ctx CmdContext, cmds ...*cobra.Command) {
 	for _, cmd := range cmds {
-		cmd.PersistentFlags().StringP("repo", "R", "", "Select another repository using the `[ORG/]PROJECT/REPO` format")
+		cmd.PersistentFlags().StringP("repo", "R", "", "Select another repository using the `[ORG:]PROJECT/REPO` format")
 		cmd.PersistentPreRunE = func(cmd *cobra.Command, args []string) error {
 			if !cmd.Flags().Parsed() {
 				return nil

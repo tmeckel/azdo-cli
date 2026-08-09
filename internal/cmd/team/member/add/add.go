@@ -57,13 +57,13 @@ func NewCmd(ctx util.CmdContext) *cobra.Command {
 	o := &opts{}
 
 	cmd := &cobra.Command{
-		Use:   "add [ORGANIZATION/]PROJECT/TEAM",
+		Use:   "add [ORG:]PROJECT/TEAM",
 		Short: "Add one or more members to a team.",
 		Long: heredoc.Doc(`
 			Add one or more users or groups as members of a team.
 
 			The positional argument accepts the team's project and team name in the
-			form [ORGANIZATION/]PROJECT/TEAM.
+			form [ORG:]PROJECT/TEAM.
 		`),
 		Example: heredoc.Doc(`
 			# Add a user by email
@@ -73,7 +73,7 @@ func NewCmd(ctx util.CmdContext) *cobra.Command {
 			azdo team member add Fabrikam/MyProject/MyTeam -u alice@contoso.com -u bob@contoso.com
 
 			# Add a user by subject descriptor
-			azdo team member add MyOrg/Fabrikam/MyTeam --user vssgp.Uy0xLTItMw==
+			azdo team member add MyOrg:Fabrikam/MyTeam --user vssgp.Uy0xLTItMw==
 		`),
 		Args: util.ExactArgs(1, "team argument required"),
 		Aliases: []string{

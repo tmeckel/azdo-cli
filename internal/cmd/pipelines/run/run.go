@@ -29,7 +29,7 @@ func NewCmd(ctx util.CmdContext) *cobra.Command {
 	opts := &runOptions{}
 
 	cmd := &cobra.Command{
-		Use:   "run [ORGANIZATION/]PROJECT/PIPELINE",
+		Use:   "run [ORG:]PROJECT/PIPELINE",
 		Short: "Queue a pipeline run",
 		Long: heredoc.Doc(`
 			Queue (run) an existing Azure Pipeline definition. The pipeline is
@@ -41,7 +41,7 @@ func NewCmd(ctx util.CmdContext) *cobra.Command {
 			azdo pipelines run Fabrikam/42
 
 			# Queue against a specific branch
-			azdo pipelines run MyOrg/Fabrikam/42 --branch main
+			azdo pipelines run MyOrg:Fabrikam/42 --branch main
 
 			# Queue with a commit and a variable
 			azdo pipelines run Fabrikam/MyPipeline --commit-id abc123 --variable env=prod

@@ -20,7 +20,7 @@ func RunTypedUpdate(cmd *cobra.Command, args []string, cfg EndpointTypeConfigure
 		return err
 	}
 
-	common := cmd.Context().Value("updateCommonOptions").(*updateCommonOptions)
+	common := cmd.Context().Value(updateCommonOptionsKey{}).(*updateCommonOptions)
 	ios.StartProgressIndicator()
 	defer ios.StopProgressIndicator()
 

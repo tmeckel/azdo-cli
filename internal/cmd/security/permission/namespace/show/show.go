@@ -24,23 +24,30 @@ func NewCmd(ctx util.CmdContext) *cobra.Command {
 	o := &opts{}
 
 	cmd := &cobra.Command{
-		Use:   "show [ORGANIZATION/]NAMESPACE",
+		Use:   "show [ORG:]/NAMESPACE",
 		Short: "Show details for a security permission namespace.",
 		Long: heredoc.Doc(`
 			Show the full details of a security permission namespace, including the actions it defines.
 
 			The namespace can be specified by its GUID or by its name. When using a name, the command performs
 			a case-insensitive match against both the namespace's name and display name.
+
+			Accepted NAMESPACE formats:
+			  - /NAMESPACE              → namespace in the default organization
+			  - ORG:/NAMESPACE          → namespace in an explicit organization
+
+			The leading / no-project marker is required; a bare NAMESPACE or a legacy
+			ORGANIZATION/NAMESPACE input is rejected.
 		`),
 		Example: heredoc.Doc(`
 			# Show a namespace by ID using the default organization
-			azdo security permission namespace show 52d39943-cb85-4d7f-8fa8-c6baac873819
+			azdo security permission namespace show /52d39943-cb85-4d7f-8fa8-c6baac873819
 
 			# Show a namespace by name using an explicit organization
-			azdo security permission namespace show myorg/Project Collection
+			azdo security permission namespace show myorg:/Project Collection
 
 			# Display selected fields from the namespace as JSON
-			azdo security permission namespace show myorg/Build --json namespaceId,name,actions
+			azdo security permission namespace show myorg:/Build --json namespaceId,name,actions
 		`),
 		Args: cobra.ExactArgs(1),
 		Aliases: []string{
@@ -175,30 +182,21 @@ func runCommand(ctx util.CmdContext, o *opts) error {
 	return actionPrinter.Render()
 }
 
+// parseNamespaceTarget parses the namespace argument using the shared
+// structural scope parser. The namespace mode is project-disallowed and
+// accepts exactly one target: /NAMESPACE or ORG:/NAMESPACE.
 func parseNamespaceTarget(ctx util.CmdContext, input string) (*util.Path, string, error) {
-	trimmed := strings.TrimSpace(input)
-	if trimmed == "" {
-		return nil, "", util.FlagErrorf("namespace identifier is required")
-	}
-
-	if strings.Contains(trimmed, "/") {
-		parts := strings.SplitN(trimmed, "/", 2)
-		if len(parts) != 2 || strings.TrimSpace(parts[0]) == "" || strings.TrimSpace(parts[1]) == "" {
-			return nil, "", util.FlagErrorf("invalid namespace target: %s", input)
-		}
-
-		scope, err := util.ParseScope(ctx, strings.TrimSpace(parts[0]))
-		if err != nil {
-			return nil, "", err
-		}
-		return scope, strings.TrimSpace(parts[1]), nil
-	}
-
-	organization, err := util.ParseOrganizationArg(ctx, "")
+	path, err := util.Parse(ctx, input, util.ParseOptions{
+		AllowImplicitOrg: true,
+		DisallowProject:  true,
+		MinTargets:       1,
+		MaxTargets:       1,
+	})
 	if err != nil {
 		return nil, "", err
 	}
-	return &util.Path{Organization: organization}, trimmed, nil
+
+	return path, path.Targets[0], nil
 }
 
 func namespaceMatches(ns security.SecurityNamespaceDescription, identifier string) bool {

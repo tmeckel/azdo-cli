@@ -26,13 +26,13 @@ func NewCmdRepoList(ctx util.CmdContext) *cobra.Command {
 
 	cmd := &cobra.Command{
 		Short: "List repositories of a project inside an organization",
-		Use:   "list [organization/]<project>",
+		Use:   "list [ORG:]PROJECT",
 		Example: heredoc.Doc(`
 			# list the repositories of a project using default organization
 			azdo repo list myproject
 
 			# list the repositories of a project using specified organization
-			azdo repo list myorg/myproject
+			azdo repo list myorg:myproject
 		`),
 		Args: util.ExactArgs(1, "cannot list: project name required"),
 		Aliases: []string{

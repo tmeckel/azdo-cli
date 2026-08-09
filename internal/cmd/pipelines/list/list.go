@@ -27,7 +27,7 @@ func NewCmd(ctx util.CmdContext) *cobra.Command {
 	opts := &opts{}
 
 	cmd := &cobra.Command{
-		Use:   "list [ORGANIZATION/]PROJECT",
+		Use:   "list [ORG:]PROJECT",
 		Short: "List pipeline definitions",
 		Long: heredoc.Doc(`
 			List pipeline definitions (YAML or classic) in a project.
@@ -35,6 +35,9 @@ func NewCmd(ctx util.CmdContext) *cobra.Command {
 		Example: heredoc.Doc(`
 			# List all pipelines in a project
 			$ azdo pipelines list "my-project"
+
+			# List pipelines in a specific organization
+			$ azdo pipelines list "my-org:my-project"
 
 			# List pipelines with a specific name
 			$ azdo pipelines list "my-project" --name "my-pipeline"

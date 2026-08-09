@@ -38,7 +38,7 @@ func NewCmd(ctx util.CmdContext) *cobra.Command {
 	opts := &showOptions{}
 
 	cmd := &cobra.Command{
-		Use:   "show [ORGANIZATION/]PROJECT/TEAM",
+		Use:   "show [ORG:]PROJECT/TEAM",
 		Short: "Show details of a team.",
 		Long: heredoc.Doc(`
 			Show details of a single team in a project. The team is identified by its
@@ -50,7 +50,7 @@ func NewCmd(ctx util.CmdContext) *cobra.Command {
 			azdo team show Fabrikam/"Fabrikam Engineering"
 
 			# Show a team by ID in a specific organization
-			azdo team show MyOrg/Fabrikam/00000002-0000-0000-0000-000000000000
+			azdo team show MyOrg:Fabrikam/00000002-0000-0000-0000-000000000000
 		`),
 		Aliases: []string{"s"},
 		Args:    util.ExactArgs(1, "team argument required"),
@@ -108,10 +108,10 @@ func runShow(ctx util.CmdContext, opts *showOptions) error {
 		return opts.exporter.Write(ios, team)
 	}
 
-	return renderTeam(ctx, ios, team)
+	return renderTeam(ios, team)
 }
 
-func renderTeam(ctx util.CmdContext, ios *iostreams.IOStreams, team *core.WebApiTeam) error {
+func renderTeam(ios *iostreams.IOStreams, team *core.WebApiTeam) error {
 	data := teamTemplateData{
 		Id:          types.GetValue(team.Id, uuid.UUID{}).String(),
 		Name:        types.GetValue(team.Name, ""),

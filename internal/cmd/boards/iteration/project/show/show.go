@@ -38,7 +38,7 @@ func NewCmd(ctx util.CmdContext) *cobra.Command {
 	opts := &showOptions{}
 
 	cmd := &cobra.Command{
-		Use:   "show [ORGANIZATION/]PROJECT[/PATH]/NAME",
+		Use:   "show [ORG:]PROJECT[/PATH]/NAME",
 		Short: "Show an iteration in a project.",
 		Long: heredoc.Doc(`
 			Display the details of a single iteration (sprint) node in a project.
@@ -49,7 +49,7 @@ func NewCmd(ctx util.CmdContext) *cobra.Command {
 			azdo boards iteration project show Fabrikam/Sprint\ 1
 
 			# Show a nested iteration
-			azdo boards iteration project show myorg/Fabrikam/Release\ 2025/Sprint\ 1
+			azdo boards iteration project show myorg:Fabrikam/Release\ 2025/Sprint\ 1
 
 			# Include child nodes in the template output
 			azdo boards iteration project show Fabrikam/Release\ 2025 --include-children

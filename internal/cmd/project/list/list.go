@@ -26,13 +26,16 @@ func NewCmdProjectList(ctx util.CmdContext) *cobra.Command {
 
 	cmd := &cobra.Command{
 		Short: "List the projects for an organization",
-		Use:   "list [organization]",
+		Use:   "list [ORG]",
 		Example: heredoc.Doc(`
 			# list the default organizations's projects
 			azdo project list
 
 			# list the projects for an Azure DevOps organization including closed projects
 			azdo project list myorg
+
+			# list the projects for an organization using the ORG: form
+			azdo project list myorg:
 		`),
 		Args: cobra.MaximumNArgs(1),
 		Aliases: []string{

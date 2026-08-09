@@ -31,7 +31,7 @@ type membershipListResult struct {
 func NewCmd(ctx util.CmdContext) *cobra.Command {
 	o := &opts{}
 	cmd := &cobra.Command{
-		Use:   "list [ORGANIZATION/]GROUP | [ORGANIZATION/]PROJECT/GROUP",
+		Use:   "list [ORG:][PROJECT/]GROUP",
 		Short: "List the members of an Azure DevOps security group.",
 		Args:  cobra.ExactArgs(1),
 		Aliases: []string{
@@ -171,7 +171,7 @@ func runList(ctx util.CmdContext, o *opts) error {
 	if err != nil {
 		return err
 	}
-	tp.AddColumns("DiplayName", "Descriptor", "SubjectType")
+	tp.AddColumns("DisplayName", "Descriptor", "SubjectType")
 
 	for _, s := range *subjects {
 		tp.AddField(types.GetValue(s.DisplayName, ""))

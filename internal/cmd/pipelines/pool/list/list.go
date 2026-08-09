@@ -25,7 +25,7 @@ func NewCmd(ctx util.CmdContext) *cobra.Command {
 	opts := &opts{}
 
 	cmd := &cobra.Command{
-		Use:   "list [ORGANIZATION]",
+		Use:   "list [ORG]",
 		Short: "List agent pools",
 		Long: heredoc.Doc(`
 			List Azure DevOps agent pools for an organization.
@@ -36,6 +36,9 @@ func NewCmd(ctx util.CmdContext) *cobra.Command {
 
 			# List pools in a specific organization
 			azdo pipelines pool list myorg
+
+			# List pools in a specific organization (colon form)
+			azdo pipelines pool list myorg:
 
 			# List pools filtered by name
 			azdo pipelines pool list myorg --name Default

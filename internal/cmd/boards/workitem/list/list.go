@@ -49,7 +49,7 @@ func NewCmd(ctx util.CmdContext) *cobra.Command {
 	opts := &listOptions{}
 
 	cmd := &cobra.Command{
-		Use:   "list [ORGANIZATION/]PROJECT",
+		Use:   "list [ORG:]PROJECT",
 		Short: "List work items belonging to a project.",
 		Long: heredoc.Doc(`
 			List work items belonging to a project within an Azure DevOps organization.

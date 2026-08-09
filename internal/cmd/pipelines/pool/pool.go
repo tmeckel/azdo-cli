@@ -25,7 +25,7 @@ func NewCmd(ctx util.CmdContext) *cobra.Command {
 			azdo pipelines pool show 'Default'
 
 			# Show a pool in a specific organization
-			azdo pipelines pool show 'myorg/Default'
+			azdo pipelines pool show 'myorg:/Default'
 
 			# List pools in the default organization
 			azdo pipelines pool list

@@ -33,9 +33,9 @@ func NewCmd(ctx util.CmdContext) *cobra.Command {
 	o := &opts{}
 
 	cmd := &cobra.Command{
-		Use:   "list [ORGANIZATION[/PROJECT]]",
+		Use:   "list [ORG:][PROJECT]",
 		Short: "List security groups",
-		Long:  "List all security groups within a given project or organization.",
+		Long:  "List all security groups within a given project, organization, or ORG: scope.",
 		Example: heredoc.Docf(`
 			# List all security groups in the default organization
 			azdo security group list

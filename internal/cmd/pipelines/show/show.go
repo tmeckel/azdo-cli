@@ -29,7 +29,7 @@ func NewCmd(ctx util.CmdContext) *cobra.Command {
 	opts := &showOptions{}
 
 	cmd := &cobra.Command{
-		Use:   "show [ORGANIZATION/]PROJECT/PIPELINE",
+		Use:   "show [ORG:]PROJECT/PIPELINE",
 		Short: "Show details of a pipeline definition",
 		Long: heredoc.Doc(`
 			Display the details of a single Azure Pipelines definition.
@@ -46,7 +46,7 @@ func NewCmd(ctx util.CmdContext) *cobra.Command {
 			azdo pipelines show Fabrikam/My Pipeline
 
 			# Show with explicit organization
-			azdo pipelines show MyOrg/Fabrikam/42
+			azdo pipelines show MyOrg:Fabrikam/42
 
 			# Export as JSON
 			azdo pipelines show Fabrikam/42 --json id,name,revision

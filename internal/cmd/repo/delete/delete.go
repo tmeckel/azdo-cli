@@ -21,13 +21,13 @@ func NewCmd(ctx util.CmdContext) *cobra.Command {
 
 	cmd := &cobra.Command{
 		Short: "Delete a Git repository in a team project",
-		Use:   "delete [organization/]project/repository",
+		Use:   "delete [ORG:]PROJECT/REPOSITORY",
 		Example: heredoc.Doc(`
 			# delete a repository in the default organization
 			azdo repo delete myproject/myrepo
 
 			# delete a repository using specified organization
-			azdo repo delete myorg/myproject/myrepo
+			azdo repo delete myorg:myproject/myrepo
 			`),
 		Args: util.ExactArgs(1, "cannot delete: repository argument required"),
 		Aliases: []string{

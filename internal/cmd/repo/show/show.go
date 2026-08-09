@@ -25,12 +25,12 @@ func NewCmd(ctx util.CmdContext) *cobra.Command {
 	opts := &showOptions{}
 
 	cmd := &cobra.Command{
-		Use:   "show [ORGANIZATION/]PROJECT/REPO_ID_OR_NAME",
+		Use:   "show [ORG:]PROJECT/REPO_ID_OR_NAME",
 		Short: "Show repository details",
 		Long: heredoc.Doc(`
 			Display the details of a single Azure DevOps Git repository.
 
-			The repository is identified by name or ID. The organization segment is optional when a
+			The repository is identified by name or ID. The organization prefix is optional when a
 			default organization is configured.
 		`),
 		Example: heredoc.Doc(`
@@ -38,10 +38,10 @@ func NewCmd(ctx util.CmdContext) *cobra.Command {
 			azdo repo show Fabrikam/my-repo
 
 			# Show a repository by ID
-			azdo repo show myorg/Fabrikam/00000000-0000-0000-0000-000000000000
+			azdo repo show myorg:Fabrikam/00000000-0000-0000-0000-000000000000
 		`),
 		Aliases: []string{"view", "status"},
-		Args:    util.ExactArgs(1, "target argument is required and must be in the form [ORGANIZATION/]PROJECT/REPO_ID_OR_NAME"),
+		Args:    util.ExactArgs(1, "target argument is required and must be in the form [ORG:]PROJECT/REPO_ID_OR_NAME"),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			opts.targetArg = args[0]
 			return runShow(ctx, opts)

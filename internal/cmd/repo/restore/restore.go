@@ -15,13 +15,13 @@ func NewCmd(ctx util.CmdContext) *cobra.Command {
 
 	cmd := &cobra.Command{
 		Short: "Restore a deleted repository",
-		Use:   "restore [organization/]project/repository",
+		Use:   "restore [ORG:]PROJECT/REPOSITORY",
 		Example: heredoc.Doc(`
 			# restore a deleted repository in the default organization
-			azdo repo list myproject/myrepo
+			azdo repo restore myproject/myrepo
 
 			# restore a deleted repository using specified organization
-			azdo repo list myorg/myproject/myrepo
+			azdo repo restore myorg:myproject/myrepo
 		`),
 		Args:    util.ExactArgs(1, "cannot restore: repository argument required"),
 		Aliases: []string{"ls"},

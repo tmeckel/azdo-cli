@@ -19,20 +19,20 @@ func NewCmd(ctx util.CmdContext) *cobra.Command {
 	opts := &showOptions{}
 
 	cmd := &cobra.Command{
-		Use:   "show [ORGANIZATION/]PROJECT/ID_OR_NAME",
+		Use:   "show [ORG:]PROJECT/ID_OR_NAME",
 		Short: "Show details of a service endpoint.",
 		Long: heredoc.Doc(`
 			Show details of a single Azure DevOps service endpoint (service connection).
 
-			The positional argument accepts the form [ORGANIZATION/]PROJECT/ID_OR_NAME. When the
-			organization segment is omitted the default organization from configuration is used.
+			The positional argument accepts the form [ORG:]PROJECT/ID_OR_NAME.
+			When the ORG: prefix is omitted the default organization from configuration is used.
 		`),
 		Example: heredoc.Doc(`
 			# Show a service endpoint by ID in the default organization
 			azdo service-endpoint show MyProject/12345678-1234-1234-1234-1234567890ab
 
 			# Show a service endpoint by name in a specific organization
-			azdo service-endpoint show myorg/MyProject/MyConnection
+			azdo service-endpoint show myorg:MyProject/MyConnection
 		`),
 		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {

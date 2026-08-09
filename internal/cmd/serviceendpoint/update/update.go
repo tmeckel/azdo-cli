@@ -38,13 +38,13 @@ func NewCmd(ctx util.CmdContext) *cobra.Command {
 	o := &opts{}
 
 	cmd := &cobra.Command{
-		Use:   "update [ORGANIZATION/]PROJECT/ID_OR_NAME",
+		Use:   "update [ORG:]PROJECT/ID_OR_NAME",
 		Short: "Update a service endpoint.",
 		Long: heredoc.Doc(`
 			Update an existing Azure DevOps service endpoint (service connection).
 
-			The positional argument accepts the form [ORGANIZATION/]PROJECT/ID_OR_NAME. When the
-			organization segment is omitted the default organization from configuration is used.
+			The positional argument accepts the form [ORG:]PROJECT/ID_OR_NAME.
+			When the ORG: prefix is omitted the default organization from configuration is used.
 
 			Provide one or more mutating flags to change attributes or pipeline permissions.
 		`),

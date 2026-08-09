@@ -26,7 +26,7 @@ func NewCmd(ctx util.CmdContext) *cobra.Command {
 	opts := &listOptions{}
 
 	cmd := &cobra.Command{
-		Use:   "list [ORGANIZATION/]PROJECT",
+		Use:   "list [ORG:]PROJECT",
 		Short: "List teams in a project.",
 		Long: heredoc.Doc(`
 			List all teams in the specified project. Supports server-side paging via
@@ -37,7 +37,7 @@ func NewCmd(ctx util.CmdContext) *cobra.Command {
 			azdo team list Fabrikam
 
 			# List the first 10 teams in a specific organization
-			azdo team list MyOrg/Fabrikam --top 10
+			azdo team list MyOrg:Fabrikam --top 10
 
 			# List teams you are a member of
 			azdo team list Fabrikam --mine

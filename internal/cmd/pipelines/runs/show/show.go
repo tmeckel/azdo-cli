@@ -28,7 +28,7 @@ func NewCmd(ctx util.CmdContext) *cobra.Command {
 	opts := &showOptions{}
 
 	cmd := &cobra.Command{
-		Use:   "show [ORGANIZATION/]PROJECT RUN_ID",
+		Use:   "show [ORG:]PROJECT RUN_ID",
 		Short: "Show details of a pipeline run",
 		Long: heredoc.Doc(`
 			Display the details of a single Azure Pipelines run.
@@ -40,7 +40,7 @@ func NewCmd(ctx util.CmdContext) *cobra.Command {
 			azdo pipelines runs show Fabrikam 12345
 
 			# Show a run by ID with explicit organization
-			azdo pipelines runs show MyOrg/Fabrikam 12345
+			azdo pipelines runs show MyOrg:Fabrikam 12345
 
 			# Export as JSON
 			azdo pipelines runs show Fabrikam 12345 --json id,buildNumber,status,result

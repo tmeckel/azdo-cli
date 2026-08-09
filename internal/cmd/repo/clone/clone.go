@@ -28,7 +28,7 @@ func NewCmdRepoClone(ctx util.CmdContext) *cobra.Command {
 	cmd := &cobra.Command{
 		DisableFlagsInUseLine: true,
 
-		Use:   "clone [organization/]project/repository [<directory>] [-- <gitflags>...]",
+		Use:   "clone [ORG:]PROJECT/REPOSITORY [<directory>] [-- <gitflags>...]",
 		Args:  util.MinimumArgs(1, "cannot clone: repository argument required"),
 		Short: "Clone a repository locally",
 		Long: heredoc.Docf(`

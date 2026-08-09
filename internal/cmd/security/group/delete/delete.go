@@ -21,7 +21,7 @@ func NewCmd(ctx util.CmdContext) *cobra.Command {
 	opts := &deleteOpts{}
 
 	cmd := &cobra.Command{
-		Use:   "delete [ORGANIZATION/GROUP | ORGANIZATION/PROJECT/GROUP]",
+		Use:   "delete ORG:[PROJECT/]GROUP",
 		Short: "Delete an Azure DevOps security group",
 		Args:  cobra.ExactArgs(1),
 		Aliases: []string{

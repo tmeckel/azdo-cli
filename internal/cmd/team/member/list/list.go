@@ -26,7 +26,7 @@ func NewCmd(ctx util.CmdContext) *cobra.Command {
 	opts := &listOptions{}
 
 	cmd := &cobra.Command{
-		Use:   "list [ORGANIZATION/]PROJECT/TEAM",
+		Use:   "list [ORG:]PROJECT/TEAM",
 		Short: "List members of a team.",
 		Long: heredoc.Doc(`
 			List members of a team. The TEAM argument accepts the ID (GUID)
@@ -38,7 +38,7 @@ func NewCmd(ctx util.CmdContext) *cobra.Command {
 			azdo team member list Fabrikam/"Fabrikam Engineering"
 
 			# List the first 10 members in a specific organization
-			azdo team member list MyOrg/Fabrikam/MyTeam --top 10
+			azdo team member list MyOrg:Fabrikam/MyTeam --top 10
 		`),
 		Aliases: []string{"members", "ls", "l"},
 		Args:    util.ExactArgs(1, "team argument required"),
