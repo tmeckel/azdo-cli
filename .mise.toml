@@ -1,8 +1,10 @@
 [env]
 _.file = ".env"
 
+[settings]
+idiomatic_version_file_enable_tools = ["go"]
+
 [tools]
-go = "1.25"
 "golangci-lint" = "2.12.2"
 goreleaser = "latest"
 prek = "latest"
