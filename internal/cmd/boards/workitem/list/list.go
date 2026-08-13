@@ -15,6 +15,7 @@ import (
 	"go.uber.org/zap"
 
 	"github.com/tmeckel/azdo-cli/internal/azdo/extensions"
+	"github.com/tmeckel/azdo-cli/internal/cmd/boards/workitem/shared"
 	"github.com/tmeckel/azdo-cli/internal/cmd/util"
 	"github.com/tmeckel/azdo-cli/internal/types"
 )
@@ -268,12 +269,12 @@ func renderWorkItemsTable(ctx util.CmdContext, workItems []workitemtracking.Work
 	for _, wi := range workItems {
 		fields := types.GetValue(wi.Fields, map[string]any{})
 		tp.AddField(strconv.Itoa(types.GetValue(wi.Id, 0)))
-		tp.AddField(fieldString(fields, "System.WorkItemType"))
-		tp.AddField(fieldString(fields, "System.State"))
-		tp.AddField(fieldString(fields, "System.Title"))
-		tp.AddField(fieldIdentityDisplay(fields, "System.AssignedTo"))
-		tp.AddField(fieldString(fields, "System.AreaPath"))
-		tp.AddField(fieldString(fields, "System.IterationPath"))
+		tp.AddField(shared.FieldString(fields, "System.WorkItemType"))
+		tp.AddField(shared.FieldString(fields, "System.State"))
+		tp.AddField(shared.FieldString(fields, "System.Title"))
+		tp.AddField(shared.FieldIdentityDisplay(fields, "System.AssignedTo"))
+		tp.AddField(shared.FieldString(fields, "System.AreaPath"))
+		tp.AddField(shared.FieldString(fields, "System.IterationPath"))
 		tp.EndRow()
 	}
 
@@ -998,44 +999,4 @@ func orderWorkItemsByIDs(items []workitemtracking.WorkItem, ids []int) []workite
 	}
 
 	return ordered
-}
-
-func fieldString(fields map[string]any, key string) string {
-	if fields == nil {
-		return ""
-	}
-	v, ok := fields[key]
-	if !ok || v == nil {
-		return ""
-	}
-	switch t := v.(type) {
-	case string:
-		return t
-	default:
-		return fmt.Sprint(v)
-	}
-}
-
-func fieldIdentityDisplay(fields map[string]any, key string) string {
-	if fields == nil {
-		return ""
-	}
-	v, ok := fields[key]
-	if !ok || v == nil {
-		return ""
-	}
-	switch t := v.(type) {
-	case string:
-		return t
-	case map[string]any:
-		if displayName, ok := t["displayName"].(string); ok {
-			return displayName
-		}
-		if uniqueName, ok := t["uniqueName"].(string); ok {
-			return uniqueName
-		}
-		return fmt.Sprint(v)
-	default:
-		return fmt.Sprint(v)
-	}
 }
