@@ -3,6 +3,7 @@ package workitem
 import (
 	"github.com/MakeNowJust/heredoc/v2"
 	"github.com/spf13/cobra"
+	"github.com/tmeckel/azdo-cli/internal/cmd/boards/workitem/delete"
 	"github.com/tmeckel/azdo-cli/internal/cmd/boards/workitem/list"
 	"github.com/tmeckel/azdo-cli/internal/cmd/util"
 )
@@ -15,10 +16,14 @@ func NewCmd(ctx util.CmdContext) *cobra.Command {
 		Example: heredoc.Doc(`
 			# List work items in a project
 			azdo boards work-item list Fabrikam
+
+			# Delete a work item
+			azdo boards work-item delete Fabrikam/42 --yes
 		`),
 	}
 
 	cmd.AddCommand(list.NewCmd(ctx))
+	cmd.AddCommand(delete.NewCmd(ctx))
 
 	return cmd
 }
