@@ -4,6 +4,7 @@ import (
 	"github.com/MakeNowJust/heredoc/v2"
 	"github.com/spf13/cobra"
 
+	"github.com/tmeckel/azdo-cli/internal/cmd/pipelines/folder/create"
 	"github.com/tmeckel/azdo-cli/internal/cmd/pipelines/folder/list"
 	"github.com/tmeckel/azdo-cli/internal/cmd/util"
 )
@@ -19,6 +20,7 @@ func NewCmd(ctx util.CmdContext) *cobra.Command {
 		Aliases: []string{"folders"},
 	}
 
+	cmd.AddCommand(create.NewCmd(ctx))
 	cmd.AddCommand(list.NewCmd(ctx))
 	return cmd
 }
