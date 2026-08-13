@@ -158,11 +158,10 @@ Do not hand-roll HTTP calls or add new `internal/azdo/extensions` methods as a s
   - Ensure every CLI parameter has clear help text and appears in regenerated documentation (`make docs`).
 
 - **Organization/Project Positional Argument Parsing:**
-  - For commands that operate within a project, accept the target project and optional organization as the first positional argument in the form `[ORGANIZATION/]PROJECT`.
-  - Parse by splitting on `/`:
-    - **One segment** → project only; retrieve organization from default config.
-    - **Two segments** → first is organization, second is project.
-    - **Any other segment count** → return a flag/argument error.
+  - For commands that operate within a project, accept the target project and optional organization as the first positional argument in the form `[ORG:]PROJECT` (the organization is expressed as an `ORG:` prefix, e.g. `ORG:PROJECT`).
+  - Parse with the shared scope parser in `internal/cmd/util/scope.go`: `util.ParseProjectScope` for project scope, `util.ParseProjectTargetWithDefaultOrganization` for project-scoped targets (`[ORG:]PROJECT/TARGET`), `util.ParsePoolAgentTargetWithDefaultOrganization` for org-scoped targets (`[ORG:]/TARGET`), and `util.ParseOrganizationArg` for org-only input.
+  - When the `ORG:` prefix is omitted, the parser falls back to the configured default organization.
+  - Reject the legacy `ORGANIZATION/PROJECT` slash form with an error directing the user to the `ORG:` syntax.
   - If organization is omitted and no default is configured, return an error stating that no organization was specified or configured.
   - Follow patterns established in existing commands (e.g., `internal/cmd/repo/list/list.go`) for parsing and validation.
 
