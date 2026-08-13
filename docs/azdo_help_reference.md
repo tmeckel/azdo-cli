@@ -434,6 +434,20 @@ Aliases
 c, cr
 ```
 
+#### `azdo pipelines folder delete [ORG:]PROJECT/PATH [flags]`
+
+Delete a folder.
+
+```
+-y, --yes   Skip the confirmation prompt.
+```
+
+Aliases
+
+```
+d, del, rm
+```
+
 #### `azdo pipelines folder list [ORG:]PROJECT [flags]`
 
 List folders.
