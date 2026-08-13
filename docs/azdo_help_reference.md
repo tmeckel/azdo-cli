@@ -226,6 +226,24 @@ u, up
 
 Work with Azure Boards work items.
 
+#### `azdo boards work-item delete [ORG:]PROJECT/ID [flags]`
+
+Delete a work item.
+
+```
+    --destroy           Permanently delete the work item (bypasses Recycle Bin).
+-q, --jq expression     Filter JSON output using a jq expression
+    --json fields[=*]   Output JSON with the specified fields. Prefix a field with '-' to exclude it.
+-t, --template string   Format JSON output using a Go template; see "azdo help formatting"
+-y, --yes               Skip the confirmation prompt.
+```
+
+Aliases
+
+```
+d, del, rm
+```
+
 #### `azdo boards work-item list [ORG:]PROJECT [flags]`
 
 List work items belonging to a project.

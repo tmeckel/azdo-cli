@@ -23,15 +23,15 @@ This project relies on the [samber/cc-skills-golang](https://github.com/samber/c
 
 ```bash
 # Inspect which Go skills are currently installed
-npx skills list | grep golang-
+skills list | grep golang-
 
 # Install a single skill
-npx skills add samber/cc-skills-golang --skill golang-code-style -y
+skills add samber/cc-skills-golang --skill golang-code-style -y
 ```
 
 **Workflow:**
 
-1. Before writing or modifying Go code, run `npx skills list | grep golang-` to see which skills are installed in this project or globally. The agent loads them automatically based on description matching; if `golang-how-to` is installed it also force-loads relevant secondary skills (e.g. Cobra review → `golang-spf13-cobra` + `golang-cli` + `golang-error-handling`).
+1. Before writing or modifying Go code, run `skills list | grep golang-` to see which skills are installed in this project or globally. The agent loads them automatically based on description matching; if `golang-how-to` is installed it also force-loads relevant secondary skills (e.g. Cobra review → `golang-spf13-cobra` + `golang-cli` + `golang-error-handling`).
 2. Treat the installed samber skills as the source of truth for general Go rules (style, naming, error wrapping, nil safety, testing patterns, concurrency, context propagation, etc.).
 3. Apply the project-specific rules in the sections below only where they **deviate** from samber. Every such section declares `> Supersedes samber/cc-skills-golang@<skill> for this project.` at the top — samber's ⚙️ override mechanism is honored automatically.
 4. If a section below does not declare a supersession, the samber skills win on that topic.
