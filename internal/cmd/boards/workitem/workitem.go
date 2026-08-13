@@ -5,6 +5,7 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/tmeckel/azdo-cli/internal/cmd/boards/workitem/delete"
 	"github.com/tmeckel/azdo-cli/internal/cmd/boards/workitem/list"
+	"github.com/tmeckel/azdo-cli/internal/cmd/boards/workitem/update"
 	"github.com/tmeckel/azdo-cli/internal/cmd/util"
 )
 
@@ -17,12 +18,16 @@ func NewCmd(ctx util.CmdContext) *cobra.Command {
 			# List work items in a project
 			azdo boards work-item list Fabrikam
 
+			# Update a work item's title
+			azdo boards work-item update Fabrikam/42 --title "New title"
+
 			# Delete a work item
 			azdo boards work-item delete Fabrikam/42 --yes
 		`),
 	}
 
 	cmd.AddCommand(list.NewCmd(ctx))
+	cmd.AddCommand(update.NewCmd(ctx))
 	cmd.AddCommand(delete.NewCmd(ctx))
 
 	return cmd

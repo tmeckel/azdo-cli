@@ -275,6 +275,38 @@ Aliases
 ls, l
 ```
 
+#### `azdo boards work-item update [ORG:]PROJECT/ID [flags]`
+
+Update a work item.
+
+```
+    --area string                New area path of the work item.
+    --assigned-to string         Identity the work item is assigned to.
+    --bypass-rules               Do not enforce the work item type rules on this update.
+    --description string         New description (Markdown). Lower priority than --description-file and --description-editor.
+    --description-editor         Edit description in $VISUAL/$EDITOR. Highest priority description source.
+    --description-file strings   Read description from file (repeatable; "-" reads from stdin). Higher priority than --description.
+    --discussion string          Comment to add to the work item discussion.
+    --expand string              Expand parameters: None, Relations, Fields, Links, All.
+    --fields strings             Set a field by reference name (repeatable; Ref.Name=value).
+    --iteration string           New iteration path of the work item.
+-q, --jq expression              Filter JSON output using a jq expression
+    --json fields[=*]            Output JSON with the specified fields. Prefix a field with '-' to exclude it.
+    --open                       Open the updated work item in the default browser.
+    --reason string              Reason for the change of state.
+    --state string               New state of the work item.
+    --suppress-notifications     Do not fire any notifications for this change.
+-t, --template string            Format JSON output using a Go template; see "azdo help formatting"
+    --title string               New title of the work item.
+    --validate-only              Only validate the changes without saving the work item.
+```
+
+Aliases
+
+```
+u
+```
+
 ## `azdo co`
 
 Alias for "pr checkout"

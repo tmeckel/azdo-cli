@@ -16,6 +16,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"go.uber.org/mock/gomock"
 
+	"github.com/tmeckel/azdo-cli/internal/cmd/boards/workitem/shared"
 	"github.com/tmeckel/azdo-cli/internal/cmd/util"
 	"github.com/tmeckel/azdo-cli/internal/iostreams"
 	"github.com/tmeckel/azdo-cli/internal/mocks"
@@ -611,10 +612,10 @@ func TestFieldString(t *testing.T) {
 		"a": "hello",
 		"b": 42,
 	}
-	assert.Equal(t, "hello", fieldString(fields, "a"))
-	assert.Equal(t, "42", fieldString(fields, "b"))
-	assert.Equal(t, "", fieldString(fields, "missing"))
-	assert.Equal(t, "", fieldString(nil, "a"))
+	assert.Equal(t, "hello", shared.FieldString(fields, "a"))
+	assert.Equal(t, "42", shared.FieldString(fields, "b"))
+	assert.Equal(t, "", shared.FieldString(fields, "missing"))
+	assert.Equal(t, "", shared.FieldString(nil, "a"))
 }
 
 func TestFieldIdentityDisplay(t *testing.T) {
@@ -625,11 +626,11 @@ func TestFieldIdentityDisplay(t *testing.T) {
 		"b": map[string]any{"displayName": "Bob", "uniqueName": "bob@x.com"},
 		"c": map[string]any{"uniqueName": "carol@x.com"},
 	}
-	assert.Equal(t, "Alice", fieldIdentityDisplay(fields, "a"))
-	assert.Equal(t, "Bob", fieldIdentityDisplay(fields, "b"))
-	assert.Equal(t, "carol@x.com", fieldIdentityDisplay(fields, "c"))
-	assert.Equal(t, "", fieldIdentityDisplay(fields, "missing"))
-	assert.Equal(t, "", fieldIdentityDisplay(nil, "a"))
+	assert.Equal(t, "Alice", shared.FieldIdentityDisplay(fields, "a"))
+	assert.Equal(t, "Bob", shared.FieldIdentityDisplay(fields, "b"))
+	assert.Equal(t, "carol@x.com", shared.FieldIdentityDisplay(fields, "c"))
+	assert.Equal(t, "", shared.FieldIdentityDisplay(fields, "missing"))
+	assert.Equal(t, "", shared.FieldIdentityDisplay(nil, "a"))
 }
 
 func TestIdentityAccountOrDisplay(t *testing.T) {
