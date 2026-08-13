@@ -397,6 +397,19 @@ func ParseProjectTargetWithDefaultOrganization(ctx CmdContext, target string) (*
 	})
 }
 
+// ParseProjectPathTargetWithDefaultOrganization resolves a project-scoped path
+// target that allows an implicit organization by falling back to the configured
+// default. Accepted forms are PROJECT/PATH and ORG:PROJECT/PATH. PATH may
+// itself contain '/' and is split into Target segments; callers rejoin them
+// with "/" to recover the full path.
+func ParseProjectPathTargetWithDefaultOrganization(ctx CmdContext, raw string) (*Path, error) {
+	return Parse(ctx, raw, ParseOptions{
+		AllowImplicitOrg: true,
+		RequireProject:   true,
+		MinTargets:       1,
+	})
+}
+
 // ParsePoolAgentTargetWithDefaultOrganization resolves a pool/agent target that
 // allows an implicit organization by falling back to the configured default.
 // Accepted forms are /POOL/AGENT and ORG:/POOL/AGENT; the no-project marker is
