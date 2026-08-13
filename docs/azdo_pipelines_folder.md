@@ -7,6 +7,7 @@ and organize pipeline definitions.
 ### Available commands
 
 * [azdo pipelines folder create](./azdo_pipelines_folder_create.md)
+* [azdo pipelines folder delete](./azdo_pipelines_folder_delete.md)
 * [azdo pipelines folder list](./azdo_pipelines_folder_list.md)
 
 ### ALIASES
