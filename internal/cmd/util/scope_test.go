@@ -539,6 +539,64 @@ func TestParseProjectTargetWithDefaultOrganization(t *testing.T) {
 	}
 }
 
+func TestParseProjectPathTargetWithDefaultOrganization(t *testing.T) {
+	ctx := defaultOrgCtx(t)
+	tests := []parseCase{
+		{
+			name: "project and path use default organization",
+			raw:  "project/path",
+			ctx:  ctx,
+			want: &util.Path{Organization: "default-org", Project: "project", Targets: []string{"path"}},
+		},
+		{
+			name: "explicit organization with project and path",
+			raw:  "myorg:project/path",
+			ctx:  ctx,
+			want: &util.Path{Organization: "myorg", Project: "project", Targets: []string{"path"}},
+		},
+		{
+			name: "nested path keeps every segment",
+			raw:  "myorg:project/path/to/folder",
+			ctx:  ctx,
+			want: &util.Path{Organization: "myorg", Project: "project", Targets: []string{"path", "to", "folder"}},
+		},
+		{
+			name:    "single segment misses path",
+			raw:     "project",
+			ctx:     ctx,
+			wantErr: "expected at least 1 targets, got 0",
+		},
+		{
+			name:    "no-project marker misses project",
+			raw:     "/path",
+			ctx:     ctx,
+			wantErr: "project is required",
+		},
+		{
+			name:    "organization only misses project",
+			raw:     "myorg:",
+			ctx:     ctx,
+			wantErr: "project is required",
+		},
+		{
+			name:    "empty input misses project",
+			raw:     "",
+			ctx:     ctx,
+			wantErr: "project is required",
+		},
+		{
+			name:    "project path without default organization errors",
+			raw:     "project/path",
+			ctx:     nil,
+			wantErr: "no organization specified and no default organization configured",
+		},
+	}
+
+	for _, tt := range tests {
+		runParseCase(t, tt, util.ParseProjectPathTargetWithDefaultOrganization)
+	}
+}
+
 func TestParsePoolAgentTargetWithDefaultOrganization(t *testing.T) {
 	ctx := defaultOrgCtx(t)
 	tests := []parseCase{
