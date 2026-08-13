@@ -467,6 +467,24 @@ Aliases
 ls, l
 ```
 
+#### `azdo pipelines folder update [ORG:]PROJECT/PATH [flags]`
+
+Update a folder.
+
+```
+-q, --jq expression            Filter JSON output using a jq expression
+    --json fields[=*]          Output JSON with the specified fields. Prefix a field with '-' to exclude it.
+    --new-description string   New description for the folder.
+    --new-path string          New full path for the folder.
+-t, --template string          Format JSON output using a Go template; see "azdo help formatting"
+```
+
+Aliases
+
+```
+u
+```
+
 ### `azdo pipelines list [ORG:]PROJECT [flags]`
 
 List pipeline definitions
