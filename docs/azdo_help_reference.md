@@ -336,6 +336,25 @@ Aliases
 a
 ```
 
+##### `azdo boards work-item relation remove [ORG:]PROJECT/ID [flags]`
+
+Remove a relation(s) from a work item.
+
+```
+-q, --jq expression           Filter JSON output using a jq expression
+    --json fields[=*]         Output JSON with the specified fields. Prefix a field with '-' to exclude it.
+    --relation-type string    Relation type (friendly name, e.g. parent, child, related).
+    --target-id stringArray   Target work item ID (repeatable; comma-separated values accepted).
+-t, --template string         Format JSON output using a Go template; see "azdo help formatting"
+-y, --yes                     Skip the confirmation prompt.
+```
+
+Aliases
+
+```
+r, rm
+```
+
 #### `azdo boards work-item show [ORG:]PROJECT/ID [flags]`
 
 Show work item details
