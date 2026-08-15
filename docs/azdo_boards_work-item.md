@@ -4,6 +4,7 @@ Work with Azure Boards work items.
 
 ### Available commands
 
+* [azdo boards work-item create](./azdo_boards_work-item_create.md)
 * [azdo boards work-item delete](./azdo_boards_work-item_delete.md)
 * [azdo boards work-item list](./azdo_boards_work-item_list.md)
 * [azdo boards work-item update](./azdo_boards_work-item_update.md)
@@ -13,6 +14,9 @@ Work with Azure Boards work items.
 ```bash
 # List work items in a project
 azdo boards work-item list Fabrikam
+
+# Create a work item
+azdo boards work-item create Fabrikam --type Bug --title "Login is broken"
 
 # Update a work item's title
 azdo boards work-item update Fabrikam/42 --title "New title"

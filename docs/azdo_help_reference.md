@@ -226,6 +226,45 @@ u, up
 
 Work with Azure Boards work items.
 
+#### `azdo boards work-item create [ORG:]PROJECT [flags]`
+
+Create a work item in a project.
+
+```
+    --area string                    Area path of the new work item.
+    --assigned-to string             Identity the work item is assigned to.
+    --bypass-rules                   Do not enforce the work item type rules on this create.
+    --description string             Description content (format set by --description-format; default markdown). Lower priority than --description-file and --description-editor.
+    --description-editor             Edit description in $VISUAL/$EDITOR. Highest priority description source.
+    --description-file stringArray   Read description from file (repeatable; "-" reads from stdin). Higher priority than --description.
+    --description-format string      Format of the description input: "markdown" (default) or "html". (default "markdown")
+    --discussion string              Comment to add to the new work item's discussion.
+    --expand string                  Expand parameters: None, Relations, Fields, Links, All.
+    --fields stringArray             Set a field by reference name (repeatable; Ref.Name=value).
+    --iteration string               Iteration path of the new work item.
+-q, --jq expression                  Filter JSON output using a jq expression
+    --json fields[=*]                Output JSON with the specified fields. Prefix a field with '-' to exclude it.
+    --link stringArray               Add a link to the new work item (repeatable; rel,url).
+    --open                           Open the created work item in the default browser.
+    --parent int                     ID of the parent work item; adds a System.LinkTypes.Hierarchy-Reverse link.
+    --priority int                   Priority of the new work item (numeric value defined by the work item process).
+    --reason string                  Reason for the state of the new work item.
+    --severity string                Severity of the new work item (value defined by the work item process, e.g. 1 - Critical).
+    --state string                   Initial state of the new work item.
+    --suppress-notifications         Do not fire any notifications for this create.
+    --tag stringArray                Tag to add (repeatable); values are joined with '; '.
+-t, --template string                Format JSON output using a Go template; see "azdo help formatting"
+    --title string                   Title of the new work item.
+    --type string                    Work item type to create (e.g. Bug, Task, User Story).
+    --validate-only                  Only validate the create without saving the work item.
+```
+
+Aliases
+
+```
+c, cr
+```
+
 #### `azdo boards work-item delete [ORG:]PROJECT/ID [flags]`
 
 Delete a work item.
@@ -253,18 +292,18 @@ List work items belonging to a project.
 -a, --assigned-to strings      Filter by assigned-to identity (repeatable); supports emails, descriptors, and @me
     --authored-by strings      Alias for --created-by
     --changed-after string     Lower bound on System.ChangedDate (RFC3339, YYYY-MM-DD, or 'today')
--c, --classification strings   Filter by severity classification (repeatable): 1 - Critical, 2 - High, 3 - Medium, 4 - Low
+-c, --classification strings   Filter by severity classification (repeatable); values defined by the work item process (e.g. 1 - Critical)
     --created-after string     Lower bound on System.CreatedDate (RFC3339, YYYY-MM-DD, or 'today')
     --created-by strings       Filter by creator identity (repeatable); supports email, descriptor, @me
     --iteration strings        Filter by iteration path (repeatable); prefix with Under: to include subtree (e.g., Under:Release 2025/Sprint 1)
 -q, --jq expression            Filter JSON output using a jq expression
     --json fields[=*]          Output JSON with the specified fields. Prefix a field with '-' to exclude it.
 -L, --limit int                Maximum number of results to return (>=1) (default 50)
--p, --priority ints            Filter by priority (repeatable): 1-4
+-p, --priority ints            Filter by priority (repeatable); values defined by the work item process
     --sort strings             Sort by field with optional direction (repeatable): changed[:asc|:desc], created[:asc|:desc], id[:asc|:desc], state[:asc|:desc], title[:asc|:desc], assigned-to[:asc|:desc], type[:asc|:desc], tags[:asc|:desc]
     --state strings            Filter by exact workflow state name (repeatable; combines with --status)
 -s, --status strings           Filter by state category: open, closed, resolved, all (repeatable) (default [open])
-    --tag strings              Filter by tag (repeatable); items must contain all specified tags
+    --tag stringArray          Filter by tag (repeatable); items must contain all specified tags
 -t, --template string          Format JSON output using a Go template; see "azdo help formatting"
 -T, --type strings             Filter by work item type (repeatable)
 ```
@@ -280,25 +319,26 @@ ls, l
 Update a work item.
 
 ```
-    --area string                New area path of the work item.
-    --assigned-to string         Identity the work item is assigned to.
-    --bypass-rules               Do not enforce the work item type rules on this update.
-    --description string         New description (Markdown). Lower priority than --description-file and --description-editor.
-    --description-editor         Edit description in $VISUAL/$EDITOR. Highest priority description source.
-    --description-file strings   Read description from file (repeatable; "-" reads from stdin). Higher priority than --description.
-    --discussion string          Comment to add to the work item discussion.
-    --expand string              Expand parameters: None, Relations, Fields, Links, All.
-    --fields strings             Set a field by reference name (repeatable; Ref.Name=value).
-    --iteration string           New iteration path of the work item.
--q, --jq expression              Filter JSON output using a jq expression
-    --json fields[=*]            Output JSON with the specified fields. Prefix a field with '-' to exclude it.
-    --open                       Open the updated work item in the default browser.
-    --reason string              Reason for the change of state.
-    --state string               New state of the work item.
-    --suppress-notifications     Do not fire any notifications for this change.
--t, --template string            Format JSON output using a Go template; see "azdo help formatting"
-    --title string               New title of the work item.
-    --validate-only              Only validate the changes without saving the work item.
+    --area string                    New area path of the work item.
+    --assigned-to string             Identity the work item is assigned to.
+    --bypass-rules                   Do not enforce the work item type rules on this update.
+    --description string             New description content (format set by --description-format; default markdown). Lower priority than --description-file and --description-editor.
+    --description-editor             Edit description in $VISUAL/$EDITOR. Highest priority description source.
+    --description-file stringArray   Read description from file (repeatable; "-" reads from stdin). Higher priority than --description.
+    --description-format string      Format of the description input: "markdown" (default) or "html". (default "markdown")
+    --discussion string              Comment to add to the work item discussion.
+    --expand string                  Expand parameters: None, Relations, Fields, Links, All.
+    --fields stringArray             Set a field by reference name (repeatable; Ref.Name=value).
+    --iteration string               New iteration path of the work item.
+-q, --jq expression                  Filter JSON output using a jq expression
+    --json fields[=*]                Output JSON with the specified fields. Prefix a field with '-' to exclude it.
+    --open                           Open the updated work item in the default browser.
+    --reason string                  Reason for the change of state.
+    --state string                   New state of the work item.
+    --suppress-notifications         Do not fire any notifications for this change.
+-t, --template string                Format JSON output using a Go template; see "azdo help formatting"
+    --title string                   New title of the work item.
+    --validate-only                  Only validate the changes without saving the work item.
 ```
 
 Aliases

@@ -26,15 +26,19 @@ and send it to the server. At least one field flag is required.
 
 * `--description` `string`
 
-	New description (Markdown). Lower priority than --description-file and --description-editor.
+	New description content (format set by --description-format; default markdown). Lower priority than --description-file and --description-editor.
 
 * `--description-editor`
 
 	Edit description in $VISUAL/$EDITOR. Highest priority description source.
 
-* `--description-file` `strings`
+* `--description-file` `stringArray`
 
 	Read description from file (repeatable; &#34;-&#34; reads from stdin). Higher priority than --description.
+
+* `--description-format` `string` (default `&#34;markdown&#34;`)
+
+	Format of the description input: &#34;markdown&#34; (default) or &#34;html&#34;.
 
 * `--discussion` `string`
 
@@ -44,7 +48,7 @@ and send it to the server. At least one field flag is required.
 
 	Expand parameters: None, Relations, Fields, Links, All.
 
-* `--fields` `strings`
+* `--fields` `stringArray`
 
 	Set a field by reference name (repeatable; Ref.Name=value).
 
