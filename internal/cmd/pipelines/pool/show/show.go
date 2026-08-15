@@ -6,7 +6,6 @@ import (
 
 	"github.com/MakeNowJust/heredoc/v2"
 	"github.com/microsoft/azure-devops-go-api/azuredevops/v7/taskagent"
-	"github.com/spewerspew/spew"
 	"github.com/spf13/cobra"
 	"go.uber.org/zap"
 
@@ -22,7 +21,6 @@ type templateData struct {
 
 type showOptions struct {
 	targetArg string
-	raw       bool
 	exporter  util.Exporter
 }
 
@@ -58,7 +56,6 @@ func NewCmd(ctx util.CmdContext) *cobra.Command {
 		},
 	}
 
-	cmd.Flags().BoolVarP(&opts.raw, "raw", "r", false, "Dump raw pool object to stderr")
 	util.AddJSONFlags(cmd, &opts.exporter, []string{
 		"id", "name", "poolType", "isHosted", "isLegacy",
 		"autoProvision", "autoUpdate", "createdOn", "createdBy",
@@ -111,12 +108,6 @@ func runShow(cmdCtx util.CmdContext, opts *showOptions) error {
 	}
 	if pool == nil {
 		return fmt.Errorf("pool %q not found", poolTarget)
-	}
-
-	if opts.raw {
-		ios.StopProgressIndicator()
-		spew.Dump(pool)
-		return nil
 	}
 
 	if opts.exporter != nil {
