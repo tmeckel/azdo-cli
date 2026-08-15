@@ -111,8 +111,8 @@ func TestSetAllPipelinesAccessToEndpoint_UsesPipelinePermissionsClient(t *testin
 			clientFactory.EXPECT().PipelinePermissions(ctx, organization).Return(permissionsClient, nil).Times(1)
 
 			permissionsClient.EXPECT().
-				UpdatePipelinePermisionsForResource(ctx, gomock.Any()).
-				DoAndReturn(func(_ context.Context, args pipelinepermissions.UpdatePipelinePermisionsForResourceArgs) (*pipelinepermissions.ResourcePipelinePermissions, error) {
+				UpdatePipelinePermisionsForResource(ctx, gomock.Any()).                                                                                                           // spellchecker:disable-line
+				DoAndReturn(func(_ context.Context, args pipelinepermissions.UpdatePipelinePermisionsForResourceArgs) (*pipelinepermissions.ResourcePipelinePermissions, error) { // spellchecker:disable-line
 					require.NotNil(t, args.Project)
 					require.Equal(t, projectID.String(), *args.Project)
 
@@ -192,7 +192,7 @@ func TestSetAllPipelinesAccessToEndpoint_CallsCleanupOnUpdateError(t *testing.T)
 	cmdCtx.EXPECT().ClientFactory().Return(clientFactory).Times(1)
 	clientFactory.EXPECT().PipelinePermissions(ctx, organization).Return(permissionsClient, nil).Times(1)
 	permissionsClient.EXPECT().
-		UpdatePipelinePermisionsForResource(ctx, gomock.Any()).
+		UpdatePipelinePermisionsForResource(ctx, gomock.Any()). // spellchecker:disable-line
 		Return(nil, errors.New("boom")).
 		Times(1)
 

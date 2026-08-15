@@ -217,7 +217,7 @@ func run(cmdCtx util.CmdContext, o *opts) error {
 
 		desired := &pipelinepermissions.Permission{Authorized: types.ToPtr(o.authorize)}
 		rp := pipelinepermissions.ResourcePipelinePermissions{AllPipelines: desired}
-		updatedPerms, err := permClient.UpdatePipelinePermisionsForResource(cmdCtx.Context(), pipelinepermissions.UpdatePipelinePermisionsForResourceArgs{
+		updatedPerms, err := permClient.UpdatePipelinePermisionsForResource(cmdCtx.Context(), pipelinepermissions.UpdatePipelinePermisionsForResourceArgs{ // spellchecker:disable-line
 			ResourceAuthorization: &rp,
 			Project:               types.ToPtr(scope.Project),
 			ResourceType:          types.ToPtr(variableGroupResourceType),

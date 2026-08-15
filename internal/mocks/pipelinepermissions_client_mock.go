@@ -56,32 +56,32 @@ func (mr *MockPipelinePermissionsClientMockRecorder) GetPipelinePermissionsForRe
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetPipelinePermissionsForResource", reflect.TypeOf((*MockPipelinePermissionsClient)(nil).GetPipelinePermissionsForResource), arg0, arg1)
 }
 
-// UpdatePipelinePermisionsForResource mocks base method.
-func (m *MockPipelinePermissionsClient) UpdatePipelinePermisionsForResource(arg0 context.Context, arg1 pipelinepermissions.UpdatePipelinePermisionsForResourceArgs) (*pipelinepermissions.ResourcePipelinePermissions, error) {
+// UpdatePipelinePermisionsForResource mocks base method. // spellchecker:disable-line
+func (m *MockPipelinePermissionsClient) UpdatePipelinePermisionsForResource(arg0 context.Context, arg1 pipelinepermissions.UpdatePipelinePermisionsForResourceArgs) (*pipelinepermissions.ResourcePipelinePermissions, error) { // spellchecker:disable-line
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "UpdatePipelinePermisionsForResource", arg0, arg1)
+	ret := m.ctrl.Call(m, "UpdatePipelinePermisionsForResource", arg0, arg1) // spellchecker:disable-line
 	ret0, _ := ret[0].(*pipelinepermissions.ResourcePipelinePermissions)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
-// UpdatePipelinePermisionsForResource indicates an expected call of UpdatePipelinePermisionsForResource.
-func (mr *MockPipelinePermissionsClientMockRecorder) UpdatePipelinePermisionsForResource(arg0, arg1 any) *gomock.Call {
+// UpdatePipelinePermisionsForResource indicates an expected call of UpdatePipelinePermisionsForResource. // spellchecker:disable-line
+func (mr *MockPipelinePermissionsClientMockRecorder) UpdatePipelinePermisionsForResource(arg0, arg1 any) *gomock.Call { // spellchecker:disable-line
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdatePipelinePermisionsForResource", reflect.TypeOf((*MockPipelinePermissionsClient)(nil).UpdatePipelinePermisionsForResource), arg0, arg1)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdatePipelinePermisionsForResource", reflect.TypeOf((*MockPipelinePermissionsClient)(nil).UpdatePipelinePermisionsForResource), arg0, arg1) // spellchecker:disable-line
 }
 
-// UpdatePipelinePermisionsForResources mocks base method.
-func (m *MockPipelinePermissionsClient) UpdatePipelinePermisionsForResources(arg0 context.Context, arg1 pipelinepermissions.UpdatePipelinePermisionsForResourcesArgs) (*[]pipelinepermissions.ResourcePipelinePermissions, error) {
+// UpdatePipelinePermisionsForResources mocks base method. // spellchecker:disable-line
+func (m *MockPipelinePermissionsClient) UpdatePipelinePermisionsForResources(arg0 context.Context, arg1 pipelinepermissions.UpdatePipelinePermisionsForResourcesArgs) (*[]pipelinepermissions.ResourcePipelinePermissions, error) { // spellchecker:disable-line
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "UpdatePipelinePermisionsForResources", arg0, arg1)
+	ret := m.ctrl.Call(m, "UpdatePipelinePermisionsForResources", arg0, arg1) // spellchecker:disable-line
 	ret0, _ := ret[0].(*[]pipelinepermissions.ResourcePipelinePermissions)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
-// UpdatePipelinePermisionsForResources indicates an expected call of UpdatePipelinePermisionsForResources.
-func (mr *MockPipelinePermissionsClientMockRecorder) UpdatePipelinePermisionsForResources(arg0, arg1 any) *gomock.Call {
+// UpdatePipelinePermisionsForResources indicates an expected call of UpdatePipelinePermisionsForResources. // spellchecker:disable-line
+func (mr *MockPipelinePermissionsClientMockRecorder) UpdatePipelinePermisionsForResources(arg0, arg1 any) *gomock.Call { // spellchecker:disable-line
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdatePipelinePermisionsForResources", reflect.TypeOf((*MockPipelinePermissionsClient)(nil).UpdatePipelinePermisionsForResources), arg0, arg1)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdatePipelinePermisionsForResources", reflect.TypeOf((*MockPipelinePermissionsClient)(nil).UpdatePipelinePermisionsForResources), arg0, arg1) // spellchecker:disable-line
 }

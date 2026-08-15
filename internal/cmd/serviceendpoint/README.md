@@ -204,7 +204,7 @@ Mocks when common flags are enabled:
 - `--validate-schema`: `serviceendpoint.Client.GetServiceEndpointTypes(...)`
 - `--wait`: `serviceendpoint.Client.GetServiceEndpointDetails(...)`
 - `--validate-connection`: `serviceendpoint.Client.ExecuteServiceEndpointRequest(...)` (and related polling calls)
-- `--grant-permission-to-all-pipelines`: `pipelinepermissions.Client.UpdatePipelinePermisionsForResource(...)` (and `serviceendpoint.Client.DeleteServiceEndpoint(...)` for rollback paths)
+- `--grant-permission-to-all-pipelines`: `pipelinepermissions.Client.UpdatePipelinePermisionsForResource(...)` (and `serviceendpoint.Client.DeleteServiceEndpoint(...)` for rollback paths) <!-- spellchecker:disable-line -->
 
 Assertions should focus on:
 
