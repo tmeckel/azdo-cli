@@ -313,6 +313,29 @@ Aliases
 ls, l
 ```
 
+#### `azdo boards work-item relation <command>`
+
+Work with Azure Boards work item relations.
+
+##### `azdo boards work-item relation add [ORG:]PROJECT/ID [flags]`
+
+Add a relation(s) to a work item.
+
+```
+-q, --jq expression            Filter JSON output using a jq expression
+    --json fields[=*]          Output JSON with the specified fields. Prefix a field with '-' to exclude it.
+    --relation-type string     Relation type (friendly name, e.g. parent, child, related).
+    --target-id stringArray    Target work item ID (repeatable; comma-separated values accepted).
+    --target-url stringArray   Target artifact URL (repeatable; comma-separated values accepted).
+-t, --template string          Format JSON output using a Go template; see "azdo help formatting"
+```
+
+Aliases
+
+```
+a
+```
+
 #### `azdo boards work-item show [ORG:]PROJECT/ID [flags]`
 
 Show work item details

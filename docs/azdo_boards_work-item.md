@@ -7,6 +7,7 @@ Work with Azure Boards work items.
 * [azdo boards work-item create](./azdo_boards_work-item_create.md)
 * [azdo boards work-item delete](./azdo_boards_work-item_delete.md)
 * [azdo boards work-item list](./azdo_boards_work-item_list.md)
+* [azdo boards work-item relation](./azdo_boards_work-item_relation.md)
 * [azdo boards work-item show](./azdo_boards_work-item_show.md)
 * [azdo boards work-item update](./azdo_boards_work-item_update.md)
 
