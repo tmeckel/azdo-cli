@@ -46,17 +46,25 @@ commit_if_staged() {
       fi
     fi
 
-    # The pre-commit hook may have modified files (e.g. an end-of-file
-    # fixer). Re-stage exactly the files it touched and retry the commit.
-    attempts=$((attempts + 1))
-    if [[ $attempts -ge 5 ]]; then
-      echo "Error: commit failed $attempts times; giving up. Inspect the working tree and re-run." >&2
-      return 1
-    fi
+    # Only retry when a pre-commit hook actually modified staged files
+    # (e.g. end-of-file fixer). A failing hook that changed nothing is a
+    # fatal error (e.g. yamllint): bail out instantly, never retry.
     local modified
     modified=$(git diff --name-only | grep -Fxf <(printf '%s\n' "$staged_before") || true)
     if [[ -z "$modified" ]]; then
-      echo "Error: commit failed and no staged files were modified by a hook; fix manually." >&2
+      echo "Error: pre-commit hook failed without modifying any staged file; aborting check-in." >&2
+      echo "       Fix the failing hook and re-run." >&2
+      return 1
+    fi
+    if typos_hook_modified_file "$modified"; then
+      echo "Error: typos pre-commit hook modified staged files; aborting check-in, no retry." >&2
+      echo "       Review the typo fixes, then re-run the check-in." >&2
+      return 1
+    fi
+
+    attempts=$((attempts + 1))
+    if [[ $attempts -ge 5 ]]; then
+      echo "Error: hooks modified files but the commit still failed $attempts times; giving up. Inspect the working tree and re-run." >&2
       return 1
     fi
     echo "> pre-commit hook modified files; re-staging and retrying:"
@@ -64,6 +72,32 @@ commit_if_staged() {
     # shellcheck disable=SC2086
     git add -- $modified
   done
+}
+
+# Detect whether the typos pre-commit hook rewrote any of the given files.
+# A staged file whose working-tree version equals the staged version after
+# running typos in fix mode was rewritten by the hook. Typo fixes must be
+# reviewed deliberately, so callers abort instead of re-staging and retrying.
+typos_hook_modified_file() {
+  command -v typos >/dev/null 2>&1 || return 1
+  local cfg=()
+  if [ -f .typos.toml ]; then
+    cfg=(-c "$(pwd)/.typos.toml")
+  fi
+  local f staged_copy
+  while IFS= read -r f; do
+    [[ -n "$f" ]] || continue
+    staged_copy=$(mktemp)
+    if git show ":$f" > "$staged_copy" 2>/dev/null; then
+      typos --write-changes "${cfg[@]}" "$staged_copy" >/dev/null 2>&1 || true
+      if cmp -s "$staged_copy" "$f"; then
+        rm -f "$staged_copy"
+        return 0
+      fi
+    fi
+    rm -f "$staged_copy"
+  done <<< "$1"
+  return 1
 }
 
 is_tracked() {
