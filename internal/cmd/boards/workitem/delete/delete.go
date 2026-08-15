@@ -1,6 +1,8 @@
 package delete
 
 import (
+	"encoding/json"
+	"errors"
 	"fmt"
 	"strconv"
 
@@ -121,13 +123,38 @@ func runDelete(cmdCtx util.CmdContext, opts *opts) error {
 		ios.StartProgressIndicator()
 	}
 
+	// The official Delete Work Item API returns 204 No Content with an empty
+	// body on success, which the SDK surfaces as a JSON decode error
+	// (*json.SyntaxError) because it tries to unmarshal the empty payload; the
+	// deletion is already committed at that point. Such errors are treated as
+	// success and a result carrying the ID is fabricated. All other errors
+	// (including typed API errors) propagate unchanged.
 	res, err := client.DeleteWorkItem(cmdCtx.Context(), workitemtracking.DeleteWorkItemArgs{
 		Project: types.ToPtr(scope.Project),
 		Id:      &id,
 		Destroy: &opts.destroy,
 	})
 	if err != nil {
-		return fmt.Errorf("failed to delete work item %d: %w", id, err)
+		var syntaxErr *json.SyntaxError
+		if !errors.As(err, &syntaxErr) {
+			return fmt.Errorf("failed to delete work item %d: %w", id, err)
+		}
+		zap.L().Debug(
+			"work item deleted; SDK reported an empty 204 response body",
+			zap.Int("workItemId", id),
+			zap.String("project", scope.Project),
+			zap.Bool("destroy", opts.destroy),
+		)
+		res = &workitemtracking.WorkItemDelete{Id: &id}
+	}
+	if res == nil {
+		return errors.New("work item tracking API returned an empty response")
+	}
+	// The official Delete Work Item API returns 204 No Content with an empty
+	// body; the SDK surfaces that as an empty WorkItemDelete. Populate the
+	// parsed ID so --json output is not `{}`.
+	if res.Id == nil {
+		res.Id = &id
 	}
 
 	zap.L().Debug(
