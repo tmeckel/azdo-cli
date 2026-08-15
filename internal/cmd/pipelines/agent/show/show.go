@@ -6,7 +6,6 @@ import (
 
 	"github.com/MakeNowJust/heredoc/v2"
 	"github.com/microsoft/azure-devops-go-api/azuredevops/v7/taskagent"
-	"github.com/spewerspew/spew"
 	"github.com/spf13/cobra"
 	"go.uber.org/zap"
 
@@ -25,7 +24,6 @@ type templateData struct {
 type showOptions struct {
 	targetArg           string
 	includeCapabilities bool
-	raw                 bool
 	exporter            util.Exporter
 }
 
@@ -71,7 +69,6 @@ func NewCmd(ctx util.CmdContext) *cobra.Command {
 	}
 
 	cmd.Flags().BoolVar(&opts.includeCapabilities, "include-capabilities", false, "Include system and user capabilities in the output")
-	cmd.Flags().BoolVarP(&opts.raw, "raw", "r", false, "Dump raw agent object to stderr")
 	util.AddJSONFlags(cmd, &opts.exporter, []string{
 		"id", "name", "pool", "status", "enabled", "version", "osDescription",
 		"accessPoint", "provisioningState", "maxParallelism",
@@ -116,12 +113,6 @@ func runShow(cmdCtx util.CmdContext, opts *showOptions) error {
 		zap.String("agent", agentTarget),
 		zap.Int("agentId", types.GetValue(agent.Id, 0)),
 	)
-
-	if opts.raw {
-		ios.StopProgressIndicator()
-		spew.Dump(agent)
-		return nil
-	}
 
 	if opts.exporter != nil {
 		ios.StopProgressIndicator()
