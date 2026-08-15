@@ -12,7 +12,6 @@ import (
 	"github.com/google/uuid"
 	"github.com/microsoft/azure-devops-go-api/azuredevops/v7/git"
 	"github.com/microsoft/azure-devops-go-api/azuredevops/v7/identity"
-	"github.com/spewerspew/spew"
 	"github.com/spf13/cobra"
 	"github.com/tmeckel/azdo-cli/internal/cmd/pr/shared"
 	"github.com/tmeckel/azdo-cli/internal/cmd/util"
@@ -24,7 +23,6 @@ type viewOptions struct {
 	selectorArg  string
 	showComments bool
 	showCommits  bool
-	showRaw      bool
 	commentType  string
 	commentSort  string
 }
@@ -133,7 +131,6 @@ func NewCmd(ctx util.CmdContext) *cobra.Command {
 
 	cmd.Flags().BoolVarP(&opts.showComments, "comments", "c", false, "View pull request comments")
 	cmd.Flags().BoolVarP(&opts.showCommits, "commits", "C", false, "View pull request commits")
-	cmd.Flags().BoolVarP(&opts.showRaw, "raw", "r", false, "View pull request raw")
 	util.StringEnumFlag(cmd, &opts.commentType, "comment-type", "", "text", []string{"text", "system", "all"}, "Filter comments by type; defaults to 'text'")
 	util.StringEnumFlag(cmd, &opts.commentSort, "comment-sort", "", "desc", []string{"desc", "asc"}, "Sort comments by creation time; defaults to 'desc' (newest first)")
 	util.AddJSONFlags(cmd, &opts.exporter, []string{
@@ -337,17 +334,6 @@ func runCmd(ctx util.CmdContext, opts *viewOptions) (err error) {
 			return err
 		}
 		commits = &commitsResponse.Value
-	}
-
-	if opts.showRaw {
-		spew.Dump(pr)
-		if threads != nil {
-			spew.Dump(threads)
-		}
-		if commits != nil {
-			spew.Dump(commits)
-		}
-		return nil
 	}
 
 	if opts.exporter != nil {

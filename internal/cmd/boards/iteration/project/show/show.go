@@ -8,7 +8,6 @@ import (
 
 	"github.com/MakeNowJust/heredoc/v2"
 	"github.com/microsoft/azure-devops-go-api/azuredevops/v7/workitemtracking"
-	"github.com/spewerspew/spew"
 	"github.com/spf13/cobra"
 	"go.uber.org/zap"
 
@@ -22,7 +21,6 @@ type showOptions struct {
 	scopeArg        string
 	depth           int
 	includeChildren bool
-	raw             bool
 	exporter        util.Exporter
 }
 
@@ -67,7 +65,6 @@ func NewCmd(ctx util.CmdContext) *cobra.Command {
 
 	cmd.Flags().IntVar(&opts.depth, "depth", 0, "Depth of child nodes to fetch (0-10).")
 	cmd.Flags().BoolVar(&opts.includeChildren, "include-children", false, "Include child nodes in the template output.")
-	cmd.Flags().BoolVarP(&opts.raw, "raw", "r", false, "Dump the raw SDK node to stderr.")
 	_ = cmd.MarkFlagRequired("path")
 	util.AddJSONFlags(cmd, &opts.exporter, []string{
 		"id", "identifier", "name", "path", "structureType",
@@ -137,11 +134,6 @@ func runShow(ctx util.CmdContext, opts *showOptions) error {
 	}
 
 	ios.StopProgressIndicator()
-
-	if opts.raw {
-		spew.NewDefaultConfig().Fdump(ios.ErrOut, res)
-		return nil
-	}
 
 	if opts.exporter != nil {
 		return opts.exporter.Write(ios, res)

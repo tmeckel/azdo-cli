@@ -27,10 +27,6 @@ The iteration is identified by its fully-qualified path under /Iteration.
 
 	Output JSON with the specified fields. Prefix a field with &#39;-&#39; to exclude it.
 
-* `-r`, `--raw`
-
-	Dump the raw SDK node to stderr.
-
 * `-t`, `--template` `string`
 
 	Format JSON output using a Go template; see &#34;azdo help formatting&#34;

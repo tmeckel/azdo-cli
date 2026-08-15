@@ -395,20 +395,6 @@ func TestRunShow_JSONOutput(t *testing.T) {
 	assert.True(t, strings.HasPrefix(strings.TrimSpace(output), "{"))
 }
 
-func TestRunShow_RawFlag(t *testing.T) {
-	t.Parallel()
-
-	deps := setupFakeDeps(t)
-	deps.clientFact.EXPECT().TaskAgent(gomock.Any(), "myorg").Return(deps.taskClient, nil)
-
-	pool := samplePool()
-	deps.taskClient.EXPECT().GetAgentPool(gomock.Any(), gomock.Any()).Return(pool, nil)
-
-	opts := &showOptions{targetArg: "myorg:/7", raw: true}
-	err := runShow(deps.cmd, opts)
-	require.NoError(t, err)
-}
-
 func TestRunShow_ClientFactoryError(t *testing.T) {
 	t.Parallel()
 
@@ -516,9 +502,7 @@ func TestNewCmd_HasFlags(t *testing.T) {
 	t.Parallel()
 
 	cmd := NewCmd(nil)
-	rawFlag := cmd.Flag("raw")
-	require.NotNil(t, rawFlag)
-	assert.Equal(t, "r", rawFlag.Shorthand)
+	assert.Nil(t, cmd.Flag("raw"))
 
 	jsonFlag := cmd.Flag("json")
 	require.NotNil(t, jsonFlag)

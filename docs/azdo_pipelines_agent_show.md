@@ -24,10 +24,6 @@ an optional ORG: prefix.
 
 	Output JSON with the specified fields. Prefix a field with &#39;-&#39; to exclude it.
 
-* `-r`, `--raw`
-
-	Dump raw agent object to stderr
-
 * `-t`, `--template` `string`
 
 	Format JSON output using a Go template; see &#34;azdo help formatting&#34;

@@ -6,6 +6,7 @@ import (
 	"github.com/tmeckel/azdo-cli/internal/cmd/boards/workitem/create"
 	"github.com/tmeckel/azdo-cli/internal/cmd/boards/workitem/delete"
 	"github.com/tmeckel/azdo-cli/internal/cmd/boards/workitem/list"
+	"github.com/tmeckel/azdo-cli/internal/cmd/boards/workitem/show"
 	"github.com/tmeckel/azdo-cli/internal/cmd/boards/workitem/update"
 	"github.com/tmeckel/azdo-cli/internal/cmd/util"
 )
@@ -22,6 +23,9 @@ func NewCmd(ctx util.CmdContext) *cobra.Command {
 			# Create a work item
 			azdo boards work-item create Fabrikam --type Bug --title "Login is broken"
 
+			# Show a work item's details
+			azdo boards work-item show Fabrikam/42 --comments
+
 			# Update a work item's title
 			azdo boards work-item update Fabrikam/42 --title "New title"
 
@@ -32,6 +36,7 @@ func NewCmd(ctx util.CmdContext) *cobra.Command {
 
 	cmd.AddCommand(list.NewCmd(ctx))
 	cmd.AddCommand(create.NewCmd(ctx))
+	cmd.AddCommand(show.NewCmd(ctx))
 	cmd.AddCommand(update.NewCmd(ctx))
 	cmd.AddCommand(delete.NewCmd(ctx))
 
