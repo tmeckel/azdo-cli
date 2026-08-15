@@ -3,6 +3,7 @@ package delete
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"testing"
@@ -305,6 +306,46 @@ func TestRunDelete_preflightError(t *testing.T) {
 	assert.Contains(t, err.Error(), "failed to fetch work item 1234: boom")
 }
 
+func TestRunDelete_success_empty204Body(t *testing.T) {
+	t.Parallel()
+
+	deps := newDependencies(t, "myorg", false)
+	deps.setupDefaultOrg("myorg")
+	deps.stubPreflight(t, "Fabrikam")
+	// Official 204 No Content: the API commits the deletion and returns an
+	// empty body, which the SDK reports as a JSON decode error. The recycle
+	// bin delete must still be treated as successful.
+	deps.wit.EXPECT().DeleteWorkItem(gomock.Any(), gomock.Any()).DoAndReturn(
+		func(_ context.Context, args workitemtracking.DeleteWorkItemArgs) (*workitemtracking.WorkItemDelete, error) {
+			require.NotNil(t, args.Destroy)
+			assert.False(t, *args.Destroy)
+			return nil, &json.SyntaxError{}
+		},
+	)
+
+	err := runDelete(deps.cmd, &opts{targetArg: "Fabrikam/1234", yes: true})
+	require.NoError(t, err)
+	assert.Equal(t, "Deleted work item 1234\n", deps.stdout.String())
+}
+
+func TestRunDelete_empty204Body_JSON(t *testing.T) {
+	t.Parallel()
+
+	deps := newDependencies(t, "myorg", false)
+	deps.setupDefaultOrg("myorg")
+	deps.stubPreflight(t, "Fabrikam")
+	deps.wit.EXPECT().DeleteWorkItem(gomock.Any(), gomock.Any()).Return(nil, &json.SyntaxError{})
+
+	exporter := &captureExporter{}
+	err := runDelete(deps.cmd, &opts{targetArg: "Fabrikam/1234", yes: true, exporter: exporter})
+	require.NoError(t, err)
+
+	got, ok := exporter.data.(*workitemtracking.WorkItemDelete)
+	require.True(t, ok, "exporter must receive the raw WorkItemDelete")
+	require.NotNil(t, got.Id, "--json output must not be {} for a 204 response")
+	assert.Equal(t, 1234, *got.Id)
+}
+
 func TestRunDelete_APIError(t *testing.T) {
 	t.Parallel()
 
@@ -316,6 +357,19 @@ func TestRunDelete_APIError(t *testing.T) {
 	err := runDelete(deps.cmd, &opts{targetArg: "Fabrikam/1234", yes: true})
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "failed to delete work item 1234: boom")
+}
+
+func TestRunDelete_nilResponse(t *testing.T) {
+	t.Parallel()
+
+	deps := newDependencies(t, "myorg", false)
+	deps.setupDefaultOrg("myorg")
+	deps.stubPreflight(t, "Fabrikam")
+	deps.wit.EXPECT().DeleteWorkItem(gomock.Any(), gomock.Any()).Return(nil, nil)
+
+	err := runDelete(deps.cmd, &opts{targetArg: "Fabrikam/1234", yes: true})
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "work item tracking API returned an empty response")
 }
 
 func TestRunDelete_clientError(t *testing.T) {
@@ -359,6 +413,25 @@ func TestRunDelete_success_JSON(t *testing.T) {
 	require.True(t, ok, "exporter must receive the raw WorkItemDelete")
 	assert.Equal(t, 1234, *got.Id)
 	assert.Equal(t, "Fix bug", *got.Name)
+}
+
+func TestRunDelete_EmptyResponse_PopulatesIDForJSON(t *testing.T) {
+	t.Parallel()
+
+	deps := newDependencies(t, "myorg", false)
+	deps.setupDefaultOrg("myorg")
+	deps.stubPreflight(t, "Fabrikam")
+	// Official 204 No Content: the SDK returns an empty WorkItemDelete.
+	deps.wit.EXPECT().DeleteWorkItem(gomock.Any(), gomock.Any()).Return(&workitemtracking.WorkItemDelete{}, nil)
+
+	exporter := &captureExporter{}
+	err := runDelete(deps.cmd, &opts{targetArg: "Fabrikam/1234", yes: true, exporter: exporter})
+	require.NoError(t, err)
+
+	got, ok := exporter.data.(*workitemtracking.WorkItemDelete)
+	require.True(t, ok, "exporter must receive the raw WorkItemDelete")
+	require.NotNil(t, got.Id, "--json output must not be {} for a 204 response")
+	assert.Equal(t, 1234, *got.Id)
 }
 
 func TestRunDelete_destroyPromptText(t *testing.T) {
