@@ -6,8 +6,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"os"
-	"path/filepath"
 	"testing"
 
 	"github.com/microsoft/azure-devops-go-api/azuredevops/v7/webapi"
@@ -16,7 +14,6 @@ import (
 	"github.com/stretchr/testify/require"
 	"go.uber.org/mock/gomock"
 
-	"github.com/tmeckel/azdo-cli/internal/cmd/boards/workitem/shared"
 	"github.com/tmeckel/azdo-cli/internal/iostreams"
 	"github.com/tmeckel/azdo-cli/internal/mocks"
 	"github.com/tmeckel/azdo-cli/internal/printer"
@@ -69,10 +66,6 @@ func newDependencies(t *testing.T, organization string) *dependencies {
 
 func (d *dependencies) setupDefaultOrg(org string) {
 	d.auth.EXPECT().GetDefaultOrganization().Return(org, nil).AnyTimes()
-}
-
-func (d *dependencies) setupEditor(editor string) {
-	d.config.EXPECT().Get([]string{"", "editor"}).Return(editor, nil).AnyTimes()
 }
 
 func (d *dependencies) stubPreflight(t *testing.T, project string) {
@@ -131,12 +124,44 @@ func TestNewCmd_update(t *testing.T) {
 
 	f := cmd.Flags()
 	for _, name := range []string{
-		"title", "description", "description-file", "description-editor", "assigned-to",
+		"title", "description", "description-file", "description-editor", "description-format", "assigned-to",
 		"state", "area", "iteration", "reason", "fields", "discussion", "bypass-rules",
 		"suppress-notifications", "validate-only", "expand", "open", "json",
 	} {
 		assert.NotNil(t, f.Lookup(name), "flag %q must exist", name)
 	}
+}
+
+func TestNewCmd_update_descriptionFileNonCSV(t *testing.T) {
+	t.Parallel()
+
+	cmd := NewCmd(nil)
+	err := cmd.ParseFlags([]string{
+		"--description-file", "notes,v1.md",
+		"--description-file", "repro.md",
+	})
+	require.NoError(t, err)
+
+	files, err := cmd.Flags().GetStringArray("description-file")
+	require.NoError(t, err)
+	assert.Equal(t, []string{"notes,v1.md", "repro.md"}, files)
+}
+
+func TestNewCmd_update_fieldsNonCSV(t *testing.T) {
+	t.Parallel()
+
+	cmd := NewCmd(nil)
+	err := cmd.ParseFlags([]string{
+		"--fields", "Foo.Bar=a,b",
+		"--fields", "Baz.Qux=plain",
+	})
+	require.NoError(t, err)
+
+	fields, err := cmd.Flags().GetStringArray("fields")
+	require.NoError(t, err)
+	// Comma values must survive flag parsing untouched so
+	// parseCustomFields can split each entry on the first '=' only.
+	assert.Equal(t, []string{"Foo.Bar=a,b", "Baz.Qux=plain"}, fields)
 }
 
 func TestNewCmd_missingTarget(t *testing.T) {
@@ -202,6 +227,7 @@ func Test_runUpdate_allOptionalFields_canonicalOrder(t *testing.T) {
 	assert.Equal(t, []string{
 		"/fields/System.Title",
 		"/fields/System.Description",
+		"/multilineFieldsFormat/System.Description",
 		"/fields/System.AssignedTo",
 		"/fields/System.State",
 		"/fields/System.AreaPath",
@@ -209,6 +235,55 @@ func Test_runUpdate_allOptionalFields_canonicalOrder(t *testing.T) {
 		"/fields/System.Reason",
 		"/fields/Foo.Bar",
 	}, patchPaths(args.Document))
+}
+
+func Test_runUpdate_areaIterationRelativeSlashNormalized(t *testing.T) {
+	t.Parallel()
+
+	deps := newDependencies(t, "myorg")
+	deps.setupDefaultOrg("myorg")
+	deps.stubPreflight(t, "Fabrikam")
+	args := deps.stubUpdateWorkItem(t, "Fabrikam")
+	deps.cmd.EXPECT().Printer("list").Return(mustListPrinter(t, deps.stdout), nil)
+
+	err := runUpdate(deps.cmd, &updateOptions{
+		targetArg: "Fabrikam/1234",
+		area:      "Web/Payments",
+		iteration: "Release 2/Sprint 36",
+	})
+	require.NoError(t, err)
+
+	require.NotNil(t, args.Document)
+	doc := *args.Document
+	require.Len(t, doc, 2)
+	assert.Equal(t, "/fields/System.AreaPath", *doc[0].Path)
+	assert.Equal(t, `Fabrikam\Web\Payments`, doc[0].Value)
+	assert.Equal(t, "/fields/System.IterationPath", *doc[1].Path)
+	assert.Equal(t, `Fabrikam\Release 2\Sprint 36`, doc[1].Value)
+}
+
+func Test_runUpdate_areaIterationRootedPathsPreserved(t *testing.T) {
+	t.Parallel()
+
+	deps := newDependencies(t, "myorg")
+	deps.setupDefaultOrg("myorg")
+	deps.stubPreflight(t, "Fabrikam")
+	args := deps.stubUpdateWorkItem(t, "Fabrikam")
+	deps.cmd.EXPECT().Printer("list").Return(mustListPrinter(t, deps.stdout), nil)
+
+	err := runUpdate(deps.cmd, &updateOptions{
+		targetArg: "Fabrikam/1234",
+		area:      `Fabrikam\Area\Voice`,
+		iteration: `fabrikam\Release 2\Sprint 36`,
+	})
+	require.NoError(t, err)
+
+	require.NotNil(t, args.Document)
+	doc := *args.Document
+	require.Len(t, doc, 2)
+	assert.Equal(t, `Fabrikam\Area\Voice`, doc[0].Value)
+	// Already-rooted input is preserved unchanged, including casing.
+	assert.Equal(t, `fabrikam\Release 2\Sprint 36`, doc[1].Value)
 }
 
 func Test_runUpdate_customFields(t *testing.T) {
@@ -276,7 +351,14 @@ func Test_runUpdate_discussionTriggersAddComment(t *testing.T) {
 	deps := newDependencies(t, "myorg")
 	deps.setupDefaultOrg("myorg")
 	deps.stubPreflight(t, "Fabrikam")
-	deps.stubUpdateWorkItem(t, "Fabrikam")
+	deps.wit.EXPECT().UpdateWorkItem(gomock.Any(), gomock.Any()).DoAndReturn(
+		func(_ context.Context, args workitemtracking.UpdateWorkItemArgs) (*workitemtracking.WorkItem, error) {
+			// Deliberately omit System.TeamProject so the comment's project
+			// must come from the parsed scope, not the response fields.
+			fields := map[string]any{}
+			return &workitemtracking.WorkItem{Id: args.Id, Fields: &fields}, nil
+		},
+	)
 	deps.cmd.EXPECT().Printer("list").Return(mustListPrinter(t, deps.stdout), nil)
 
 	var captured workitemtracking.AddCommentArgs
@@ -287,7 +369,7 @@ func Test_runUpdate_discussionTriggersAddComment(t *testing.T) {
 		},
 	)
 
-	err := runUpdate(deps.cmd, &updateOptions{targetArg: "Fabrikam/1234", discussion: "nice work"})
+	err := runUpdate(deps.cmd, &updateOptions{targetArg: "Fabrikam/1234", title: "T", discussion: "nice work"})
 	require.NoError(t, err)
 
 	require.NotNil(t, captured.Project)
@@ -309,7 +391,7 @@ func Test_runUpdate_noDiscussion(t *testing.T) {
 	deps.cmd.EXPECT().Printer("list").Return(mustListPrinter(t, deps.stdout), nil)
 	deps.wit.EXPECT().AddComment(gomock.Any(), gomock.Any()).Times(0)
 
-	err := runUpdate(deps.cmd, &updateOptions{targetArg: "Fabrikam/1234"})
+	err := runUpdate(deps.cmd, &updateOptions{targetArg: "Fabrikam/1234", title: "T"})
 	require.NoError(t, err)
 }
 
@@ -324,6 +406,7 @@ func Test_runUpdate_bypassRulesAndSuppressNotifications(t *testing.T) {
 
 	err := runUpdate(deps.cmd, &updateOptions{
 		targetArg:             "Fabrikam/1234",
+		title:                 "T",
 		bypassRules:           true,
 		suppressNotifications: true,
 	})
@@ -345,7 +428,7 @@ func Test_runUpdate_validateOnly(t *testing.T) {
 	args := deps.stubUpdateWorkItem(t, "Fabrikam")
 	deps.cmd.EXPECT().Printer("list").Return(mustListPrinter(t, deps.stdout), nil)
 
-	err := runUpdate(deps.cmd, &updateOptions{targetArg: "Fabrikam/1234", validateOnly: true})
+	err := runUpdate(deps.cmd, &updateOptions{targetArg: "Fabrikam/1234", title: "T", validateOnly: true})
 	require.NoError(t, err)
 
 	require.NotNil(t, args.ValidateOnly)
@@ -361,7 +444,7 @@ func Test_runUpdate_expand(t *testing.T) {
 	args := deps.stubUpdateWorkItem(t, "Fabrikam")
 	deps.cmd.EXPECT().Printer("list").Return(mustListPrinter(t, deps.stdout), nil)
 
-	err := runUpdate(deps.cmd, &updateOptions{targetArg: "Fabrikam/1234", expand: "All"})
+	err := runUpdate(deps.cmd, &updateOptions{targetArg: "Fabrikam/1234", title: "T", expand: "All"})
 	require.NoError(t, err)
 
 	require.NotNil(t, args.Expand)
@@ -405,7 +488,7 @@ func Test_runUpdate_projectScopeDefaultOrg(t *testing.T) {
 	args := deps.stubUpdateWorkItem(t, "Fabrikam")
 	deps.cmd.EXPECT().Printer("list").Return(mustListPrinter(t, deps.stdout), nil)
 
-	err := runUpdate(deps.cmd, &updateOptions{targetArg: "Fabrikam/1234"})
+	err := runUpdate(deps.cmd, &updateOptions{targetArg: "Fabrikam/1234", title: "T"})
 	require.NoError(t, err)
 
 	require.NotNil(t, args.Id)
@@ -420,7 +503,7 @@ func Test_runUpdate_explicitOrganizationProject(t *testing.T) {
 	args := deps.stubUpdateWorkItem(t, "Fabrikam")
 	deps.cmd.EXPECT().Printer("list").Return(mustListPrinter(t, deps.stdout), nil)
 
-	err := runUpdate(deps.cmd, &updateOptions{targetArg: "myorg:Fabrikam/1234"})
+	err := runUpdate(deps.cmd, &updateOptions{targetArg: "myorg:Fabrikam/1234", title: "T"})
 	require.NoError(t, err)
 
 	require.NotNil(t, args.Id)
@@ -523,14 +606,86 @@ func Test_runUpdate_emptyPatchDoc(t *testing.T) {
 	deps := newDependencies(t, "myorg")
 	deps.setupDefaultOrg("myorg")
 	deps.stubPreflight(t, "Fabrikam")
-	args := deps.stubUpdateWorkItem(t, "Fabrikam")
-	deps.cmd.EXPECT().Printer("list").Return(mustListPrinter(t, deps.stdout), nil)
+	deps.wit.EXPECT().UpdateWorkItem(gomock.Any(), gomock.Any()).Times(0)
 
 	err := runUpdate(deps.cmd, &updateOptions{targetArg: "Fabrikam/1234", bypassRules: true})
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "at least one field flag is required")
+}
+
+func Test_runUpdate_validateOnlyWithDiscussion(t *testing.T) {
+	t.Parallel()
+
+	deps := newDependencies(t, "myorg")
+	deps.setupDefaultOrg("myorg")
+	deps.wit.EXPECT().GetWorkItem(gomock.Any(), gomock.Any()).Times(0)
+	deps.wit.EXPECT().UpdateWorkItem(gomock.Any(), gomock.Any()).Times(0)
+	deps.wit.EXPECT().AddComment(gomock.Any(), gomock.Any()).Times(0)
+
+	err := runUpdate(deps.cmd, &updateOptions{
+		targetArg:    "Fabrikam/1234",
+		title:        "T",
+		validateOnly: true,
+		discussion:   "comment",
+	})
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "--discussion cannot be combined with --validate-only")
+}
+
+func Test_runUpdate_validateOnlyWithOpen(t *testing.T) {
+	t.Parallel()
+
+	deps := newDependencies(t, "myorg")
+	deps.setupDefaultOrg("myorg")
+	deps.wit.EXPECT().GetWorkItem(gomock.Any(), gomock.Any()).Times(0)
+	deps.wit.EXPECT().UpdateWorkItem(gomock.Any(), gomock.Any()).Times(0)
+
+	err := runUpdate(deps.cmd, &updateOptions{
+		targetArg:     "Fabrikam/1234",
+		title:         "T",
+		validateOnly:  true,
+		openInBrowser: true,
+	})
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "--open cannot be combined with --validate-only")
+}
+
+func Test_runUpdate_nilResponse(t *testing.T) {
+	t.Parallel()
+
+	deps := newDependencies(t, "myorg")
+	deps.setupDefaultOrg("myorg")
+	deps.stubPreflight(t, "Fabrikam")
+	deps.wit.EXPECT().UpdateWorkItem(gomock.Any(), gomock.Any()).Return(nil, nil)
+
+	err := runUpdate(deps.cmd, &updateOptions{targetArg: "Fabrikam/1234", title: "T"})
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "server returned an empty response")
+}
+
+func Test_runUpdate_openWithJSONOutput(t *testing.T) {
+	t.Parallel()
+
+	deps := newDependencies(t, "myorg")
+	deps.setupDefaultOrg("myorg")
+	deps.stubPreflight(t, "Fabrikam")
+	deps.wit.EXPECT().UpdateWorkItem(gomock.Any(), gomock.Any()).Return(
+		updatedWorkItem(1234, map[string]any{}), nil,
+	)
+
+	exporter := &captureExporter{}
+	err := runUpdate(deps.cmd, &updateOptions{
+		targetArg:     "Fabrikam/1234",
+		title:         "T",
+		exporter:      exporter,
+		openInBrowser: true,
+	})
 	require.NoError(t, err)
 
-	require.NotNil(t, args.Document)
-	assert.Empty(t, *args.Document)
+	got, ok := exporter.data.(*workitemtracking.WorkItem)
+	require.True(t, ok, "exporter must receive the raw WorkItem")
+	require.NotNil(t, got.Id)
+	assert.Equal(t, 1234, *got.Id)
 }
 
 func Test_runUpdate_success_JSON(t *testing.T) {
@@ -593,7 +748,7 @@ func Test_runUpdate_openBrowserFlag(t *testing.T) {
 	deps.stubUpdateWorkItem(t, "Fabrikam")
 	deps.cmd.EXPECT().Printer("list").Return(mustListPrinter(t, deps.stdout), nil)
 
-	err := runUpdate(deps.cmd, &updateOptions{targetArg: "Fabrikam/1234", openInBrowser: true})
+	err := runUpdate(deps.cmd, &updateOptions{targetArg: "Fabrikam/1234", title: "T", openInBrowser: true})
 	require.NoError(t, err)
 }
 
@@ -610,304 +765,11 @@ func Test_runUpdate_DescriptionFromInline(t *testing.T) {
 	require.NoError(t, err)
 
 	require.NotNil(t, args.Document)
-	require.Len(t, *args.Document, 1)
+	require.Len(t, *args.Document, 2)
 	assert.Equal(t, "/fields/System.Description", *(*args.Document)[0].Path)
 	assert.Equal(t, "text", (*args.Document)[0].Value)
-}
-
-func Test_runUpdate_DescriptionFromSingleFile(t *testing.T) {
-	t.Parallel()
-
-	file := filepath.Join(t.TempDir(), "desc.md")
-	require.NoError(t, os.WriteFile(file, []byte("file content"), 0o600))
-
-	deps := newDependencies(t, "myorg")
-	deps.setupDefaultOrg("myorg")
-	deps.stubPreflight(t, "Fabrikam")
-	args := deps.stubUpdateWorkItem(t, "Fabrikam")
-	deps.cmd.EXPECT().Printer("list").Return(mustListPrinter(t, deps.stdout), nil)
-
-	err := runUpdate(deps.cmd, &updateOptions{targetArg: "Fabrikam/1234", descriptionFiles: []string{file}})
-	require.NoError(t, err)
-
-	require.NotNil(t, args.Document)
-	require.Len(t, *args.Document, 1)
-	assert.Equal(t, "file content", (*args.Document)[0].Value)
-}
-
-func Test_runUpdate_DescriptionFromStdin(t *testing.T) {
-	t.Parallel()
-
-	deps := newDependencies(t, "myorg")
-	deps.setupDefaultOrg("myorg")
-	deps.stubPreflight(t, "Fabrikam")
-	args := deps.stubUpdateWorkItem(t, "Fabrikam")
-	deps.cmd.EXPECT().Printer("list").Return(mustListPrinter(t, deps.stdout), nil)
-	deps.in.WriteString("stdin content")
-
-	err := runUpdate(deps.cmd, &updateOptions{targetArg: "Fabrikam/1234", descriptionFiles: []string{"-"}})
-	require.NoError(t, err)
-
-	require.NotNil(t, args.Document)
-	require.Len(t, *args.Document, 1)
-	assert.Equal(t, "stdin content", (*args.Document)[0].Value)
-}
-
-func Test_runUpdate_DescriptionFromMultipleFiles_Concatenated(t *testing.T) {
-	t.Parallel()
-
-	dir := t.TempDir()
-	fileA := filepath.Join(dir, "a.md")
-	fileB := filepath.Join(dir, "b.md")
-	require.NoError(t, os.WriteFile(fileA, []byte("alpha"), 0o600))
-	require.NoError(t, os.WriteFile(fileB, []byte("beta"), 0o600))
-
-	deps := newDependencies(t, "myorg")
-	deps.setupDefaultOrg("myorg")
-	deps.stubPreflight(t, "Fabrikam")
-	args := deps.stubUpdateWorkItem(t, "Fabrikam")
-	deps.cmd.EXPECT().Printer("list").Return(mustListPrinter(t, deps.stdout), nil)
-
-	err := runUpdate(deps.cmd, &updateOptions{targetArg: "Fabrikam/1234", descriptionFiles: []string{fileA, fileB}})
-	require.NoError(t, err)
-
-	require.NotNil(t, args.Document)
-	require.Len(t, *args.Document, 1)
-	assert.Equal(t, "alpha\nbeta", (*args.Document)[0].Value)
-}
-
-func Test_runUpdate_DescriptionFileNotFound(t *testing.T) {
-	t.Parallel()
-
-	deps := newDependencies(t, "myorg")
-	deps.setupDefaultOrg("myorg")
-	deps.stubPreflight(t, "Fabrikam")
-
-	err := runUpdate(deps.cmd, &updateOptions{targetArg: "Fabrikam/1234", descriptionFiles: []string{"/nonexistent"}})
-	require.Error(t, err)
-	assert.Contains(t, err.Error(), "/nonexistent")
-}
-
-func Test_runUpdate_DescriptionFileTooLarge(t *testing.T) {
-	t.Parallel()
-
-	file := filepath.Join(t.TempDir(), "big.md")
-	require.NoError(t, os.WriteFile(file, bytes.Repeat([]byte("a"), 1024*1024+1), 0o600))
-
-	deps := newDependencies(t, "myorg")
-	deps.setupDefaultOrg("myorg")
-	deps.stubPreflight(t, "Fabrikam")
-
-	err := runUpdate(deps.cmd, &updateOptions{targetArg: "Fabrikam/1234", descriptionFiles: []string{file}})
-	require.Error(t, err)
-	assert.Contains(t, err.Error(), "exceeds 1 MB")
-}
-
-func Test_runUpdate_DescriptionFileBinary(t *testing.T) {
-	t.Parallel()
-
-	file := filepath.Join(t.TempDir(), "bin.md")
-	require.NoError(t, os.WriteFile(file, []byte("abc\x00def"), 0o600))
-
-	deps := newDependencies(t, "myorg")
-	deps.setupDefaultOrg("myorg")
-	deps.stubPreflight(t, "Fabrikam")
-
-	err := runUpdate(deps.cmd, &updateOptions{targetArg: "Fabrikam/1234", descriptionFiles: []string{file}})
-	require.Error(t, err)
-	assert.Contains(t, err.Error(), "appears to be binary")
-}
-
-func Test_runUpdate_DescriptionFileNotUTF8(t *testing.T) {
-	t.Parallel()
-
-	file := filepath.Join(t.TempDir(), "bad.md")
-	require.NoError(t, os.WriteFile(file, []byte{0xff, 0xfe, 0xfd}, 0o600))
-
-	deps := newDependencies(t, "myorg")
-	deps.setupDefaultOrg("myorg")
-	deps.stubPreflight(t, "Fabrikam")
-
-	err := runUpdate(deps.cmd, &updateOptions{targetArg: "Fabrikam/1234", descriptionFiles: []string{file}})
-	require.Error(t, err)
-	assert.Contains(t, err.Error(), "not valid UTF-8")
-}
-
-func Test_runUpdate_DescriptionEditor(t *testing.T) {
-	deps := newDependencies(t, "myorg")
-	deps.setupDefaultOrg("myorg")
-	deps.setupEditor("")
-	deps.stubPreflight(t, "Fabrikam")
-	args := deps.stubUpdateWorkItem(t, "Fabrikam")
-	deps.cmd.EXPECT().Printer("list").Return(mustListPrinter(t, deps.stdout), nil)
-
-	original := shared.ExecEditorCommand
-	t.Cleanup(func() { shared.ExecEditorCommand = original })
-	shared.ExecEditorCommand = fakeEditor("written by editor")
-
-	err := runUpdate(deps.cmd, &updateOptions{targetArg: "Fabrikam/1234", descriptionEditor: true})
-	require.NoError(t, err)
-
-	require.NotNil(t, args.Document)
-	require.Len(t, *args.Document, 1)
-	assert.Equal(t, "written by editor", (*args.Document)[0].Value)
-}
-
-func Test_runUpdate_DescriptionEditorUsesConfigEditor(t *testing.T) {
-	t.Setenv("AZDO_EDITOR", "")
-
-	deps := newDependencies(t, "myorg")
-	deps.setupDefaultOrg("myorg")
-	deps.setupEditor("myeditor --wait")
-	deps.stubPreflight(t, "Fabrikam")
-	args := deps.stubUpdateWorkItem(t, "Fabrikam")
-	deps.cmd.EXPECT().Printer("list").Return(mustListPrinter(t, deps.stdout), nil)
-
-	var command []string
-	original := shared.ExecEditorCommand
-	t.Cleanup(func() { shared.ExecEditorCommand = original })
-	shared.ExecEditorCommand = func(c []string, file string) error {
-		command = c
-		return os.WriteFile(file, []byte("content"), 0o600)
-	}
-
-	err := runUpdate(deps.cmd, &updateOptions{targetArg: "Fabrikam/1234", descriptionEditor: true})
-	require.NoError(t, err)
-
-	assert.Equal(t, []string{"myeditor", "--wait"}, command)
-	require.NotNil(t, args.Document)
-	require.Len(t, *args.Document, 1)
-	assert.Equal(t, "content", (*args.Document)[0].Value)
-}
-
-func Test_runUpdate_DescriptionEditorStripsCommentLines(t *testing.T) {
-	deps := newDependencies(t, "myorg")
-	deps.setupDefaultOrg("myorg")
-	deps.setupEditor("")
-	deps.stubPreflight(t, "Fabrikam")
-	args := deps.stubUpdateWorkItem(t, "Fabrikam")
-	deps.cmd.EXPECT().Printer("list").Return(mustListPrinter(t, deps.stdout), nil)
-
-	original := shared.ExecEditorCommand
-	t.Cleanup(func() { shared.ExecEditorCommand = original })
-	shared.ExecEditorCommand = fakeEditor("# comment\n# also comment\n# my notes\nactual content\n")
-
-	err := runUpdate(deps.cmd, &updateOptions{targetArg: "Fabrikam/1234", descriptionEditor: true})
-	require.NoError(t, err)
-
-	require.NotNil(t, args.Document)
-	require.Len(t, *args.Document, 1)
-	assert.Equal(t, "actual content", (*args.Document)[0].Value)
-}
-
-func Test_runUpdate_DescriptionEditorEmptyAborts(t *testing.T) {
-	deps := newDependencies(t, "myorg")
-	deps.setupDefaultOrg("myorg")
-	deps.setupEditor("")
-	deps.stubPreflight(t, "Fabrikam")
-
-	original := shared.ExecEditorCommand
-	t.Cleanup(func() { shared.ExecEditorCommand = original })
-	shared.ExecEditorCommand = fakeEditor("")
-
-	err := runUpdate(deps.cmd, &updateOptions{targetArg: "Fabrikam/1234", descriptionEditor: true})
-	require.Error(t, err)
-	assert.Contains(t, err.Error(), "editor produced empty description")
-}
-
-func Test_runUpdate_DescriptionEditorNonZeroExit(t *testing.T) {
-	deps := newDependencies(t, "myorg")
-	deps.setupDefaultOrg("myorg")
-	deps.setupEditor("")
-	deps.stubPreflight(t, "Fabrikam")
-
-	original := shared.ExecEditorCommand
-	t.Cleanup(func() { shared.ExecEditorCommand = original })
-	shared.ExecEditorCommand = func(_ []string, _ string) error {
-		return errors.New("exit status 1")
-	}
-
-	err := runUpdate(deps.cmd, &updateOptions{targetArg: "Fabrikam/1234", descriptionEditor: true})
-	require.Error(t, err)
-	assert.Contains(t, err.Error(), "exit status 1")
-}
-
-func Test_runUpdate_DescriptionPrecedenceEditorOverFile(t *testing.T) {
-	deps := newDependencies(t, "myorg")
-	deps.setupDefaultOrg("myorg")
-	deps.setupEditor("")
-	deps.stubPreflight(t, "Fabrikam")
-	args := deps.stubUpdateWorkItem(t, "Fabrikam")
-	deps.cmd.EXPECT().Printer("list").Return(mustListPrinter(t, deps.stdout), nil)
-
-	original := shared.ExecEditorCommand
-	t.Cleanup(func() { shared.ExecEditorCommand = original })
-	shared.ExecEditorCommand = fakeEditor("editor content")
-
-	file := filepath.Join(t.TempDir(), "desc.md")
-	require.NoError(t, os.WriteFile(file, []byte("file content"), 0o600))
-
-	err := runUpdate(deps.cmd, &updateOptions{
-		targetArg:         "Fabrikam/1234",
-		descriptionEditor: true,
-		descriptionFiles:  []string{file},
-	})
-	require.NoError(t, err)
-
-	require.NotNil(t, args.Document)
-	require.Len(t, *args.Document, 1)
-	assert.Equal(t, "editor content", (*args.Document)[0].Value)
-	assert.Contains(t, deps.errOut.String(), "takes precedence over --description-file")
-}
-
-func Test_runUpdate_DescriptionPrecedenceEditorOverInline(t *testing.T) {
-	deps := newDependencies(t, "myorg")
-	deps.setupDefaultOrg("myorg")
-	deps.setupEditor("")
-	deps.stubPreflight(t, "Fabrikam")
-	args := deps.stubUpdateWorkItem(t, "Fabrikam")
-	deps.cmd.EXPECT().Printer("list").Return(mustListPrinter(t, deps.stdout), nil)
-
-	original := shared.ExecEditorCommand
-	t.Cleanup(func() { shared.ExecEditorCommand = original })
-	shared.ExecEditorCommand = fakeEditor("editor content")
-
-	err := runUpdate(deps.cmd, &updateOptions{
-		targetArg:         "Fabrikam/1234",
-		descriptionEditor: true,
-		description:       "inline content",
-	})
-	require.NoError(t, err)
-
-	require.NotNil(t, args.Document)
-	require.Len(t, *args.Document, 1)
-	assert.Equal(t, "editor content", (*args.Document)[0].Value)
-	assert.Contains(t, deps.errOut.String(), "takes precedence over --description")
-}
-
-func Test_runUpdate_DescriptionPrecedenceFileOverInline(t *testing.T) {
-	t.Parallel()
-
-	file := filepath.Join(t.TempDir(), "desc.md")
-	require.NoError(t, os.WriteFile(file, []byte("file content"), 0o600))
-
-	deps := newDependencies(t, "myorg")
-	deps.setupDefaultOrg("myorg")
-	deps.stubPreflight(t, "Fabrikam")
-	args := deps.stubUpdateWorkItem(t, "Fabrikam")
-	deps.cmd.EXPECT().Printer("list").Return(mustListPrinter(t, deps.stdout), nil)
-
-	err := runUpdate(deps.cmd, &updateOptions{
-		targetArg:        "Fabrikam/1234",
-		descriptionFiles: []string{file},
-		description:      "inline content",
-	})
-	require.NoError(t, err)
-
-	require.NotNil(t, args.Document)
-	require.Len(t, *args.Document, 1)
-	assert.Equal(t, "file content", (*args.Document)[0].Value)
-	assert.Contains(t, deps.errOut.String(), "takes precedence over --description")
+	assert.Equal(t, "/multilineFieldsFormat/System.Description", *(*args.Document)[1].Path)
+	assert.Equal(t, "Markdown", (*args.Document)[1].Value)
 }
 
 func Test_runUpdate_DescriptionAbsent_OmitsPatchOp(t *testing.T) {
@@ -927,17 +789,48 @@ func Test_runUpdate_DescriptionAbsent_OmitsPatchOp(t *testing.T) {
 	assert.NotEqual(t, "/fields/System.Description", *(*args.Document)[0].Path)
 }
 
+func Test_runUpdate_DescriptionFormatHtml(t *testing.T) {
+	t.Parallel()
+
+	deps := newDependencies(t, "myorg")
+	deps.setupDefaultOrg("myorg")
+	deps.stubPreflight(t, "Fabrikam")
+	args := deps.stubUpdateWorkItem(t, "Fabrikam")
+	deps.cmd.EXPECT().Printer("list").Return(mustListPrinter(t, deps.stdout), nil)
+
+	err := runUpdate(deps.cmd, &updateOptions{
+		targetArg:         "Fabrikam/1234",
+		description:       "text",
+		descriptionFormat: "html",
+	})
+	require.NoError(t, err)
+
+	require.NotNil(t, args.Document)
+	require.Len(t, *args.Document, 2)
+	assert.Equal(t, "/multilineFieldsFormat/System.Description", *(*args.Document)[1].Path)
+	assert.Equal(t, "Html", (*args.Document)[1].Value)
+}
+
+func Test_runUpdate_DescriptionFormatInvalid(t *testing.T) {
+	t.Parallel()
+
+	deps := newDependencies(t, "myorg")
+	deps.setupDefaultOrg("myorg")
+
+	err := runUpdate(deps.cmd, &updateOptions{
+		targetArg:         "Fabrikam/1234",
+		description:       "text",
+		descriptionFormat: "plaintext",
+	})
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), `--description-format must be "markdown" or "html"`)
+}
+
 func mustListPrinter(t *testing.T, w io.Writer) printer.Printer {
 	t.Helper()
 	tp, err := printer.NewListPrinter(w)
 	require.NoError(t, err)
 	return tp
-}
-
-func fakeEditor(content string) func([]string, string) error {
-	return func(_ []string, file string) error {
-		return os.WriteFile(file, []byte(content), 0o600)
-	}
 }
 
 type captureExporter struct {

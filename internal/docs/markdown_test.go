@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/spf13/cobra"
@@ -43,6 +44,44 @@ func TestGenMdDocWithNoLongOrSynopsis(t *testing.T) {
 	checkStringContains(t, output, dummyCmd.Short)
 	checkStringContains(t, output, "Options inherited from parent commands")
 	checkStringOmits(t, output, "### Synopsis")
+}
+
+// TestGenMdDocEndsWithSingleNewline guards the end-of-file-fixer: generated
+// output must not carry a trailing blank line when the Examples section is
+// the last one (commands without a parent, e.g. the root command).
+func TestGenMdDocEndsWithSingleNewline(t *testing.T) {
+	linkHandler := func(s string) string { return s }
+
+	root := &cobra.Command{
+		Use:     "root",
+		Short:   "Root short description",
+		Example: "root run something",
+	}
+	child := &cobra.Command{
+		Use:     "child",
+		Short:   "Child short description",
+		Example: "root child run something",
+	}
+	root.AddCommand(child)
+
+	buf := new(bytes.Buffer)
+	if err := genMarkdownCustom(root, buf, linkHandler); err != nil {
+		t.Fatal(err)
+	}
+	rootOutput := buf.String()
+	if !strings.HasSuffix(rootOutput, "```\n") {
+		t.Errorf("root output must end with exactly one newline, got suffix %q", rootOutput[len(rootOutput)-4:])
+	}
+
+	buf.Reset()
+	if err := genMarkdownCustom(child, buf, linkHandler); err != nil {
+		t.Fatal(err)
+	}
+	childOutput := buf.String()
+	if !strings.HasSuffix(childOutput, ")\n") {
+		t.Errorf("child output must end with single newline after see-also link, got suffix %q", childOutput[len(childOutput)-4:])
+	}
+	checkStringContains(t, childOutput, "```\n\n### See also")
 }
 
 func TestGenMdNoHiddenParents(t *testing.T) {

@@ -2,9 +2,6 @@ package update
 
 import (
 	"fmt"
-	"os"
-	"os/exec"
-	"runtime"
 	"strconv"
 	"strings"
 
@@ -27,6 +24,7 @@ type updateOptions struct {
 	description       string   // --description (inline)
 	descriptionFiles  []string // --description-file (repeatable; "-" reads stdin)
 	descriptionEditor bool     // --description-editor
+	descriptionFormat string   // --description-format (markdown|html)
 	assignedTo        string
 	state             string
 	area              string
@@ -76,15 +74,16 @@ func NewCmd(ctx util.CmdContext) *cobra.Command {
 	}
 
 	cmd.Flags().StringVar(&opts.title, "title", "", "New title of the work item.")
-	cmd.Flags().StringVar(&opts.description, "description", "", "New description (Markdown). Lower priority than --description-file and --description-editor.")
-	cmd.Flags().StringSliceVar(&opts.descriptionFiles, "description-file", nil, "Read description from file (repeatable; \"-\" reads from stdin). Higher priority than --description.")
+	cmd.Flags().StringVar(&opts.description, "description", "", "New description content (format set by --description-format; default markdown). Lower priority than --description-file and --description-editor.")
+	cmd.Flags().StringArrayVar(&opts.descriptionFiles, "description-file", nil, "Read description from file (repeatable; \"-\" reads from stdin). Higher priority than --description.")
 	cmd.Flags().BoolVar(&opts.descriptionEditor, "description-editor", false, "Edit description in $VISUAL/$EDITOR. Highest priority description source.")
+	cmd.Flags().StringVar(&opts.descriptionFormat, "description-format", "markdown", "Format of the description input: \"markdown\" (default) or \"html\".")
 	cmd.Flags().StringVar(&opts.assignedTo, "assigned-to", "", "Identity the work item is assigned to.")
 	cmd.Flags().StringVar(&opts.state, "state", "", "New state of the work item.")
 	cmd.Flags().StringVar(&opts.area, "area", "", "New area path of the work item.")
 	cmd.Flags().StringVar(&opts.iteration, "iteration", "", "New iteration path of the work item.")
 	cmd.Flags().StringVar(&opts.reason, "reason", "", "Reason for the change of state.")
-	cmd.Flags().StringSliceVar(&opts.customFields, "fields", nil, "Set a field by reference name (repeatable; Ref.Name=value).")
+	cmd.Flags().StringArrayVar(&opts.customFields, "fields", nil, "Set a field by reference name (repeatable; Ref.Name=value).")
 	cmd.Flags().StringVar(&opts.discussion, "discussion", "", "Comment to add to the work item discussion.")
 	cmd.Flags().BoolVar(&opts.bypassRules, "bypass-rules", false, "Do not enforce the work item type rules on this update.")
 	cmd.Flags().BoolVar(&opts.suppressNotifications, "suppress-notifications", false, "Do not fire any notifications for this change.")
@@ -110,9 +109,29 @@ func runUpdate(cmdCtx util.CmdContext, opts *updateOptions) error {
 		return util.FlagErrorWrap(err)
 	}
 
+	// Area/iteration paths are project-rooted tree paths with '\' separators
+	// (e.g. "Fabrikam Fiber\Area\Voice"); normalize relative slash shorthand
+	// (e.g. "Web/Payments") into the canonical form before patching.
+	opts.area = shared.NormalizePath(scope.Project, opts.area)
+	opts.iteration = shared.NormalizePath(scope.Project, opts.iteration)
+
 	id, err := strconv.Atoi(scope.Targets[0])
 	if err != nil || id <= 0 {
 		return util.FlagErrorf("work item ID must be a positive integer; got %q", scope.Targets[0])
+	}
+
+	if opts.validateOnly {
+		if opts.discussion != "" {
+			return util.FlagErrorf("--discussion cannot be combined with --validate-only")
+		}
+		if opts.openInBrowser {
+			return util.FlagErrorf("--open cannot be combined with --validate-only")
+		}
+	}
+
+	formatOpValue, err := shared.NormalizeDescriptionFormat(opts.descriptionFormat)
+	if err != nil {
+		return err
 	}
 
 	zap.L().Debug(
@@ -166,7 +185,10 @@ func runUpdate(cmdCtx util.CmdContext, opts *updateOptions) error {
 		return err
 	}
 
-	doc := buildPatchDocument(opts, description, customFields)
+	doc := buildPatchDocument(opts, description, customFields, formatOpValue)
+	if len(doc) == 0 {
+		return util.FlagErrorf("at least one field flag is required (e.g. --title, --state, --fields)")
+	}
 	args := workitemtracking.UpdateWorkItemArgs{
 		Project:               types.ToPtr(scope.Project),
 		Document:              &doc,
@@ -184,59 +206,62 @@ func runUpdate(cmdCtx util.CmdContext, opts *updateOptions) error {
 	if err != nil {
 		return fmt.Errorf("failed to update work item %d: %w", id, err)
 	}
+	if res == nil {
+		return fmt.Errorf("failed to update work item %d: server returned an empty response", id)
+	}
 
 	if opts.discussion != "" {
-		fields := types.GetValue(res.Fields, map[string]any{})
-		project := shared.FieldString(fields, shared.TeamProjectField)
 		if _, err := wit.AddComment(cmdCtx.Context(), workitemtracking.AddCommentArgs{
-			Project:    types.ToPtr(project),
-			WorkItemId: res.Id,
+			Project:    types.ToPtr(scope.Project),
+			WorkItemId: types.ToPtr(id),
 			Request:    &workitemtracking.CommentCreate{Text: types.ToPtr(opts.discussion)},
 		}); err != nil {
 			return fmt.Errorf("failed to add discussion comment to work item %d: %w", id, err)
 		}
 	}
 
+	ios.StopProgressIndicator()
+
 	if opts.bypassRules || opts.suppressNotifications {
 		fmt.Fprintf(ios.ErrOut, "warning: --bypass-rules/--suppress-notifications bypass work item type rules and notifications\n")
 	}
 
-	ios.StopProgressIndicator()
-
 	if opts.exporter != nil {
-		return opts.exporter.Write(ios, res)
-	}
-
-	tp, err := cmdCtx.Printer("list")
-	if err != nil {
-		return err
-	}
-	tp.AddColumns("ID", "TYPE", "STATE", "TITLE", "ASSIGNED TO", "AREA", "ITERATION")
-	fields := types.GetValue(res.Fields, map[string]any{})
-	tp.AddField(strconv.Itoa(types.GetValue(res.Id, 0)))
-	tp.AddField(shared.FieldString(fields, "System.WorkItemType"))
-	tp.AddField(shared.FieldString(fields, "System.State"))
-	tp.AddField(shared.FieldString(fields, "System.Title"))
-	tp.AddField(shared.FieldIdentityDisplay(fields, "System.AssignedTo"))
-	tp.AddField(shared.FieldString(fields, "System.AreaPath"))
-	tp.AddField(shared.FieldString(fields, "System.IterationPath"))
-	tp.EndRow()
-	if err := tp.Render(); err != nil {
-		return err
+		if err := opts.exporter.Write(ios, res); err != nil {
+			return err
+		}
+	} else {
+		tp, err := cmdCtx.Printer("list")
+		if err != nil {
+			return err
+		}
+		tp.AddColumns("ID", "TYPE", "STATE", "TITLE", "ASSIGNED TO", "AREA", "ITERATION")
+		fields := types.GetValue(res.Fields, map[string]any{})
+		tp.AddField(strconv.Itoa(types.GetValue(res.Id, 0)))
+		tp.AddField(shared.FieldString(fields, "System.WorkItemType"))
+		tp.AddField(shared.FieldString(fields, "System.State"))
+		tp.AddField(shared.FieldString(fields, "System.Title"))
+		tp.AddField(shared.FieldIdentityDisplay(fields, "System.AssignedTo"))
+		tp.AddField(shared.FieldString(fields, "System.AreaPath"))
+		tp.AddField(shared.FieldString(fields, "System.IterationPath"))
+		tp.EndRow()
+		if err := tp.Render(); err != nil {
+			return err
+		}
 	}
 
 	if opts.openInBrowser {
-		if err := openURL(types.GetValue(res.Url, "")); err != nil {
+		if err := shared.OpenURL(types.GetValue(res.Url, "")); err != nil {
 			return fmt.Errorf("failed to open work item in browser: %w", err)
 		}
 	}
 	return nil
 }
 
-// buildPatchDocument appends ops in a fixed order: Title, Description,
-// AssignedTo, State, AreaPath, IterationPath, Reason, then raw --fields ops in
-// user-given order. Tests assert this order.
-func buildPatchDocument(opts *updateOptions, description string, customFields []fieldKV) []webapi.JsonPatchOperation {
+// buildPatchDocument appends ops in a fixed order: Title, Description (plus
+// the multiline format op), AssignedTo, State, AreaPath, IterationPath,
+// Reason, then raw --fields ops in user-given order. Tests assert this order.
+func buildPatchDocument(opts *updateOptions, description string, customFields []fieldKV, formatOpValue string) []webapi.JsonPatchOperation {
 	add := webapi.OperationValues.Add
 	doc := []webapi.JsonPatchOperation{}
 	patch := func(path string, value any) {
@@ -249,6 +274,7 @@ func buildPatchDocument(opts *updateOptions, description string, customFields []
 	}
 	if description != "" {
 		patch("/fields/System.Description", description)
+		patch("/multilineFieldsFormat/System.Description", formatOpValue)
 	}
 	if opts.assignedTo != "" {
 		patch("/fields/System.AssignedTo", opts.assignedTo)
@@ -282,26 +308,4 @@ func parseCustomFields(raw []string) ([]fieldKV, error) {
 		fields = append(fields, fieldKV{ref: ref, value: value})
 	}
 	return fields, nil
-}
-
-// openURL opens a URL in the default browser: $BROWSER if set, otherwise the
-// platform opener (xdg-open/open/rundll32). Empty URLs are ignored.
-func openURL(raw string) error {
-	if raw == "" {
-		return nil
-	}
-	if browser := os.Getenv("BROWSER"); browser != "" {
-		parts := strings.Fields(browser)
-		cmd := exec.Command(parts[0], append(parts[1:], raw)...) //nolint:gosec // BROWSER env is an explicit user-chosen command
-		cmd.Stderr = os.Stderr
-		return cmd.Run()
-	}
-	switch runtime.GOOS {
-	case "darwin":
-		return exec.Command("open", raw).Run()
-	case "windows":
-		return exec.Command("rundll32", "url.dll,FileProtocolHandler", raw).Run()
-	default:
-		return exec.Command("xdg-open", raw).Run()
-	}
 }

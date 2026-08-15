@@ -30,6 +30,13 @@ func ctrlFromT(t *testing.T) *gomock.Controller {
 	return c
 }
 
+// listOpts returns run options with the Cobra default limit (50) applied.
+// Direct runList calls bypass flag parsing defaults, so tests share this
+// helper instead of repeating the literal limit.
+func listOpts(scopeArg string) *listOptions {
+	return &listOptions{scopeArg: scopeArg, limit: 50}
+}
+
 func TestResolveSort(t *testing.T) {
 	t.Parallel()
 	cases := []struct {
@@ -82,7 +89,7 @@ func TestRunList_SortDefaultUnchanged(t *testing.T) {
 		},
 	)
 
-	err := runList(deps.cmd, &listOptions{scopeArg: "org:Fabrikam"})
+	err := runList(deps.cmd, listOpts("org:Fabrikam"))
 	require.NoError(t, err)
 	assert.Contains(t, captured, "ORDER BY [System.ChangedDate] DESC")
 }
@@ -102,10 +109,9 @@ func TestRunList_SortTitleAsc(t *testing.T) {
 		},
 	)
 
-	err := runList(deps.cmd, &listOptions{
-		scopeArg: "org:Fabrikam",
-		sort:     []string{"title:asc"},
-	})
+	opts := listOpts("org:Fabrikam")
+	opts.sort = []string{"title:asc"}
+	err := runList(deps.cmd, opts)
 	require.NoError(t, err)
 	assert.Contains(t, captured, "ORDER BY [System.Title] ASC")
 }
@@ -118,10 +124,9 @@ func TestRunList_SortInvalidField(t *testing.T) {
 	}
 	deps.cmd.EXPECT().IOStreams().Return(ios, nil).AnyTimes()
 
-	err := runList(deps.cmd, &listOptions{
-		scopeArg: "org:Fabrikam",
-		sort:     []string{"banana"},
-	})
+	opts := listOpts("org:Fabrikam")
+	opts.sort = []string{"banana"}
+	err := runList(deps.cmd, opts)
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "invalid --sort field")
 }
@@ -173,10 +178,9 @@ func TestRunList_ChangedAfterRFC3339(t *testing.T) {
 		},
 	)
 
-	err := runList(deps.cmd, &listOptions{
-		scopeArg:     "org:Fabrikam",
-		changedAfter: "2025-01-18T00:00:00Z",
-	})
+	opts := listOpts("org:Fabrikam")
+	opts.changedAfter = "2025-01-18T00:00:00Z"
+	err := runList(deps.cmd, opts)
 	require.NoError(t, err)
 	assert.Contains(t, captured, "[System.ChangedDate] >= '2025-01-18T00:00:00Z'")
 }
@@ -191,10 +195,9 @@ func TestRunList_InvalidDateFlag(t *testing.T) {
 	}
 	deps.cmd.EXPECT().IOStreams().Return(ios, nil).AnyTimes()
 
-	err := runList(deps.cmd, &listOptions{
-		scopeArg:     "org:Fabrikam",
-		changedAfter: "not-a-date",
-	})
+	opts := listOpts("org:Fabrikam")
+	opts.changedAfter = "not-a-date"
+	err := runList(deps.cmd, opts)
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "--changed-after")
 }
@@ -211,7 +214,8 @@ func TestBuildTagPredicate(t *testing.T) {
 		{name: "multiple tags AND", tags: []string{"web", "security"}, want: "[System.Tags] CONTAINS 'web' AND [System.Tags] CONTAINS 'security'"},
 		{name: "trims whitespace", tags: []string{" web ", "  "}, want: "[System.Tags] CONTAINS 'web'"},
 		{name: "empty in middle skips", tags: []string{"web", "  ", "sec"}, want: "[System.Tags] CONTAINS 'web' AND [System.Tags] CONTAINS 'sec'"},
-		{name: "dedupes case-insensitively", tags: []string{"Web", "web"}, want: "[System.Tags] CONTAINS 'Web'"},
+		{name: "dedupes exact duplicates only, preserves case", tags: []string{"Web", "web", "Web"}, want: "[System.Tags] CONTAINS 'Web' AND [System.Tags] CONTAINS 'web'"},
+		{name: "Foo and foo are distinct tags", tags: []string{"Foo", "foo"}, want: "[System.Tags] CONTAINS 'Foo' AND [System.Tags] CONTAINS 'foo'"},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
@@ -224,9 +228,70 @@ func TestBuildTagPredicate(t *testing.T) {
 
 func TestValidateTags(t *testing.T) {
 	t.Parallel()
-	assert.NoError(t, validateTags("--tag", nil))
-	assert.NoError(t, validateTags("--tag", []string{"web"}))
-	assert.Error(t, validateTags("--tag", []string{" "}))
+
+	t.Run("valid tags pass", func(t *testing.T) {
+		t.Parallel()
+		assert.NoError(t, shared.ValidateTags("--tag", nil))
+		assert.NoError(t, shared.ValidateTags("--tag", []string{"web"}))
+		assert.NoError(t, shared.ValidateTags("--tag", []string{"web", "security"}))
+	})
+
+	t.Run("empty or whitespace-only rejected", func(t *testing.T) {
+		t.Parallel()
+		err := shared.ValidateTags("--tag", []string{" "})
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "cannot be empty")
+	})
+
+	t.Run("comma separator rejected", func(t *testing.T) {
+		t.Parallel()
+		err := shared.ValidateTags("--tag", []string{"web,security"})
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "',' or ';'")
+	})
+
+	t.Run("semicolon separator rejected", func(t *testing.T) {
+		t.Parallel()
+		err := shared.ValidateTags("--tag", []string{"web;security"})
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "',' or ';'")
+	})
+
+	t.Run("over 400 characters rejected", func(t *testing.T) {
+		t.Parallel()
+		err := shared.ValidateTags("--tag", []string{strings.Repeat("a", 401)})
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "400")
+		assert.Contains(t, err.Error(), "characters")
+	})
+
+	t.Run("exactly 400 characters accepted", func(t *testing.T) {
+		t.Parallel()
+		assert.NoError(t, shared.ValidateTags("--tag", []string{strings.Repeat("a", 400)}))
+	})
+
+	t.Run("multibyte tag of 400 characters accepted", func(t *testing.T) {
+		t.Parallel()
+		// 'é' is 2 bytes in UTF-8, so 400 characters occupy 800 bytes; the
+		// limit counts characters, not bytes.
+		assert.NoError(t, shared.ValidateTags("--tag", []string{strings.Repeat("é", 400)}))
+	})
+
+	t.Run("multibyte tag over 400 characters rejected", func(t *testing.T) {
+		t.Parallel()
+		err := shared.ValidateTags("--tag", []string{strings.Repeat("é", 401)})
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "400")
+		assert.Contains(t, err.Error(), "characters")
+	})
+
+	t.Run("at sign allowed", func(t *testing.T) {
+		t.Parallel()
+		// Microsoft recommends avoiding '@' in tag names but does not forbid
+		// it, so it must not be rejected client-side.
+		assert.NoError(t, shared.ValidateTags("--tag", []string{"@web"}))
+		assert.NoError(t, shared.ValidateTags("--tag", []string{"web@2025"}))
+	})
 }
 
 func TestRunList_TagFilter(t *testing.T) {
@@ -244,10 +309,9 @@ func TestRunList_TagFilter(t *testing.T) {
 		},
 	)
 
-	err := runList(deps.cmd, &listOptions{
-		scopeArg: "org:Fabrikam",
-		tags:     []string{"web", "security"},
-	})
+	opts := listOpts("org:Fabrikam")
+	opts.tags = []string{"web", "security"}
+	err := runList(deps.cmd, opts)
 	require.NoError(t, err)
 	assert.Contains(t, captured, "[System.Tags] CONTAINS 'web' AND [System.Tags] CONTAINS 'security'")
 }
@@ -277,10 +341,9 @@ func TestRunList_CreatedByMe(t *testing.T) {
 		},
 	)
 
-	err := runList(deps.cmd, &listOptions{
-		scopeArg:  "org:Fabrikam",
-		createdBy: []string{"@me"},
-	})
+	opts := listOpts("org:Fabrikam")
+	opts.createdBy = []string{"@me"}
+	err := runList(deps.cmd, opts)
 	require.NoError(t, err)
 	assert.Contains(t, captured, "[System.CreatedBy] IN ('Alice <alice@x.com>')")
 }
@@ -300,21 +363,11 @@ func TestRunList_AuthoredByAlias(t *testing.T) {
 		},
 	)
 
-	err := runList(deps.cmd, &listOptions{
-		scopeArg:  "org:Fabrikam",
-		createdBy: []string{"bob@x.com"},
-	})
+	opts := listOpts("org:Fabrikam")
+	opts.createdBy = []string{"bob@x.com"}
+	err := runList(deps.cmd, opts)
 	require.NoError(t, err)
 	assert.Contains(t, captured, "[System.CreatedBy] IN ('bob@x.com')")
-}
-
-func TestValidateState(t *testing.T) {
-	t.Parallel()
-	assert.NoError(t, validateState(nil))
-	assert.NoError(t, validateState([]string{"Active"}))
-	assert.NoError(t, validateState([]string{"  Active  ", "Resolved"}))
-	assert.Error(t, validateState([]string{"  "}))
-	assert.Error(t, validateState([]string{"Active", "  "}))
 }
 
 func TestBuildStateClause(t *testing.T) {
@@ -362,11 +415,10 @@ func TestRunList_StateExactOnly(t *testing.T) {
 		},
 	)
 
-	err := runList(deps.cmd, &listOptions{
-		scopeArg: "org:Fabrikam",
-		status:   []string{"all"},
-		state:    []string{"Active"},
-	})
+	opts := listOpts("org:Fabrikam")
+	opts.status = []string{"all"}
+	opts.state = []string{"Active"}
+	err := runList(deps.cmd, opts)
 	require.NoError(t, err)
 	assert.Contains(t, captured, "[System.State] IN ('Active')")
 	// With status=all, the category predicate is empty, so no "(...) AND" wrapping.
@@ -388,10 +440,9 @@ func TestRunList_StatusAndStateIntersect(t *testing.T) {
 		},
 	)
 
-	err := runList(deps.cmd, &listOptions{
-		scopeArg: "org:Fabrikam",
-		state:    []string{"Active"},
-	})
+	opts := listOpts("org:Fabrikam")
+	opts.state = []string{"Active"}
+	err := runList(deps.cmd, opts)
 	require.NoError(t, err)
 	// We expect the category predicate (e.g. from "New","Active","Proposed","InProgress")
 	// ANDead with the state predicate, both inside the state segment.
@@ -438,9 +489,20 @@ func TestBuildWiqlQuery(t *testing.T) {
 				"[System.AssignedTo] IN ('alice@x.com', 'Bob')",
 				"[Microsoft.VSTS.Common.Severity] IN ('1 - Critical')",
 				"[Microsoft.VSTS.Common.Priority] IN (1, 2)",
-				"[System.AreaPath] = 'Web/Payments'",
-				"[System.AreaPath] UNDER 'Web/Payments/Internal'",
-				"[System.IterationPath] UNDER 'Release 2025/Sprint 1'",
+				`[System.AreaPath] = 'Fabrikam\Web\Payments'`,
+				`[System.AreaPath] UNDER 'Fabrikam\Web\Payments\Internal'`,
+				`[System.IterationPath] UNDER 'Fabrikam\Release 2025\Sprint 1'`,
+			},
+		},
+		{
+			name:      "rooted paths preserved",
+			project:   "Fabrikam Fiber",
+			area:      []string{`Fabrikam Fiber\Area\Voice`, "Under:Fabrikam Fiber/Area/Voice/Internal"},
+			iteration: []string{`fabrikam fiber\Release 2\Sprint 36`},
+			mustContain: []string{
+				`[System.AreaPath] = 'Fabrikam Fiber\Area\Voice'`,
+				`[System.AreaPath] UNDER 'Fabrikam Fiber\Area\Voice\Internal'`,
+				`[System.IterationPath] = 'fabrikam fiber\Release 2\Sprint 36'`,
 			},
 		},
 		{
@@ -476,26 +538,42 @@ func TestBuildUnderOrEqualsPredicate(t *testing.T) {
 
 	t.Run("single equals path", func(t *testing.T) {
 		t.Parallel()
-		got := buildUnderOrEqualsPredicate("[System.AreaPath]", []string{"Web/Payments"})
-		assert.Equal(t, "[System.AreaPath] = 'Web/Payments'", got)
+		got := buildUnderOrEqualsPredicate("[System.AreaPath]", "Fabrikam", []string{"Web/Payments"})
+		assert.Equal(t, `[System.AreaPath] = 'Fabrikam\Web\Payments'`, got)
 	})
 
 	t.Run("single Under path", func(t *testing.T) {
 		t.Parallel()
-		got := buildUnderOrEqualsPredicate("[System.IterationPath]", []string{"Under:Release 2025/Sprint 1"})
-		assert.Equal(t, "[System.IterationPath] UNDER 'Release 2025/Sprint 1'", got)
+		got := buildUnderOrEqualsPredicate("[System.IterationPath]", "Fabrikam", []string{"Under:Release 2025/Sprint 1"})
+		assert.Equal(t, `[System.IterationPath] UNDER 'Fabrikam\Release 2025\Sprint 1'`, got)
+	})
+
+	t.Run("Under prefix is case-insensitive and path casing preserved", func(t *testing.T) {
+		t.Parallel()
+		for _, prefix := range []string{"Under:", "under:", "UNDER:", "uNdeR:"} { // spellchecker:disable-line
+			got := buildUnderOrEqualsPredicate("[System.AreaPath]", "Fabrikam", []string{prefix + "Web/Payments"})
+			assert.Equal(t, `[System.AreaPath] UNDER 'Fabrikam\Web\Payments'`, got)
+		}
+		got := buildUnderOrEqualsPredicate("[System.AreaPath]", "Fabrikam", []string{"under:Web/Payments/Internal"})
+		assert.Equal(t, `[System.AreaPath] UNDER 'Fabrikam\Web\Payments\Internal'`, got)
 	})
 
 	t.Run("multiple values get OR with parentheses", func(t *testing.T) {
 		t.Parallel()
-		got := buildUnderOrEqualsPredicate("[System.AreaPath]", []string{"Web/Payments", "Under:Mobile"})
-		assert.Equal(t, "([System.AreaPath] = 'Web/Payments' OR [System.AreaPath] UNDER 'Mobile')", got)
+		got := buildUnderOrEqualsPredicate("[System.AreaPath]", "Fabrikam", []string{"Web/Payments", "Under:Mobile"})
+		assert.Equal(t, `([System.AreaPath] = 'Fabrikam\Web\Payments' OR [System.AreaPath] UNDER 'Fabrikam\Mobile')`, got)
+	})
+
+	t.Run("rooted paths preserved", func(t *testing.T) {
+		t.Parallel()
+		got := buildUnderOrEqualsPredicate("[System.AreaPath]", "Fabrikam", []string{`Fabrikam\Area\Voice`, "Under:fabrikam/Area/Voice"})
+		assert.Equal(t, `([System.AreaPath] = 'Fabrikam\Area\Voice' OR [System.AreaPath] UNDER 'fabrikam\Area\Voice')`, got)
 	})
 
 	t.Run("empty input returns empty string", func(t *testing.T) {
 		t.Parallel()
-		assert.Empty(t, buildUnderOrEqualsPredicate("[System.AreaPath]", nil))
-		assert.Empty(t, buildUnderOrEqualsPredicate("[System.AreaPath]", []string{"", "  "}))
+		assert.Empty(t, buildUnderOrEqualsPredicate("[System.AreaPath]", "Fabrikam", nil))
+		assert.Empty(t, buildUnderOrEqualsPredicate("[System.AreaPath]", "Fabrikam", []string{"", "  "}))
 	})
 }
 
@@ -513,29 +591,15 @@ func TestWiqlQuoteListAndIntList(t *testing.T) {
 	assert.Equal(t, "1, 2, 3", wiqlIntList([]int{1, 2, 2, 3}))
 }
 
-func TestValidateClassification(t *testing.T) {
-	t.Parallel()
-
-	require.NoError(t, validateClassification([]string{"1 - Critical", "3 - Medium"}))
-	err := validateClassification([]string{"5 - Disaster"})
-	require.Error(t, err)
-	assert.Contains(t, err.Error(), "invalid value for --classification")
-}
-
-func TestValidatePriority(t *testing.T) {
-	t.Parallel()
-
-	require.NoError(t, validatePriority([]int{1, 2, 3, 4}))
-	require.Error(t, validatePriority([]int{0}))
-	require.Error(t, validatePriority([]int{5}))
-}
-
 func TestValidateUnderPaths(t *testing.T) {
 	t.Parallel()
 
-	require.NoError(t, validateUnderPaths("--area", []string{"Web/Payments", "Under:Mobile/Auth"}))
-	require.Error(t, validateUnderPaths("--area", []string{"Under:"}))
-	require.Error(t, validateUnderPaths("--area", []string{"Under:   "}))
+	require.NoError(t, shared.ValidateUnderPaths("--area", []string{"Web/Payments", "Under:Mobile/Auth"}))
+	require.NoError(t, shared.ValidateUnderPaths("--area", []string{"under:Mobile/Auth", "UNDER:Web"}))
+	require.Error(t, shared.ValidateUnderPaths("--area", []string{"Under:"}))
+	require.Error(t, shared.ValidateUnderPaths("--area", []string{"under:"}))
+	require.Error(t, shared.ValidateUnderPaths("--area", []string{"Under:   "}))
+	require.Error(t, shared.ValidateUnderPaths("--area", []string{"UNDER:  "}))
 }
 
 func TestNormalizeStatuses(t *testing.T) {
@@ -670,6 +734,7 @@ func TestValidateListOptions(t *testing.T) {
 	t.Run("happy path", func(t *testing.T) {
 		t.Parallel()
 		require.NoError(t, validateListOptions(&listOptions{
+			limit:          50,
 			classification: []string{"1 - Critical"},
 			priority:       []int{1},
 			area:           []string{"Web/Payments"},
@@ -677,11 +742,31 @@ func TestValidateListOptions(t *testing.T) {
 		}))
 	})
 
-	t.Run("invalid priority", func(t *testing.T) {
+	t.Run("malformed under path errors", func(t *testing.T) {
 		t.Parallel()
-		err := validateListOptions(&listOptions{priority: []int{0}})
+		err := validateListOptions(&listOptions{limit: 50, area: []string{"Under:"}})
 		require.Error(t, err)
-		assert.Contains(t, err.Error(), "--priority")
+		assert.Contains(t, err.Error(), "--area")
+	})
+
+	t.Run("limit zero rejected", func(t *testing.T) {
+		t.Parallel()
+		err := validateListOptions(&listOptions{limit: 0})
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "--limit")
+	})
+
+	t.Run("negative limit rejected", func(t *testing.T) {
+		t.Parallel()
+		err := validateListOptions(&listOptions{limit: -5})
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "--limit")
+	})
+
+	t.Run("positive limit accepted", func(t *testing.T) {
+		t.Parallel()
+		require.NoError(t, validateListOptions(&listOptions{limit: 1}))
+		require.NoError(t, validateListOptions(&listOptions{limit: 50}))
 	})
 }
 
@@ -749,6 +834,23 @@ func TestNewCmd_FlagShortcuts(t *testing.T) {
 
 	assert.Equal(t, "list [ORG:]PROJECT", cmd.Use)
 	assert.ElementsMatch(t, []string{"ls", "l"}, cmd.Aliases)
+}
+
+func TestNewCmd_TagFlag_NonCSV(t *testing.T) {
+	t.Parallel()
+
+	cmd := NewCmd(nil)
+	err := cmd.ParseFlags([]string{
+		"--tag", "web,security",
+		"--tag", "release;v1",
+	})
+	require.NoError(t, err)
+
+	tags, err := cmd.Flags().GetStringArray("tag")
+	require.NoError(t, err)
+	// Comma/semicolon values must survive flag parsing untouched so
+	// ValidateTags can reject them; CSV splitting would silently accept them.
+	assert.Equal(t, []string{"web,security", "release;v1"}, tags)
 }
 
 // ----- runList integration tests via gomock -----
@@ -902,7 +1004,7 @@ func TestRunList_OrgRouting(t *testing.T) {
 
 			// The WorkItemTracking client expectation is bound to tc.depsOrg, so
 			// the run only succeeds when the organization routed to it matches.
-			err := runList(deps.cmd, &listOptions{scopeArg: tc.scopeArg})
+			err := runList(deps.cmd, listOpts(tc.scopeArg))
 			require.NoError(t, err)
 			assert.Contains(t, captured, "[System.TeamProject] = 'Fabrikam'")
 		})
@@ -917,7 +1019,7 @@ func TestRunList_LegacyOrgSlashIsRejected(t *testing.T) {
 	// with ORG: guidance instead of being reinterpreted.
 	deps := setupFakeDeps(t, "org")
 
-	err := runList(deps.cmd, &listOptions{scopeArg: "org/Fabrikam"})
+	err := runList(deps.cmd, listOpts("org/Fabrikam"))
 
 	require.Error(t, err)
 	var flagErr *util.FlagError
@@ -941,7 +1043,7 @@ func TestRunList_DefaultOpenStatus(t *testing.T) {
 		},
 	)
 
-	err := runList(deps.cmd, &listOptions{scopeArg: "org:Fabrikam"})
+	err := runList(deps.cmd, listOpts("org:Fabrikam"))
 	require.NoError(t, err)
 
 	assert.Contains(t, captured, "[System.TeamProject] = 'Fabrikam'")
@@ -964,7 +1066,9 @@ func TestRunList_StatusAllOmitsStatePredicate(t *testing.T) {
 	)
 	stubBatch(t, deps, false)
 
-	err := runList(deps.cmd, &listOptions{scopeArg: "org:Fabrikam", status: []string{"all"}})
+	opts := listOpts("org:Fabrikam")
+	opts.status = []string{"all"}
+	err := runList(deps.cmd, opts)
 	require.NoError(t, err)
 
 	assert.NotContains(t, captured, "[System.State]")
@@ -989,6 +1093,33 @@ func TestRunList_LimitWiresTop(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, top)
 	assert.Equal(t, 25, *top)
+}
+
+func TestRunList_InvalidLimitRejectedBeforeAPICall(t *testing.T) {
+	t.Parallel()
+
+	for _, tc := range []struct {
+		name  string
+		limit int
+	}{
+		{name: "zero", limit: 0},
+		{name: "negative", limit: -1},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			ios, _, _, _ := iostreams.Test()
+			deps := &fakeListDeps{
+				cmd: mocks.NewMockCmdContext(ctrlFromT(t)),
+			}
+			deps.cmd.EXPECT().IOStreams().Return(ios, nil).AnyTimes()
+
+			// No QueryByWiql expectation: validation must fail before any API
+			// call, so a zero/negative limit can never become an unbounded query.
+			err := runList(deps.cmd, &listOptions{scopeArg: "org:Fabrikam", limit: tc.limit})
+			require.Error(t, err)
+			assert.Contains(t, err.Error(), "--limit")
+		})
+	}
 }
 
 func TestRunList_BatchChunkingAt200(t *testing.T) {
@@ -1024,7 +1155,9 @@ func TestRunList_BatchChunkingAt200(t *testing.T) {
 		},
 	).Times(2)
 
-	err := runList(deps.cmd, &listOptions{scopeArg: "org:Fabrikam", status: []string{"all"}})
+	opts := listOpts("org:Fabrikam")
+	opts.status = []string{"all"}
+	err := runList(deps.cmd, opts)
 	require.NoError(t, err)
 	assert.Equal(t, []int{200, 50}, batchSizes)
 }
@@ -1055,7 +1188,10 @@ func TestRunList_AssignedToMeResolvesIdentity(t *testing.T) {
 	)
 	stubBatch(t, deps, false)
 
-	err := runList(deps.cmd, &listOptions{scopeArg: "org:Fabrikam", status: []string{"all"}, assignedTo: []string{"@me"}})
+	opts := listOpts("org:Fabrikam")
+	opts.status = []string{"all"}
+	opts.assignedTo = []string{"@me"}
+	err := runList(deps.cmd, opts)
 	require.NoError(t, err)
 	assert.Contains(t, captured, "[System.AssignedTo] IN ('Account.From.Properties')")
 }
@@ -1075,7 +1211,10 @@ func TestRunList_AssignedToEmailSkipsLookup(t *testing.T) {
 	)
 	stubBatch(t, deps, false)
 
-	err := runList(deps.cmd, &listOptions{scopeArg: "org:Fabrikam", status: []string{"all"}, assignedTo: []string{"alice@x.com"}})
+	opts := listOpts("org:Fabrikam")
+	opts.status = []string{"all"}
+	opts.assignedTo = []string{"alice@x.com"}
+	err := runList(deps.cmd, opts)
 	require.NoError(t, err)
 	assert.Contains(t, captured, "[System.AssignedTo] IN ('alice@x.com')")
 }
@@ -1095,13 +1234,12 @@ func TestRunList_AreaUnderPrefix(t *testing.T) {
 	)
 	stubBatch(t, deps, false)
 
-	err := runList(deps.cmd, &listOptions{
-		scopeArg: "org:Fabrikam",
-		status:   []string{"all"},
-		area:     []string{"Under:Web/Payments"},
-	})
+	opts := listOpts("org:Fabrikam")
+	opts.status = []string{"all"}
+	opts.area = []string{"Under:Web/Payments"}
+	err := runList(deps.cmd, opts)
 	require.NoError(t, err)
-	assert.Contains(t, captured, "[System.AreaPath] UNDER 'Web/Payments'")
+	assert.Contains(t, captured, `[System.AreaPath] UNDER 'Fabrikam\Web\Payments'`)
 }
 
 func TestRunList_NoResultsReturnsNoResultsError(t *testing.T) {
@@ -1112,7 +1250,9 @@ func TestRunList_NoResultsReturnsNoResultsError(t *testing.T) {
 		WorkItems: &[]workitemtracking.WorkItemReference{},
 	}, nil)
 
-	err := runList(deps.cmd, &listOptions{scopeArg: "org:Fabrikam", status: []string{"all"}})
+	opts := listOpts("org:Fabrikam")
+	opts.status = []string{"all"}
+	err := runList(deps.cmd, opts)
 	require.Error(t, err)
 	var noResults util.NoResultsError
 	require.True(t, errors.As(err, &noResults), "expected NoResultsError, got %v", err)
@@ -1124,7 +1264,9 @@ func TestRunList_WiqlErrorPropagates(t *testing.T) {
 	deps := setupFakeDeps(t, "org")
 	deps.wit.EXPECT().QueryByWiql(gomock.Any(), gomock.Any()).Return(nil, errors.New("boom"))
 
-	err := runList(deps.cmd, &listOptions{scopeArg: "org:Fabrikam", status: []string{"all"}})
+	opts := listOpts("org:Fabrikam")
+	opts.status = []string{"all"}
+	err := runList(deps.cmd, opts)
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "WIQL")
 }
@@ -1154,11 +1296,9 @@ func TestRunList_JSONOutputUsesExpandAll(t *testing.T) {
 		},
 	)
 
-	opts := &listOptions{
-		scopeArg: "org:Fabrikam",
-		status:   []string{"all"},
-		exporter: &stubExporter{},
-	}
+	opts := listOpts("org:Fabrikam")
+	opts.status = []string{"all"}
+	opts.exporter = &stubExporter{}
 
 	err := runList(deps.cmd, opts)
 	require.NoError(t, err)
@@ -1187,7 +1327,9 @@ func TestRunList_ValidationErrorBubbles(t *testing.T) {
 	ios, _, _, _ := iostreams.Test()
 	ctx.EXPECT().IOStreams().Return(ios, nil).AnyTimes()
 
-	err := runList(ctx, &listOptions{scopeArg: "org:Fabrikam", classification: []string{"5 - Disaster"}})
+	opts := listOpts("org:Fabrikam")
+	opts.area = []string{"Under:"}
+	err := runList(ctx, opts)
 	require.Error(t, err)
-	assert.Contains(t, err.Error(), "invalid value for --classification")
+	assert.Contains(t, err.Error(), "--area")
 }

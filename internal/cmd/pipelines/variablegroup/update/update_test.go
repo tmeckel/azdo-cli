@@ -89,8 +89,8 @@ func TestUpdateCmd_SuccessCases(t *testing.T) {
 				taskClient.EXPECT().UpdateVariableGroup(gomock.Any(), gomock.Any()).Times(0)
 
 				clientFactory.EXPECT().PipelinePermissions(gomock.Any(), "org").Return(permClient, nil)
-				permClient.EXPECT().UpdatePipelinePermisionsForResource(gomock.Any(), gomock.Any()).DoAndReturn(
-					func(_ context.Context, args pipelinepermissions.UpdatePipelinePermisionsForResourceArgs) (*pipelinepermissions.ResourcePipelinePermissions, error) {
+				permClient.EXPECT().UpdatePipelinePermisionsForResource(gomock.Any(), gomock.Any()).DoAndReturn( // spellchecker:disable-line
+					func(_ context.Context, args pipelinepermissions.UpdatePipelinePermisionsForResourceArgs) (*pipelinepermissions.ResourcePipelinePermissions, error) { // spellchecker:disable-line
 						require.NotNil(t, args.ResourceAuthorization)
 						require.NotNil(t, args.ResourceAuthorization.AllPipelines)
 						assert.Equal(t, true, types.GetValue(args.ResourceAuthorization.AllPipelines.Authorized, false))
@@ -284,7 +284,7 @@ func TestUpdateCmd_AuthorizeFails(t *testing.T) {
 	taskClient.EXPECT().UpdateVariableGroup(gomock.Any(), gomock.Any()).Times(0)
 
 	clientFactory.EXPECT().PipelinePermissions(gomock.Any(), "org").Return(permClient, nil)
-	permClient.EXPECT().UpdatePipelinePermisionsForResource(gomock.Any(), gomock.Any()).Return(nil, errors.New("perm failure"))
+	permClient.EXPECT().UpdatePipelinePermisionsForResource(gomock.Any(), gomock.Any()).Return(nil, errors.New("perm failure")) // spellchecker:disable-line
 
 	cmd := updatecmd.NewCmd(cmdCtx)
 	cmd.SetArgs([]string{"org:project/123", "--authorize"})

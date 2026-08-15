@@ -31,7 +31,7 @@ work item details in batches.
 
 * `-c`, `--classification` `strings`
 
-	Filter by severity classification (repeatable): 1 - Critical, 2 - High, 3 - Medium, 4 - Low
+	Filter by severity classification (repeatable); values defined by the work item process (e.g. 1 - Critical)
 
 * `--created-after` `string`
 
@@ -59,7 +59,7 @@ work item details in batches.
 
 * `-p`, `--priority` `ints`
 
-	Filter by priority (repeatable): 1-4
+	Filter by priority (repeatable); values defined by the work item process
 
 * `--sort` `strings`
 
@@ -73,7 +73,7 @@ work item details in batches.
 
 	Filter by state category: open, closed, resolved, all (repeatable)
 
-* `--tag` `strings`
+* `--tag` `stringArray`
 
 	Filter by tag (repeatable); items must contain all specified tags
 

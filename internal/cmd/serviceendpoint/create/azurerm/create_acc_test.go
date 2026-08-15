@@ -1,5 +1,7 @@
 package azurerm
 
+// spellchecker:ignore-file
+
 import (
 	"errors"
 	"fmt"

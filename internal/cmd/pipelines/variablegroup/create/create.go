@@ -445,7 +445,7 @@ func authorizeVariableGroup(
 	resourceType := variableGroupResource
 	resourceID := strconv.Itoa(types.GetValue(group.Id, 0))
 	authorized := true
-	_, err = permissionsClient.UpdatePipelinePermisionsForResource(cmdCtx.Context(), pipelinepermissions.UpdatePipelinePermisionsForResourceArgs{
+	_, err = permissionsClient.UpdatePipelinePermisionsForResource(cmdCtx.Context(), pipelinepermissions.UpdatePipelinePermisionsForResourceArgs{ // spellchecker:disable-line
 		Project:      &projectArg,
 		ResourceType: &resourceType,
 		ResourceId:   &resourceID,

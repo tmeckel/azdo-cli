@@ -85,15 +85,15 @@ func NewCmd(ctx util.CmdContext) *cobra.Command {
 	cmd.Flags().StringSliceVar(&opts.state, "state", nil, "Filter by exact workflow state name (repeatable; combines with --status)")
 	cmd.Flags().StringSliceVar(&opts.createdBy, "created-by", nil, "Filter by creator identity (repeatable); supports email, descriptor, @me")
 	cmd.Flags().StringSliceVar(&opts.authoredByRaw, "authored-by", nil, "Alias for --created-by")
-	cmd.Flags().StringSliceVar(&opts.tags, "tag", nil, "Filter by tag (repeatable); items must contain all specified tags")
+	cmd.Flags().StringArrayVar(&opts.tags, "tag", nil, "Filter by tag (repeatable); items must contain all specified tags")
 	cmd.Flags().StringVar(&opts.changedAfter, "changed-after", "", "Lower bound on System.ChangedDate (RFC3339, YYYY-MM-DD, or 'today')")
 	cmd.Flags().StringVar(&opts.createdAfter, "created-after", "", "Lower bound on System.CreatedDate (RFC3339, YYYY-MM-DD, or 'today')")
 	cmd.Flags().StringSliceVar(&opts.sort, "sort", nil, "Sort by field with optional direction (repeatable): changed[:asc|:desc], created[:asc|:desc], id[:asc|:desc], state[:asc|:desc], title[:asc|:desc], assigned-to[:asc|:desc], type[:asc|:desc], tags[:asc|:desc]")
 	cmd.Flags().StringSliceVarP(&opts.status, "status", "s", []string{"open"}, "Filter by state category: open, closed, resolved, all (repeatable)")
 	cmd.Flags().StringSliceVarP(&opts.workItemTypes, "type", "T", nil, "Filter by work item type (repeatable)")
 	cmd.Flags().StringSliceVarP(&opts.assignedTo, "assigned-to", "a", nil, "Filter by assigned-to identity (repeatable); supports emails, descriptors, and @me")
-	cmd.Flags().StringSliceVarP(&opts.classification, "classification", "c", nil, "Filter by severity classification (repeatable): 1 - Critical, 2 - High, 3 - Medium, 4 - Low")
-	cmd.Flags().IntSliceVarP(&opts.priority, "priority", "p", nil, "Filter by priority (repeatable): 1-4")
+	cmd.Flags().StringSliceVarP(&opts.classification, "classification", "c", nil, "Filter by severity classification (repeatable); values defined by the work item process (e.g. 1 - Critical)")
+	cmd.Flags().IntSliceVarP(&opts.priority, "priority", "p", nil, "Filter by priority (repeatable); values defined by the work item process")
 	cmd.Flags().StringSliceVar(&opts.area, "area", nil, "Filter by area path (repeatable); prefix with Under: to include subtree (e.g., Under:Web/Payments)")
 	cmd.Flags().StringSliceVar(&opts.iteration, "iteration", nil, "Filter by iteration path (repeatable); prefix with Under: to include subtree (e.g., Under:Release 2025/Sprint 1)")
 	cmd.Flags().IntVarP(&opts.limit, "limit", "L", 50, "Maximum number of results to return (>=1)")
@@ -198,10 +198,7 @@ func runList(ctx util.CmdContext, opts *listOptions) error {
 	wiqlQueryArgs := workitemtracking.QueryByWiqlArgs{
 		Wiql:    &workitemtracking.Wiql{Query: &query},
 		Project: &scope.Project,
-	}
-
-	if opts.limit > 0 {
-		wiqlQueryArgs.Top = &opts.limit
+		Top:     &opts.limit,
 	}
 
 	result, err := witClient.QueryByWiql(ctx.Context(), wiqlQueryArgs)
@@ -235,22 +232,18 @@ func validateListOptions(opts *listOptions) error {
 	if opts == nil {
 		return util.FlagErrorf("invalid options")
 	}
-	if err := validateClassification(opts.classification); err != nil {
+	// A zero or negative limit must never degrade into an unbounded query:
+	// reject it before any API call is made.
+	if opts.limit < 1 {
+		return util.FlagErrorf("--limit must be >= 1, got %d", opts.limit)
+	}
+	if err := shared.ValidateUnderPaths("--area", opts.area); err != nil {
 		return err
 	}
-	if err := validatePriority(opts.priority); err != nil {
+	if err := shared.ValidateUnderPaths("--iteration", opts.iteration); err != nil {
 		return err
 	}
-	if err := validateUnderPaths("--area", opts.area); err != nil {
-		return err
-	}
-	if err := validateUnderPaths("--iteration", opts.iteration); err != nil {
-		return err
-	}
-	if err := validateState(opts.state); err != nil {
-		return err
-	}
-	if err := validateTags("--tag", opts.tags); err != nil {
+	if err := shared.ValidateTags("--tag", opts.tags); err != nil {
 		return err
 	}
 	if err := validateSort(opts.sort); err != nil {
@@ -413,49 +406,6 @@ func canonCategory(raw string) string {
 	raw = strings.TrimSpace(raw)
 	raw = strings.ReplaceAll(raw, " ", "")
 	return strings.ToLower(raw)
-}
-
-func validateClassification(values []string) error {
-	allowed := map[string]struct{}{
-		"1 - Critical": {},
-		"2 - High":     {},
-		"3 - Medium":   {},
-		"4 - Low":      {},
-	}
-	for _, v := range values {
-		v = strings.TrimSpace(v)
-		if v == "" {
-			continue
-		}
-		if _, ok := allowed[v]; !ok {
-			return util.FlagErrorf("invalid value for --classification: %q", v)
-		}
-	}
-	return nil
-}
-
-func validatePriority(values []int) error {
-	for _, v := range values {
-		if v < 1 || v > 4 {
-			return util.FlagErrorf("invalid value for --priority: %d (valid: 1-4)", v)
-		}
-	}
-	return nil
-}
-
-func validateUnderPaths(flag string, values []string) error {
-	for _, raw := range values {
-		raw = strings.TrimSpace(raw)
-		if raw == "" {
-			continue
-		}
-		path := strings.TrimPrefix(raw, "Under:")
-		path = strings.TrimSpace(path)
-		if path == "" {
-			return util.FlagErrorf("%s value %q is invalid; path must not be empty", flag, raw)
-		}
-	}
-	return nil
 }
 
 //nolint:dupl // intentional duplicate of resolveCreatedByFilter; refactor when third identity field is needed.
@@ -712,15 +662,6 @@ func parseFlexibleDateLocal(raw string) (time.Time, error) {
 	return time.Parse("2006-01-02", trimmed)
 }
 
-func validateTags(flag string, values []string) error {
-	for _, v := range values {
-		if strings.TrimSpace(v) == "" {
-			return util.FlagErrorf("%s value cannot be empty", flag)
-		}
-	}
-	return nil
-}
-
 func buildTagPredicate(tags []string) string {
 	cleaned := make([]string, 0, len(tags))
 	for _, t := range tags {
@@ -730,7 +671,10 @@ func buildTagPredicate(tags []string) string {
 		}
 		cleaned = append(cleaned, trimmed)
 	}
-	cleaned = types.UniqueComparable(cleaned, strings.ToLower)
+	// Azure tags are case-sensitive, so dedupe exact duplicates only and keep
+	// the original casing of every distinct tag (e.g. "Foo" and "foo" are two
+	// different tags and must both produce a predicate).
+	cleaned = types.Unique(cleaned)
 	if len(cleaned) == 0 {
 		return ""
 	}
@@ -739,15 +683,6 @@ func buildTagPredicate(tags []string) string {
 		parts = append(parts, fmt.Sprintf("[System.Tags] CONTAINS %s", wiqlQuote(t)))
 	}
 	return strings.Join(parts, " AND ")
-}
-
-func validateState(values []string) error {
-	for _, v := range values {
-		if strings.TrimSpace(v) == "" {
-			return util.FlagErrorf("--state value cannot be empty")
-		}
-	}
-	return nil
 }
 
 func buildStateClause(states []string) (string, error) {
@@ -802,12 +737,12 @@ func buildWiqlQuery(project string, statePredicate string, typesFilter []string,
 	}
 
 	if len(area) > 0 {
-		if predicate := buildUnderOrEqualsPredicate("[System.AreaPath]", area); predicate != "" {
+		if predicate := buildUnderOrEqualsPredicate("[System.AreaPath]", project, area); predicate != "" {
 			clauses = append(clauses, predicate)
 		}
 	}
 	if len(iteration) > 0 {
-		if predicate := buildUnderOrEqualsPredicate("[System.IterationPath]", iteration); predicate != "" {
+		if predicate := buildUnderOrEqualsPredicate("[System.IterationPath]", project, iteration); predicate != "" {
 			clauses = append(clauses, predicate)
 		}
 	}
@@ -829,18 +764,23 @@ func buildWiqlQuery(project string, statePredicate string, typesFilter []string,
 	return fmt.Sprintf("SELECT [System.Id] FROM WorkItems WHERE %s %s", strings.Join(clauses, " AND "), orderBy)
 }
 
-func buildUnderOrEqualsPredicate(field string, raw []string) string {
+// buildUnderOrEqualsPredicate renders WIQL clauses for area/iteration filters.
+// The "Under:" prefix (matched case-insensitively) selects the subtree (UNDER
+// operator); bare values select the exact node (= operator). Paths are
+// normalized to project-rooted '\' separated tree paths before quoting.
+func buildUnderOrEqualsPredicate(field, project string, raw []string) string {
 	parts := make([]string, 0, len(raw))
 	for _, v := range raw {
 		v = strings.TrimSpace(v)
 		if v == "" {
 			continue
 		}
-		if strings.HasPrefix(v, "Under:") {
-			path := strings.TrimSpace(strings.TrimPrefix(v, "Under:"))
+		if under, path := shared.SplitUnderPrefix(v); under {
+			path := shared.NormalizePath(project, strings.TrimSpace(path))
 			parts = append(parts, fmt.Sprintf("%s UNDER %s", field, wiqlQuote(path)))
 		} else {
-			parts = append(parts, fmt.Sprintf("%s = %s", field, wiqlQuote(v)))
+			path := shared.NormalizePath(project, v)
+			parts = append(parts, fmt.Sprintf("%s = %s", field, wiqlQuote(path)))
 		}
 	}
 

@@ -49,7 +49,7 @@ func SetAllPipelinesAccessToEndpoint(
 	resourceType := EndpointResourceType
 	resourceID := endpointID.String()
 
-	_, err = permissionsClient.UpdatePipelinePermisionsForResource(cmdCtx.Context(), pipelinepermissions.UpdatePipelinePermisionsForResourceArgs{
+	_, err = permissionsClient.UpdatePipelinePermisionsForResource(cmdCtx.Context(), pipelinepermissions.UpdatePipelinePermisionsForResourceArgs{ // spellchecker:disable-line
 		Project:      &projectIDStr,
 		ResourceType: &resourceType,
 		ResourceId:   &resourceID,

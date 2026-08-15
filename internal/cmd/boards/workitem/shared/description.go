@@ -19,9 +19,16 @@ const (
 	binaryCheckBytes    = 8 * 1024
 )
 
-// editorHeader pre-populates the editor temp file; lines starting with '#'
-// are stripped when the description is read back.
-const editorHeader = "# Enter the description for the work item below.\n# Lines starting with '#' are ignored.\n"
+// editorHeaderLines pre-populate the editor temp file. Only these exact lines
+// are stripped when the description is read back; user Markdown headings
+// starting with '#' are preserved.
+var editorHeaderLines = []string{
+	"# Enter the description for the work item below.",
+	"# This header is removed automatically when the description is saved.",
+}
+
+// editorHeader is the text written to the temp file before the editor opens.
+var editorHeader = strings.Join(editorHeaderLines, "\n") + "\n"
 
 // ExecEditorCommand runs the resolved editor command against the given file.
 // It is a package-level variable so tests can replace it with a fake.
@@ -44,9 +51,13 @@ type DescriptionOptions struct {
 }
 
 // ResolveDescription returns the description from the highest-priority source
-// (editor > file > inline) and warns on stderr when a lower-priority source is
-// ignored. Returns "" when no source is configured.
+// (editor > file > inline) as raw input text without any format conversion,
+// and warns on stderr when a lower-priority source is ignored. Returns ""
+// when no source is configured. The caller emits the raw value for
+// /fields/System.Description together with a /multilineFieldsFormat/
+// System.Description op whose value is selected by NormalizeDescriptionFormat.
 func ResolveDescription(ios *iostreams.IOStreams, opts DescriptionOptions) (string, error) {
+	var raw string
 	switch {
 	case opts.Editor:
 		switch {
@@ -55,15 +66,47 @@ func ResolveDescription(ios *iostreams.IOStreams, opts DescriptionOptions) (stri
 		case opts.Inline != "":
 			fmt.Fprintf(ios.ErrOut, "warning: --description-editor takes precedence over --description\n")
 		}
-		return OpenEditor(opts.EditorCommand)
+		description, err := OpenEditor(opts.EditorCommand)
+		if err != nil {
+			return "", err
+		}
+		raw = description
 	case len(opts.Files) > 0:
 		if opts.Inline != "" {
 			fmt.Fprintf(ios.ErrOut, "warning: --description-file takes precedence over --description\n")
 		}
-		return ReadDescriptionFiles(ios, opts.Files)
+		description, err := ReadDescriptionFiles(ios, opts.Files)
+		if err != nil {
+			return "", err
+		}
+		raw = description
 	default:
-		return opts.Inline, nil
+		raw = opts.Inline
 	}
+	return raw, nil
+}
+
+// descriptionFormatOpValues maps --description-format flag values to the JSON
+// Patch value required by the /multilineFieldsFormat operation.
+var descriptionFormatOpValues = map[string]string{
+	"markdown": "Markdown",
+	"html":     "Html",
+}
+
+// NormalizeDescriptionFormat validates the --description-format flag value
+// and returns the JSON Patch value for the /multilineFieldsFormat operation.
+// An empty value selects the default ("markdown"). Comparison is
+// case-insensitive. Note: the Azure Boards API does not allow switching an
+// existing Markdown field back to html; the server rejects such updates.
+func NormalizeDescriptionFormat(format string) (string, error) {
+	if format == "" {
+		return "Markdown", nil
+	}
+	opValue, ok := descriptionFormatOpValues[strings.ToLower(format)]
+	if !ok {
+		return "", util.FlagErrorf("--description-format must be \"markdown\" or \"html\", got %q", format)
+	}
+	return opValue, nil
 }
 
 // ReadDescriptionFiles concatenates the given files (in order) with "\n".
@@ -98,8 +141,9 @@ func ReadDescriptionFiles(ios *iostreams.IOStreams, files []string) (string, err
 
 // OpenEditor opens a .md temp file pre-populated with a header comment in the
 // configured editor (config "editor" key / AZDO_EDITOR), falling back to
-// $VISUAL, then $EDITOR, then vi/notepad. Lines starting with '#' are stripped
-// on read-back; an empty result is an error.
+// $VISUAL, then $EDITOR, then vi/notepad. Only the generated header lines are
+// stripped on read-back; Markdown headings the user writes are preserved. An
+// empty result is an error.
 func OpenEditor(editorCommand string) (string, error) {
 	editor := editorCommand
 	if editor == "" {
@@ -141,7 +185,7 @@ func OpenEditor(editorCommand string) (string, error) {
 
 	var kept []string
 	for _, line := range strings.Split(string(data), "\n") {
-		if strings.HasPrefix(strings.TrimSpace(line), "#") {
+		if isEditorHeaderLine(line) {
 			continue
 		}
 		kept = append(kept, line)
@@ -151,4 +195,15 @@ func OpenEditor(editorCommand string) (string, error) {
 		return "", util.FlagErrorf("editor produced empty description")
 	}
 	return description, nil
+}
+
+// isEditorHeaderLine reports whether line is one of the generated header
+// lines written to the editor temp file.
+func isEditorHeaderLine(line string) bool {
+	for _, headerLine := range editorHeaderLines {
+		if line == headerLine {
+			return true
+		}
+	}
+	return false
 }
