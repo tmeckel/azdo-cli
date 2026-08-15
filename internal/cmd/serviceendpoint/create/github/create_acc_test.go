@@ -1,5 +1,7 @@
 package github
 
+// spellchecker:ignore-file
+
 import (
 	"fmt"
 	"testing"
