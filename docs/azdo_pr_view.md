@@ -37,10 +37,6 @@ is displayed.
 
 	Output JSON with the specified fields. Prefix a field with &#39;-&#39; to exclude it.
 
-* `-r`, `--raw`
-
-	View pull request raw
-
 * `-t`, `--template` `string`
 
 	Format JSON output using a Go template; see &#34;azdo help formatting&#34;

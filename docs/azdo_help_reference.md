@@ -193,7 +193,6 @@ Show an iteration in a project.
     --include-children   Include child nodes in the template output.
 -q, --jq expression      Filter JSON output using a jq expression
     --json fields[=*]    Output JSON with the specified fields. Prefix a field with '-' to exclude it.
--r, --raw                Dump the raw SDK node to stderr.
 -t, --template string    Format JSON output using a Go template; see "azdo help formatting"
 ```
 
@@ -312,6 +311,24 @@ Aliases
 
 ```
 ls, l
+```
+
+#### `azdo boards work-item show [ORG:]PROJECT/ID [flags]`
+
+Show work item details
+
+```
+    --comments          Fetch and render the work item's comment thread
+-q, --jq expression     Filter JSON output using a jq expression
+    --json fields[=*]   Output JSON with the specified fields. Prefix a field with '-' to exclude it.
+    --relations         Render the work item's relations block
+-t, --template string   Format JSON output using a Go template; see "azdo help formatting"
+```
+
+Aliases
+
+```
+view, status
 ```
 
 #### `azdo boards work-item update [ORG:]PROJECT/ID [flags]`
@@ -443,7 +460,6 @@ Show details of a pipeline agent
     --include-capabilities   Include system and user capabilities in the output
 -q, --jq expression          Filter JSON output using a jq expression
     --json fields[=*]        Output JSON with the specified fields. Prefix a field with '-' to exclude it.
--r, --raw                    Dump raw agent object to stderr
 -t, --template string        Format JSON output using a Go template; see "azdo help formatting"
 ```
 
@@ -634,7 +650,6 @@ Show details of an agent pool
 ```
 -q, --jq expression     Filter JSON output using a jq expression
     --json fields[=*]   Output JSON with the specified fields. Prefix a field with '-' to exclude it.
--r, --raw               Dump raw pool object to stderr
 -t, --template string   Format JSON output using a Go template; see "azdo help formatting"
 ```
 
@@ -1066,7 +1081,6 @@ View a pull request
 -C, --commits               View pull request commits
 -q, --jq expression         Filter JSON output using a jq expression
     --json fields[=*]       Output JSON with the specified fields. Prefix a field with '-' to exclude it.
--r, --raw                   View pull request raw
 -t, --template string       Format JSON output using a Go template; see "azdo help formatting"
 ```
 
