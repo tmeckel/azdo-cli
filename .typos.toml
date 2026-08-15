@@ -10,7 +10,6 @@
 extend-exclude = [
   "**/.mise.toml",
   "vendor/**",
-  "**/create_acc_test.go",
 ]
 
 [default]
@@ -33,5 +32,12 @@ extend-exclude = [
 #   "https?://[^`\\s]+",
 # ]
 extend-ignore-re = [
-  "UpdatePipelinePermisionsForResource"
+  # Ignore lines that end with `# spellchecker:disable-line` (or `//` in Go, `<!-- -->` in HTML/Markdown)
+  "(?Rm)^.*(#|//|<!--)\\s*spellchecker:disable-line(\\s*-->)?$",
+  # Ignore the line after `# spellchecker:ignore-next-line`
+  "(#|//)\\s*spellchecker:ignore-next-line\\n.*",
+  # Ignore blocks between `# spellchecker:off` and `# spellchecker:on`
+  "(?s)(#|//)\\s*spellchecker:off.*?\\n\\s*(#|//)\\s*spellchecker:on",
+  # Ignore the whole file starting from `# spellchecker:ignore-file` (top comment)
+  "(?s)(#|//)\\s*spellchecker:ignore-file.*",
 ]
