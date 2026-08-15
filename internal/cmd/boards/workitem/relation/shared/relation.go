@@ -1,7 +1,6 @@
 package shared
 
 import (
-	"context"
 	"fmt"
 	"strings"
 
@@ -9,14 +8,9 @@ import (
 )
 
 // ResolveRelationType resolves a friendly relation-type name to its
-// referenceName via a case-insensitive match against the organization's
-// relation types, mirroring get_system_relation_name in the Azure DevOps
-// CLI extension.
-func ResolveRelationType(ctx context.Context, wit workitemtracking.Client, friendlyName string) (string, error) {
-	relTypes, err := wit.GetRelationTypes(ctx, workitemtracking.GetRelationTypesArgs{})
-	if err != nil {
-		return "", fmt.Errorf("failed to get relation types: %w", err)
-	}
+// referenceName via a case-insensitive match against the relation types,
+// mirroring get_system_relation_name in the Azure DevOps CLI extension.
+func ResolveRelationType(relTypes *[]workitemtracking.WorkItemRelationType, friendlyName string) (string, error) {
 	if relTypes == nil {
 		return "", fmt.Errorf("relation types API returned an empty response")
 	}
@@ -34,15 +28,8 @@ func ResolveRelationType(ctx context.Context, wit workitemtracking.Client, frien
 // PopulateFriendlyNames replaces each relation's Rel (referenceName) with its
 // friendly Name, mirroring fill_friendly_name_for_relations_in_work_item in
 // the Azure DevOps CLI extension. Relations are mutated in place.
-func PopulateFriendlyNames(ctx context.Context, wit workitemtracking.Client, wi *workitemtracking.WorkItem) error {
-	if wi == nil || wi.Relations == nil {
-		return nil
-	}
-	relTypes, err := wit.GetRelationTypes(ctx, workitemtracking.GetRelationTypesArgs{})
-	if err != nil {
-		return fmt.Errorf("failed to get relation types: %w", err)
-	}
-	if relTypes == nil {
+func PopulateFriendlyNames(relTypes *[]workitemtracking.WorkItemRelationType, wi *workitemtracking.WorkItem) error {
+	if wi == nil || wi.Relations == nil || relTypes == nil {
 		return nil
 	}
 	for i := range *wi.Relations {
