@@ -21,12 +21,49 @@ has_staged_changes() {
 
 commit_if_staged() {
   local msg=$1
-  if has_staged_changes; then
-    echo "> git commit -m \"$msg\""
-    git commit -m "$msg"
-  else
+  local body=${2:-}
+  if ! has_staged_changes; then
     echo "(skip) no staged changes for commit: $msg"
+    return 0
   fi
+
+  # Files staged for this commit, captured before the first attempt. Used to
+  # detect files modified by the pre-commit hook afterwards.
+  local staged_before
+  staged_before=$(git diff --cached --name-only | sort -u)
+
+  local attempts=0
+  while true; do
+    if [[ -n "$body" ]]; then
+      echo "> git commit -m \"$msg\" -m \"$body\""
+      if git commit -m "$msg" -m "$body"; then
+        return 0
+      fi
+    else
+      echo "> git commit -m \"$msg\""
+      if git commit -m "$msg"; then
+        return 0
+      fi
+    fi
+
+    # The pre-commit hook may have modified files (e.g. an end-of-file
+    # fixer). Re-stage exactly the files it touched and retry the commit.
+    attempts=$((attempts + 1))
+    if [[ $attempts -ge 5 ]]; then
+      echo "Error: commit failed $attempts times; giving up. Inspect the working tree and re-run." >&2
+      return 1
+    fi
+    local modified
+    modified=$(git diff --name-only | grep -Fxf <(printf '%s\n' "$staged_before") || true)
+    if [[ -z "$modified" ]]; then
+      echo "Error: commit failed and no staged files were modified by a hook; fix manually." >&2
+      return 1
+    fi
+    echo "> pre-commit hook modified files; re-staging and retrying:"
+    echo "$modified" | sed 's/^/    /'
+    # shellcheck disable=SC2086
+    git add -- $modified
+  done
 }
 
 is_tracked() {
@@ -54,6 +91,10 @@ remove_if_tracked() {
   fi
 }
 
+changed_files() {
+  { git diff --name-only; git ls-files --others --exclude-standard; } | sort -u
+}
+
 # ==== CHECKIN START ====
 
 # The commands to stage and commit individual files go between CHECKIN START and CHECKIN END.
@@ -70,4 +111,13 @@ remove_if_tracked() {
 
 # ==== CHECKIN END ====
 
-echo "==> Done. Consider running: go test ./... && make build && git push -u origin <branch>"
+if changed_files | grep -q .; then
+  echo "Error: leftover uncommitted changes:" >&2
+  changed_files | sed 's/^/  /' >&2
+  exit 1
+fi
+
+branch=$(git branch --show-current)
+echo "==> Done. Working tree is clean."
+echo "    Next: git push -u origin ${branch}"
+echo "    PR:   gh pr create --title 'feat(boards): add work-item create command' --body 'Fixes #203'"
