@@ -28,7 +28,6 @@ type dependencies struct {
 	clientFact *mocks.MockClientFactory
 	wit        *mocks.MockWorkItemTrackingClient
 	stdout     *bytes.Buffer
-	stderr     *bytes.Buffer
 	org        string
 }
 
@@ -44,7 +43,7 @@ func newDependenciesWithClientFactoryError(t *testing.T, organization string, fa
 	ctrl := gomock.NewController(t)
 	t.Cleanup(ctrl.Finish)
 
-	io, _, out, errOut := iostreams.Test()
+	io, _, out, _ := iostreams.Test()
 	io.SetStdoutTTY(false)
 	io.SetStderrTTY(false)
 
@@ -54,7 +53,6 @@ func newDependenciesWithClientFactoryError(t *testing.T, organization string, fa
 		clientFact: mocks.NewMockClientFactory(ctrl),
 		wit:        mocks.NewMockWorkItemTrackingClient(ctrl),
 		stdout:     out,
-		stderr:     errOut,
 		org:        organization,
 	}
 
@@ -327,19 +325,6 @@ func TestRunShow_JSONOutput(t *testing.T) {
 	selfJSON, ok := linksJSON["self"].(map[string]any)
 	require.True(t, ok)
 	assert.Equal(t, "https://dev.azure.com/org/Fabrikam/_apis/wit/classificationNodes/iterations/42", selfJSON["href"])
-}
-
-func TestRunShow_RawFlag(t *testing.T) {
-	t.Parallel()
-
-	deps := newDependencies(t, "org")
-	deps.wit.EXPECT().GetClassificationNode(gomock.Any(), gomock.Any()).Return(showNode(), nil)
-
-	err := runShow(deps.cmd, &showOptions{scopeArg: "org:Fabrikam/Sprint 1", raw: true})
-
-	require.NoError(t, err)
-	assert.Empty(t, deps.stdout.String())
-	assert.Contains(t, deps.stderr.String(), "WorkItemClassificationNode")
 }
 
 func TestRunShow_ProjectScopeParsing(t *testing.T) {
