@@ -168,7 +168,10 @@ func genMarkdownCustom(cmd *cobra.Command, w io.Writer, linkHandler func(string)
 	if len(cmd.Example) > 0 {
 		fmt.Fprint(w, "### Examples\n\n```bash\n")
 		fmt.Fprint(w, cmd.Example)
-		fmt.Fprint(w, "```\n\n")
+		fmt.Fprint(w, "```\n")
+		if cmd.HasParent() {
+			fmt.Fprint(w, "\n")
+		}
 	}
 
 	if cmd.HasParent() {
