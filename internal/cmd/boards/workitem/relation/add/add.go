@@ -107,7 +107,12 @@ func runAdd(cmdCtx util.CmdContext, opts *addOptions) error {
 		return fmt.Errorf("failed to create work item tracking client: %w", err)
 	}
 
-	relRefName, err := shared.ResolveRelationType(cmdCtx.Context(), wit, opts.relationType)
+	relTypes, err := wit.GetRelationTypes(cmdCtx.Context(), workitemtracking.GetRelationTypesArgs{})
+	if err != nil {
+		return fmt.Errorf("failed to get relation types: %w", err)
+	}
+
+	relRefName, err := shared.ResolveRelationType(relTypes, opts.relationType)
 	if err != nil {
 		return util.FlagErrorWrap(err)
 	}
@@ -161,7 +166,7 @@ func runAdd(cmdCtx util.CmdContext, opts *addOptions) error {
 		return fmt.Errorf("failed to get work item %d: %w", id, err)
 	}
 
-	if err := shared.PopulateFriendlyNames(cmdCtx.Context(), wit, populated); err != nil {
+	if err := shared.PopulateFriendlyNames(relTypes, populated); err != nil {
 		return err
 	}
 
