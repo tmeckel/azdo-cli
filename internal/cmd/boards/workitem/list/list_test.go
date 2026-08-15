@@ -550,7 +550,7 @@ func TestBuildUnderOrEqualsPredicate(t *testing.T) {
 
 	t.Run("Under prefix is case-insensitive and path casing preserved", func(t *testing.T) {
 		t.Parallel()
-		for _, prefix := range []string{"Under:", "under:", "UNDER:", "uAndEr:"} {
+		for _, prefix := range []string{"Under:", "under:", "UNDER:", "uNdeR:"} { // spellchecker:disable-line
 			got := buildUnderOrEqualsPredicate("[System.AreaPath]", "Fabrikam", []string{prefix + "Web/Payments"})
 			assert.Equal(t, `[System.AreaPath] UNDER 'Fabrikam\Web\Payments'`, got)
 		}

@@ -47,7 +47,7 @@ func TestSplitUnderPrefix(t *testing.T) {
 		wantPath string
 	}{
 		{name: "canonical prefix", raw: "Under:Web/Payments", wantOK: true, wantPath: "Web/Payments"},
-		{name: "mixed case prefix", raw: "uAndEr:Web/Payments", wantOK: true, wantPath: "Web/Payments"},
+		{name: "mixed case prefix", raw: "uNdeR:Web/Payments", wantOK: true, wantPath: "Web/Payments"}, // spellchecker:disable-line
 		{name: "prefix only", raw: "Under:", wantOK: true, wantPath: ""},
 		{name: "bare path", raw: "Web/Payments", wantOK: false, wantPath: "Web/Payments"},
 		{name: "path starting with under", raw: "Underwood", wantOK: false, wantPath: "Underwood"},
