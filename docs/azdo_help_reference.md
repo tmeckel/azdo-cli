@@ -325,8 +325,8 @@ Add a relation(s) to a work item.
 -q, --jq expression            Filter JSON output using a jq expression
     --json fields[=*]          Output JSON with the specified fields. Prefix a field with '-' to exclude it.
     --relation-type string     Relation type (friendly name, e.g. parent, child, related).
-    --target-id stringArray    Target work item ID (repeatable; comma-separated values accepted).
-    --target-url stringArray   Target artifact URL (repeatable; comma-separated values accepted).
+-T, --target-id stringArray    Target work item ID (repeatable; comma-separated; each entry is [PROJECT/]ID; ID-only targets resolve in the current project).
+-u, --target-url stringArray   Target artifact URL (repeatable; comma-separated values accepted).
 -t, --template string          Format JSON output using a Go template; see "azdo help formatting"
 ```
 
@@ -353,6 +353,22 @@ Aliases
 
 ```
 r, rm
+```
+
+##### `azdo boards work-item relation show [ORG:]PROJECT/ID [flags]`
+
+List the relations of a work item.
+
+```
+-q, --jq expression     Filter JSON output using a jq expression
+    --json fields[=*]   Output JSON with the specified fields. Prefix a field with '-' to exclude it.
+-t, --template string   Format JSON output using a Go template; see "azdo help formatting"
+```
+
+Aliases
+
+```
+s
 ```
 
 #### `azdo boards work-item show [ORG:]PROJECT/ID [flags]`
