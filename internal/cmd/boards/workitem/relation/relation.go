@@ -5,6 +5,7 @@ import (
 
 	"github.com/tmeckel/azdo-cli/internal/cmd/boards/workitem/relation/add"
 	"github.com/tmeckel/azdo-cli/internal/cmd/boards/workitem/relation/remove"
+	"github.com/tmeckel/azdo-cli/internal/cmd/boards/workitem/relation/show"
 	"github.com/tmeckel/azdo-cli/internal/cmd/util"
 )
 
@@ -17,6 +18,7 @@ func NewCmd(ctx util.CmdContext) *cobra.Command {
 
 	cmd.AddCommand(add.NewCmd(ctx))
 	cmd.AddCommand(remove.NewCmd(ctx))
+	cmd.AddCommand(show.NewCmd(ctx))
 
 	return cmd
 }

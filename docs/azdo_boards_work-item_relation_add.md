@@ -6,7 +6,11 @@ azdo boards work-item relation add [ORG:]PROJECT/ID [flags]
 
 Attach one or more relations to an existing work item. The relation type
 must be one of the friendly names returned by 'list-type'. Targets can
-be other work items (by ID) or arbitrary artifact URLs.
+be other work items (by ID, optionally prefixed with their project) or
+arbitrary artifact URLs. Work items in other projects of the same
+organization are resolved via 'PROJECT/ID'. Cross-organization links
+are not possible by ID; use --target-url with a remote link type such
+as 'Remote Related', 'Consumes From' or 'Produces For'.
 
 
 ### Options
@@ -24,11 +28,11 @@ be other work items (by ID) or arbitrary artifact URLs.
 
 	Relation type (friendly name, e.g. parent, child, related).
 
-* `--target-id` `stringArray`
+* `-T`, `--target-id` `stringArray`
 
-	Target work item ID (repeatable; comma-separated values accepted).
+	Target work item ID (repeatable; comma-separated; each entry is [PROJECT/]ID; ID-only targets resolve in the current project).
 
-* `--target-url` `stringArray`
+* `-u`, `--target-url` `stringArray`
 
 	Target artifact URL (repeatable; comma-separated values accepted).
 
@@ -50,6 +54,9 @@ be other work items (by ID) or arbitrary artifact URLs.
 ```bash
 # Add a parent relation to another work item
 azdo boards work-item relation add Fabrikam/1234 --relation-type parent --target-id 5678
+
+# Add a parent relation to a work item in another project of the same organization
+azdo boards work-item relation add Fabrikam/1234 --relation-type parent --target-id Contoso/77
 
 # Add a relation to multiple work items
 azdo boards work-item relation add Fabrikam/1234 --relation-type related --target-id 5678,5679
