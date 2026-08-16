@@ -14,6 +14,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"go.uber.org/mock/gomock"
 
+	wishared "github.com/tmeckel/azdo-cli/internal/cmd/boards/workitem/shared"
 	"github.com/tmeckel/azdo-cli/internal/iostreams"
 	"github.com/tmeckel/azdo-cli/internal/mocks"
 	"github.com/tmeckel/azdo-cli/internal/printer"
@@ -73,8 +74,12 @@ func (d *dependencies) stubGetWorkItem(t *testing.T, project string, targetIDs m
 			require.NotNil(t, args.Id)
 			require.NotNil(t, args.Project)
 			assert.Equal(t, project, *args.Project)
+			fields := map[string]interface{}{wishared.TeamProjectField: project}
 			if url, ok := targetIDs[*args.Id]; ok {
-				return &workitemtracking.WorkItem{Id: args.Id, Url: types.ToPtr(url)}, nil
+				return &workitemtracking.WorkItem{Id: args.Id, Url: types.ToPtr(url), Fields: &fields}, nil
+			}
+			if populated.Fields == nil {
+				populated.Fields = &fields
 			}
 			return populated, nil
 		},
@@ -143,6 +148,8 @@ func TestNewCmd_add(t *testing.T) {
 	for _, name := range []string{"relation-type", "target-id", "target-url", "json"} {
 		assert.NotNil(t, f.Lookup(name), "flag %q must exist", name)
 	}
+	assert.Equal(t, "T", f.Lookup("target-id").Shorthand, "target-id shorthand collides with --template (-t)")
+	assert.Equal(t, "u", f.Lookup("target-url").Shorthand)
 }
 
 func Test_runAdd_minimal(t *testing.T) {
@@ -360,7 +367,16 @@ func Test_runAdd_targetIDNotFound(t *testing.T) {
 	deps := newDependencies(t, "myorg")
 	deps.setupDefaultOrg("myorg")
 	deps.stubGetRelationTypes(relationTypes)
-	deps.wit.EXPECT().GetWorkItem(gomock.Any(), gomock.Any()).Return(nil, errors.New("not found")).AnyTimes()
+	deps.wit.EXPECT().GetWorkItem(gomock.Any(), gomock.Any()).DoAndReturn(
+		func(_ context.Context, args workitemtracking.GetWorkItemArgs) (*workitemtracking.WorkItem, error) {
+			require.NotNil(t, args.Id)
+			if *args.Id == 1234 {
+				fields := map[string]interface{}{wishared.TeamProjectField: "Fabrikam"}
+				return &workitemtracking.WorkItem{Id: args.Id, Fields: &fields}, nil
+			}
+			return nil, errors.New("not found")
+		},
+	).AnyTimes()
 
 	err := runAdd(deps.cmd, &addOptions{targetArg: "Fabrikam/1234", relationType: "parent", targetIDs: []string{"2"}})
 	require.Error(t, err)
@@ -407,6 +423,191 @@ func Test_runAdd_scope(t *testing.T) {
 			assert.Equal(t, 1234, *args.Id)
 		})
 	}
+}
+
+func Test_runAdd_projectMismatchSource(t *testing.T) {
+	t.Parallel()
+
+	deps := newDependencies(t, "myorg")
+	deps.setupDefaultOrg("myorg")
+	deps.stubGetRelationTypes(relationTypes)
+	deps.wit.EXPECT().GetWorkItem(gomock.Any(), gomock.Any()).DoAndReturn(
+		func(_ context.Context, args workitemtracking.GetWorkItemArgs) (*workitemtracking.WorkItem, error) {
+			require.NotNil(t, args.Id)
+			require.NotNil(t, args.Project)
+			if *args.Id == 2 {
+				fields := map[string]interface{}{wishared.TeamProjectField: "Fabrikam"}
+				return &workitemtracking.WorkItem{Id: args.Id, Url: types.ToPtr(targetURL(2)), Fields: &fields}, nil
+			}
+			fields := map[string]interface{}{wishared.TeamProjectField: "OtherProject"}
+			return &workitemtracking.WorkItem{Id: args.Id, Fields: &fields}, nil
+		},
+	).AnyTimes()
+
+	err := runAdd(deps.cmd, &addOptions{targetArg: "Fabrikam/1234", relationType: "parent", targetIDs: []string{"2"}})
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), `work item 1234 does not belong to project "Fabrikam"`)
+}
+
+func Test_run_add_projectMismatchTarget(t *testing.T) {
+	t.Parallel()
+
+	deps := newDependencies(t, "myorg")
+	deps.setupDefaultOrg("myorg")
+	deps.stubGetRelationTypes(relationTypes)
+	deps.wit.EXPECT().GetWorkItem(gomock.Any(), gomock.Any()).DoAndReturn(
+		func(_ context.Context, args workitemtracking.GetWorkItemArgs) (*workitemtracking.WorkItem, error) {
+			require.NotNil(t, args.Id)
+			require.NotNil(t, args.Project)
+			if *args.Id == 1234 {
+				fields := map[string]interface{}{wishared.TeamProjectField: "Fabrikam"}
+				return &workitemtracking.WorkItem{Id: args.Id, Fields: &fields}, nil
+			}
+			fields := map[string]interface{}{wishared.TeamProjectField: "OtherProject"}
+			return &workitemtracking.WorkItem{Id: args.Id, Url: types.ToPtr(targetURL(2)), Fields: &fields}, nil
+		},
+	).AnyTimes()
+
+	err := runAdd(deps.cmd, &addOptions{targetArg: "Fabrikam/1234", relationType: "parent", targetIDs: []string{"2"}})
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), `target work item 2 does not belong to project "Fabrikam"`)
+}
+
+func Test_runAdd_targetIDForms(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name        string
+		targetIDs   []string
+		wantProject map[int]string // id -> expected fetch project
+		wantError   string
+	}{
+		{
+			name:      "bare ID resolves in scope project",
+			targetIDs: []string{"42"},
+			wantProject: map[int]string{
+				42: "Fabrikam",
+			},
+		},
+		{
+			name:      "non-numeric bare ID",
+			targetIDs: []string{"abc"},
+			wantError: `target work item ID must be a positive integer; got "abc"`,
+		},
+		{
+			name:      "non-numeric project prefixed ID",
+			targetIDs: []string{"Contoso/abc"},
+			wantError: `target work item ID must be a positive integer; got "abc"`,
+		},
+		{
+			name:      "negative project prefixed ID",
+			targetIDs: []string{"Contoso/-3"},
+			wantError: "target work item ID must be a positive integer",
+		},
+		{
+			name:      "legacy org slash form",
+			targetIDs: []string{"myorg/Fabrikam/42"},
+			wantError: "organization is not allowed",
+		},
+		{
+			name:      "org prefixed colon form",
+			targetIDs: []string{"myorg:Fabrikam/42"},
+			wantError: "organization is not allowed",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			deps := newDependencies(t, "myorg")
+			deps.setupDefaultOrg("myorg")
+			deps.stubGetRelationTypes(relationTypes)
+			if tt.wantError == "" {
+				deps.wit.EXPECT().GetWorkItem(gomock.Any(), gomock.Any()).DoAndReturn(
+					func(_ context.Context, args workitemtracking.GetWorkItemArgs) (*workitemtracking.WorkItem, error) {
+						require.NotNil(t, args.Id)
+						require.NotNil(t, args.Project)
+						if *args.Id == 1234 {
+							assert.Equal(t, "Fabrikam", *args.Project)
+							fields := map[string]interface{}{wishared.TeamProjectField: "Fabrikam"}
+							return &workitemtracking.WorkItem{Id: args.Id, Fields: &fields}, nil
+						}
+						assert.Equal(t, tt.wantProject[*args.Id], *args.Project)
+						fields := map[string]interface{}{wishared.TeamProjectField: tt.wantProject[*args.Id]}
+						return &workitemtracking.WorkItem{Id: args.Id, Url: types.ToPtr(targetURL(*args.Id)), Fields: &fields}, nil
+					},
+				).AnyTimes()
+				deps.stubUpdateWorkItem(t, "Fabrikam")
+			}
+
+			err := runAdd(deps.cmd, &addOptions{targetArg: "Fabrikam/1234", relationType: "parent", targetIDs: tt.targetIDs})
+			if tt.wantError != "" {
+				require.Error(t, err)
+				assert.Contains(t, err.Error(), tt.wantError)
+				return
+			}
+			require.NoError(t, err)
+		})
+	}
+}
+
+func Test_runAdd_crossProjectTarget(t *testing.T) {
+	t.Parallel()
+
+	deps := newDependencies(t, "myorg")
+	deps.setupDefaultOrg("myorg")
+	deps.stubGetRelationTypes(relationTypes)
+	deps.wit.EXPECT().GetWorkItem(gomock.Any(), gomock.Any()).DoAndReturn(
+		func(_ context.Context, args workitemtracking.GetWorkItemArgs) (*workitemtracking.WorkItem, error) {
+			require.NotNil(t, args.Id)
+			require.NotNil(t, args.Project)
+			switch *args.Id {
+			case 1234:
+				assert.Equal(t, "Fabrikam", *args.Project)
+				fields := map[string]interface{}{wishared.TeamProjectField: "Fabrikam"}
+				return &workitemtracking.WorkItem{Id: args.Id, Fields: &fields}, nil
+			case 77:
+				assert.Equal(t, "Contoso", *args.Project)
+				fields := map[string]interface{}{wishared.TeamProjectField: "Contoso"}
+				return &workitemtracking.WorkItem{Id: args.Id, Url: types.ToPtr(targetURL(77)), Fields: &fields}, nil
+			default:
+				t.Fatalf("unexpected work item ID %d", *args.Id)
+				return nil, nil
+			}
+		},
+	).AnyTimes()
+	args := deps.stubUpdateWorkItem(t, "Fabrikam")
+
+	err := runAdd(deps.cmd, &addOptions{targetArg: "Fabrikam/1234", relationType: "parent", targetIDs: []string{"Contoso/77"}})
+	require.NoError(t, err)
+
+	require.NotNil(t, args.Document)
+	require.Len(t, *args.Document, 1)
+	values := docValues(args.Document)
+	assert.Equal(t, targetURL(77), values[0]["url"])
+}
+
+func Test_runAdd_crossProjectTargetMismatch(t *testing.T) {
+	t.Parallel()
+
+	deps := newDependencies(t, "myorg")
+	deps.setupDefaultOrg("myorg")
+	deps.stubGetRelationTypes(relationTypes)
+	deps.wit.EXPECT().GetWorkItem(gomock.Any(), gomock.Any()).DoAndReturn(
+		func(_ context.Context, args workitemtracking.GetWorkItemArgs) (*workitemtracking.WorkItem, error) {
+			require.NotNil(t, args.Id)
+			if *args.Id == 1234 {
+				fields := map[string]interface{}{wishared.TeamProjectField: "Fabrikam"}
+				return &workitemtracking.WorkItem{Id: args.Id, Fields: &fields}, nil
+			}
+			fields := map[string]interface{}{wishared.TeamProjectField: "YetAnother"}
+			return &workitemtracking.WorkItem{Id: args.Id, Url: types.ToPtr(targetURL(77)), Fields: &fields}, nil
+		},
+	).AnyTimes()
+
+	err := runAdd(deps.cmd, &addOptions{targetArg: "Fabrikam/1234", relationType: "parent", targetIDs: []string{"Contoso/77"}})
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), `target work item 77 does not belong to project "Contoso"`)
 }
 
 func Test_runAdd_APIError(t *testing.T) {
