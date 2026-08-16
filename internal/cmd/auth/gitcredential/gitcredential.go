@@ -2,11 +2,13 @@ package gitcredential
 
 import (
 	"bufio"
+	"errors"
 	"fmt"
 	"net/url"
 	"strings"
 
 	"github.com/spf13/cobra"
+	azdo "github.com/tmeckel/azdo-cli/internal/azdo"
 	cmdutil "github.com/tmeckel/azdo-cli/internal/cmd/util"
 	"github.com/tmeckel/azdo-cli/internal/util"
 
@@ -131,22 +133,19 @@ func helperRun(ctx cmdutil.CmdContext, opts *credentialOptions) (err error) {
 	var organizationName string
 	lookupHost := strings.ToLower(wants["host"])
 	zap.L().Debug("detecting organization", zap.String("host", lookupHost), zap.String("path", wants["path"]))
-	if strings.Contains(lookupHost, ".visualstudio.com") { //nolint:golint,gocritic
-		organizationName = strings.Split(lookupHost, ".")[0]
-		zap.L().Debug("organization from visualstudio.com", zap.String("organization", organizationName))
-	} else if lookupHost == "dev.azure.com" {
-		if path, ok := wants["path"]; !ok {
-			zap.L().Debug("dev.azure.com host requires path")
-			return fmt.Errorf("authenticating via dev.azure.com host requires path parameter")
-		} else { //nolint:golint,revive
-			organizationName = strings.Split(path, "/")[0]
-			zap.L().Debug("organization from dev.azure.com", zap.String("organization", organizationName))
-		}
-	} else {
+
+	id, err := azdo.ParseURL(&url.URL{Host: lookupHost, Path: wants["path"]}, false)
+	switch {
+	case errors.Is(err, azdo.ErrInvalidPath):
+		zap.L().Debug("dev.azure.com host requires path")
+		return fmt.Errorf("authenticating via dev.azure.com host requires path parameter")
+	case errors.Is(err, azdo.ErrNotAzDO):
 		zap.L().Debug("not an Azure DevOps host", zap.String("host", lookupHost))
 		return fmt.Errorf("not an Azure DevOps host %s", lookupHost)
+	case err != nil:
+		return err
 	}
-
+	organizationName = id.Organization
 	if organizationName == "" {
 		zap.L().Debug("unable to extract organization", zap.String("host", wants["host"]), zap.String("path", wants["path"]))
 		return fmt.Errorf("unable to get token from host %s or path %s", wants["host"], wants["path"])
