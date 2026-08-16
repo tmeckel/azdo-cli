@@ -182,7 +182,6 @@ func ProjectFromURL(u *url.URL) (ProjectName, error) {
 	}
 
 	parts := strings.Split(strings.Trim(u.Path, "/"), "/")
-	orgInHost := strings.HasSuffix(strings.ToLower(u.Hostname()), ".visualstudio.com")
 
 	for _, part := range parts {
 		if len(strings.TrimSpace(part)) == 0 {
@@ -190,32 +189,24 @@ func ProjectFromURL(u *url.URL) (ProjectName, error) {
 		}
 	}
 
-	var organization string
-	var project string
-	if orgInHost {
-		if len(parts) < 1 {
-			return nil, fmt.Errorf("invalid path %q", u.Path)
-		}
-		organization = strings.ToLower(strings.SplitN(u.Hostname(), ".", 2)[0])
-		project = parts[0]
-	} else {
-		if len(parts) < 2 {
-			return nil, fmt.Errorf("invalid path %q", u.Path)
-		}
-		organization = strings.ToLower(parts[0])
-		project = parts[1]
+	id, err := ParseURL(u, false)
+	if err != nil {
+		return nil, err
+	}
+	if id.Project == "" {
+		return nil, fmt.Errorf("invalid path %q", u.Path)
 	}
 
-	hostname, err := getHostnameFromOrganization(organization)
+	hostname, err := getHostnameFromOrganization(id.Organization)
 	if err != nil {
 		return nil, err
 	}
 
 	if !strings.EqualFold(hostname, u.Hostname()) {
-		return nil, fmt.Errorf("hostname %q of URL does not match configured hostname %q of organization %q", u.Hostname(), hostname, organization)
+		return nil, fmt.Errorf("hostname %q of URL does not match configured hostname %q of organization %q", u.Hostname(), hostname, id.Organization)
 	}
 
-	return ProjectFromName(organization + ":" + project)
+	return ProjectFromName(id.Organization + ":" + id.Project)
 }
 
 // OrganizationFromURL extracts the Azure DevOps organization from a validated URL.
@@ -234,24 +225,11 @@ func OrganizationFromURL(u *url.URL) (string, error) {
 		return "", fmt.Errorf("url %s is not a valid AzDO remote URL", u.String())
 	}
 
-	lowerHostname := strings.ToLower(u.Hostname())
-	if strings.HasSuffix(lowerHostname, ".visualstudio.com") {
-		return strings.SplitN(lowerHostname, ".", 2)[0], nil
+	id, err := ParseURL(u, false)
+	if err != nil {
+		return "", err
 	}
-
-	parts := strings.Split(strings.Trim(u.Path, "/"), "/")
-	if len(parts) == 0 || strings.TrimSpace(parts[0]) == "" {
-		return "", fmt.Errorf("invalid path %q", u.Path)
-	}
-
-	if strings.EqualFold(u.Scheme, "ssh") {
-		if len(parts) < 2 || strings.TrimSpace(parts[1]) == "" {
-			return "", fmt.Errorf("invalid path %q", u.Path)
-		}
-		return strings.ToLower(parts[1]), nil
-	}
-
-	return strings.ToLower(parts[0]), nil
+	return id.Organization, nil
 }
 
 type RepositoryName interface {
@@ -497,7 +475,10 @@ func RepositoryFromURL(u *url.URL) (Repository, error) {
 	zap.L().Debug("validated as AzDO remote URL", zap.String("hostname", u.Hostname()), zap.String("scheme", u.Scheme), zap.String("path", u.Path))
 	parts := strings.SplitN(strings.Trim(u.Path, "/"), "/", 5)
 	zap.L().Debug("split path into parts", zap.Strings("parts", parts))
-	orgInHost := strings.HasSuffix(strings.ToLower(u.Hostname()), ".visualstudio.com")
+	// The host-style form ({org}.visualstudio.com/{project}/...) leads the
+	// path with the project, so its repository URLs carry one fewer segment
+	// than the dev.azure.com/{org}/{project}/... form.
+	orgInHost := IsVisualStudioHost(u.Hostname())
 
 	for _, part := range parts {
 		if len(strings.TrimSpace(part)) == 0 {
@@ -544,17 +525,13 @@ func RepositoryFromURL(u *url.URL) (Repository, error) {
 		return nil, fmt.Errorf("unsupported scheme %q", u.Scheme)
 	}
 
-	var organization string
-	var project string
-	if orgInHost {
-		organization = strings.ToLower(strings.SplitN(u.Hostname(), ".", 2)[0])
-		project = parts[0]
-		zap.L().Debug("extracted organization/project from host style url", zap.String("organization", organization), zap.String("project", project))
-	} else {
-		organization = strings.ToLower(parts[0])
-		project = parts[1]
-		zap.L().Debug("extracted organization/project from path style url", zap.String("organization", organization), zap.String("project", project))
+	id, err := ParseURL(u, false)
+	if err != nil {
+		return nil, err
 	}
+	organization := id.Organization
+	project := id.Project
+	zap.L().Debug("extracted organization/project from url", zap.String("organization", organization), zap.String("project", project))
 
 	hostname, err := getHostnameFromOrganization(organization)
 	if err != nil {
@@ -564,7 +541,7 @@ func RepositoryFromURL(u *url.URL) (Repository, error) {
 
 	if !strings.EqualFold(hostname, strings.TrimPrefix(u.Hostname(), "ssh.")) {
 		zap.L().Debug("hostname mismatch detected", zap.String("url_hostname", u.Hostname()), zap.String("configured_hostname", hostname), zap.String("organization", organization))
-		return nil, fmt.Errorf("hostname %q of URL does not match configured hostname %q of organization %q", u.Hostname(), hostname, parts[0])
+		return nil, fmt.Errorf("hostname %q of URL does not match configured hostname %q of organization %q", u.Hostname(), hostname, organization)
 	}
 	zap.L().Debug("creating repository object", zap.String("organization", organization), zap.String("project", project), zap.String("repo", strings.TrimSuffix(parts[projectNameIdx], ".git")))
 
