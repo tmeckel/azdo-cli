@@ -935,6 +935,146 @@ func TestParse(t *testing.T) {
 			opts:    util.ParseOptions{AllowImplicitOrg: true, MinTargets: 1, MaxTargets: 1},
 			wantErr: "no organization specified and no default organization configured",
 		},
+		{
+			name: "disallowed organization with project target",
+			raw:  "project/group",
+			opts: util.ParseOptions{DisallowOrganization: true, RequireProject: true, MinTargets: 1, MaxTargets: 1},
+			want: &util.Path{Project: "project", Targets: []string{"group"}},
+		},
+		{
+			name: "disallowed organization with no-project target",
+			raw:  "/group",
+			opts: util.ParseOptions{DisallowOrganization: true, MinTargets: 1, MaxTargets: 1},
+			want: &util.Path{Targets: []string{"group"}},
+		},
+		{
+			name:    "disallowed organization rejects explicit organization",
+			raw:     "myorg:project/group",
+			opts:    util.ParseOptions{DisallowOrganization: true, RequireProject: true, MinTargets: 1, MaxTargets: 1},
+			wantErr: "organization is not allowed",
+		},
+		{
+			name:    "disallowed organization rejects legacy organization form",
+			raw:     "myorg/project/group",
+			opts:    util.ParseOptions{DisallowOrganization: true, RequireProject: true, MinTargets: 1, MaxTargets: 1},
+			wantErr: "organization is not allowed",
+		},
+		{
+			name: "disallowed organization skips default organization lookup",
+			raw:  "project/group",
+			ctx:  emptyOrgCtx(t),
+			opts: util.ParseOptions{DisallowOrganization: true, RequireProject: true, MinTargets: 1, MaxTargets: 1},
+			want: &util.Path{Project: "project", Targets: []string{"group"}},
+		},
+		{
+			name: "disallowed organization with bare project input",
+			raw:  "project",
+			ctx:  emptyOrgCtx(t),
+			opts: util.ParseOptions{DisallowOrganization: true, RequireProject: true, DisallowTargets: true},
+			want: &util.Path{Project: "project"},
+		},
+		{
+			name: "bare target without organization",
+			raw:  "5678",
+			opts: util.ParseOptions{DisallowOrganization: true, AllowBareTargets: true, MinTargets: 1, MaxTargets: 1},
+			want: &util.Path{Targets: []string{"5678"}},
+		},
+		{
+			name: "bare target with default organization",
+			raw:  "5678",
+			opts: util.ParseOptions{AllowImplicitOrg: true, AllowBareTargets: true, MinTargets: 1, MaxTargets: 1},
+			want: &util.Path{Organization: "default-org", Targets: []string{"5678"}},
+		},
+		{
+			name:    "bare target rejects explicit organization",
+			raw:     "myorg:5678",
+			opts:    util.ParseOptions{DisallowOrganization: true, AllowBareTargets: true, MinTargets: 1, MaxTargets: 1},
+			wantErr: "organization is not allowed",
+		},
+		{
+			name: "bare target marker form still accepted",
+			raw:  "/5678",
+			opts: util.ParseOptions{DisallowOrganization: true, AllowBareTargets: true, MinTargets: 1, MaxTargets: 1},
+			want: &util.Path{Targets: []string{"5678"}},
+		},
+		{
+			name: "project target still project first with bare targets",
+			raw:  "Contoso/5678",
+			opts: util.ParseOptions{DisallowOrganization: true, AllowBareTargets: true, MinTargets: 1, MaxTargets: 1},
+			want: &util.Path{Project: "Contoso", Targets: []string{"5678"}},
+		},
+		{
+			name: "two segments are not bare targets",
+			raw:  "a/b",
+			opts: util.ParseOptions{DisallowOrganization: true, AllowBareTargets: true, MinTargets: 1, MaxTargets: 1},
+			want: &util.Path{Project: "a", Targets: []string{"b"}},
+		},
+		{
+			name:    "bare target with too many targets",
+			raw:     "a/b/c",
+			opts:    util.ParseOptions{DisallowOrganization: true, AllowBareTargets: true, MinTargets: 1, MaxTargets: 1},
+			wantErr: "organization is not allowed",
+		},
+		{
+			name:    "bare target too few targets",
+			raw:     "",
+			opts:    util.ParseOptions{DisallowOrganization: true, AllowBareTargets: true, MinTargets: 1, MaxTargets: 1},
+			wantErr: "expected exactly 1 targets, got 0",
+		},
+		{
+			name: "bare target without organization constraints",
+			raw:  "5678",
+			opts: util.ParseOptions{DisallowOrganization: true, AllowBareTargets: true},
+			want: &util.Path{Targets: []string{"5678"}},
+		},
+		{
+			name: "disallowed organization and project with no-project target",
+			raw:  "/group",
+			opts: util.ParseOptions{DisallowOrganization: true, DisallowProject: true, MinTargets: 1, MaxTargets: 1},
+			want: &util.Path{Targets: []string{"group"}},
+		},
+		{
+			name:    "disallowed organization and project rejects project-first form",
+			raw:     "project/group",
+			opts:    util.ParseOptions{DisallowOrganization: true, DisallowProject: true, MinTargets: 1, MaxTargets: 1},
+			wantErr: "project is not allowed, use the / no-project marker",
+		},
+		{
+			name:    "disallowed organization rejects explicit organization with no-project marker",
+			raw:     "myorg:/group",
+			opts:    util.ParseOptions{DisallowOrganization: true, MinTargets: 1, MaxTargets: 1},
+			wantErr: "organization is not allowed",
+		},
+		{
+			name:    "disallowed organization rejects organization-only input",
+			raw:     "myorg:",
+			opts:    util.ParseOptions{DisallowOrganization: true, DisallowTargets: true},
+			wantErr: "organization is not allowed",
+		},
+		{
+			name:    "disallowed organization requires project with no-project marker",
+			raw:     "/group",
+			opts:    util.ParseOptions{DisallowOrganization: true, RequireProject: true, MinTargets: 1, MaxTargets: 1},
+			wantErr: "project is required",
+		},
+		{
+			name:    "disallowed organization empty input requires project",
+			raw:     "",
+			opts:    util.ParseOptions{DisallowOrganization: true, RequireProject: true, MinTargets: 1, MaxTargets: 1},
+			wantErr: "project is required",
+		},
+		{
+			name: "disallowed organization empty input with no constraints",
+			raw:  "",
+			opts: util.ParseOptions{DisallowOrganization: true},
+			want: &util.Path{},
+		},
+		{
+			name:    "disallowed organization too few targets",
+			raw:     "project",
+			opts:    util.ParseOptions{DisallowOrganization: true, RequireProject: true, MinTargets: 1, MaxTargets: 1},
+			wantErr: "expected exactly 1 targets, got 0",
+		},
 	}
 
 	for i := range tests {
@@ -945,6 +1085,17 @@ func TestParse(t *testing.T) {
 			return util.Parse(ctx, raw, tests[i].opts)
 		})
 	}
+}
+
+func TestParse_DisallowOrganizationNilContext(t *testing.T) {
+	got, err := util.Parse(nil, "project/group", util.ParseOptions{
+		DisallowOrganization: true,
+		RequireProject:       true,
+		MinTargets:           1,
+		MaxTargets:           1,
+	})
+	require.NoError(t, err)
+	assert.Equal(t, &util.Path{Project: "project", Targets: []string{"group"}}, got)
 }
 
 func TestParseInvalidOptions(t *testing.T) {
@@ -990,6 +1141,30 @@ func TestParseInvalidOptions(t *testing.T) {
 			raw:     "org:/a/b",
 			opts:    util.ParseOptions{RequireProject: true, DisallowProject: true},
 			wantErr: "project cannot be required and disallowed at the same time",
+		},
+		{
+			name:    "organization disallowed with implicit organization",
+			raw:     "org:/a/b",
+			opts:    util.ParseOptions{AllowImplicitOrg: true, DisallowOrganization: true},
+			wantErr: "organization cannot be disallowed when the implicit organization is allowed",
+		},
+		{
+			name:    "bare targets with required project",
+			raw:     "a/b",
+			opts:    util.ParseOptions{AllowBareTargets: true, RequireProject: true},
+			wantErr: "bare targets cannot be combined with a required project",
+		},
+		{
+			name:    "bare targets with disallowed project",
+			raw:     "/a/b",
+			opts:    util.ParseOptions{AllowBareTargets: true, DisallowProject: true},
+			wantErr: "bare targets cannot be combined with a disallowed project",
+		},
+		{
+			name:    "bare targets with disallowed targets",
+			raw:     "a/b",
+			opts:    util.ParseOptions{AllowBareTargets: true, DisallowTargets: true},
+			wantErr: "bare targets cannot be combined with disallowed targets",
 		},
 		{
 			name: "disallowed targets with zero bounds is valid",
