@@ -5,7 +5,7 @@ _.file = ".env"
 idiomatic_version_file_enable_tools = ["go"]
 
 [tools]
-"golangci-lint" = "2.14.0"
+"golangci-lint" = "2.15.0"
 goreleaser = "latest"
 prek = "latest"
 gofumpt = "latest"
